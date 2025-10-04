@@ -17,5 +17,15 @@
   "bugs": {
     "url": "https://github.com/deaasnuari/repository-akreditasi-polibatam-/issues"
   },
-  "homepage": "https://github.com/deaasnuari/repository-akreditasi-polibatam-#readme"
+  "homepage": "https://github.com/deaasnuari/repository-akreditasi-polibatam-#readme",
+  "dependencies": {
+    "@next/font": "^14.2.15",
+    "flowbite": "^3.1.2",
+    "flowbite-react": "^0.12.9"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.14"
+  }
 }
