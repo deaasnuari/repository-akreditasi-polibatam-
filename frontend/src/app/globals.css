@@ -1,29 +1,47 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Import Flowbite agar komponen seperti Navbar, Button, Modal, dsb bisa berfungsi */
+@import "flowbite";
+
+/* //Font dan warna dasar */
 
 :root {
   --background: #ffffff;
   --foreground: #171717;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+
+  /* Variabel font dari layout.js */
+  --font-poppins: 'Poppins', sans-serif;
+  --font-irish-grover: 'Irish Grover', cursive;
 }
 
+/* Mode dark tetap pakai tema terang untuk project ini */
 @media (prefers-color-scheme: dark) {
   :root {
-    /* Force light theme background for this project */
     --background: #ffffff;
     --foreground: #171717;
   }
 }
 
+   /* Styling dasar body & layout */
+
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-poppins); 
 }
 
-/* Ensure the root containers also have white background (Next uses #__next) */
 html, #__next {
   background: var(--background) !important;
+}
+
+.font-poppins {
+  font-family: var(--font-poppins);
+}
+
+.font-irish {
+  font-family: var(--font-irish-grover);
 }
