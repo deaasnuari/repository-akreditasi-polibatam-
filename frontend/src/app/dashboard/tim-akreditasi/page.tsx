@@ -35,6 +35,7 @@ export default function DashboardAkreditasi() {
       <div className="flex-1 w-full">
         {/* Toggle Button - Fixed Position */}
        
+       
 
         {/* Dashboard Content */}
         <main className="w-full p-4 md:p-6 max-w-full overflow-x-hidden">
