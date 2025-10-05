@@ -11,7 +11,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 
 app.use(cors({
-  origin: "http://localhost:3001",   // izinkan hanya frontend kamu
+  origin: "http://localhost:3000",   // izinkan hanya frontend kamu
   methods: ["GET", "POST"],
   credentials: true
 }));
