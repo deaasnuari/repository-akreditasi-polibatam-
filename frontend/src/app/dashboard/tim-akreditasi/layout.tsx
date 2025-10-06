@@ -14,10 +14,10 @@ export default function LayoutTimAkreditasi({ children }: { children: React.Reac
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-blue-900 rounded-full flex items-center justify-center">
-              <span className="text-white font-bold">IP</span>
+              <span className="text-white font-bold">RA</span>
             </div>
             <div>
-              <h2 className="font-bold text-sm">INFRA</h2>
+              <h2 className="font-bold text-sm">Repository Akreditasi</h2>
               <p className="text-xs text-gray-600">POLIBATAM</p>
             </div>
           </div>
