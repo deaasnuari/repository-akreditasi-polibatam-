@@ -52,5 +52,54 @@
     "aktif": "CXC",
     "type": "mahasiswa",
     "id": 6
+  },
+  {
+    "tahun": "23456",
+    "daya_tampung": null,
+    "pendaftar": null,
+    "diterima": null,
+    "aktif": null,
+    "type": "mahasiswa",
+    "id": 7
+  },
+  {
+    "asalMahasiswa": " c c",
+    "ts2": " c ",
+    "ts1": " c ",
+    "ts": "c c",
+    "linkBukti": " c c",
+    "type": "keragaman-asal",
+    "id": 8
+  },
+  {
+    "asalMahasiswa": " c c",
+    "ts2": " c ",
+    "ts1": " c ",
+    "ts": "c c",
+    "linkBukti": "http://localhost:3000/dashboard/tim-akreditasi/lkps",
+    "type": "keragaman-asal",
+    "id": 9
+  },
+  {
+    "type": "keragaman-asal",
+    "id": 10
+  },
+  {
+    "asalMahasiswa": " c c",
+    "ts2": " c ",
+    "ts1": " c ",
+    "ts": "c c",
+    "linkBukti": "http://localhost:3000/dashboard/tim-akreditasi/lkps",
+    "type": "keragaman-asal",
+    "id": 11
+  },
+  {
+    "asalMahasiswa": "bbvhv",
+    "ts2": " c ",
+    "ts1": " c ",
+    "ts": "c c",
+    "linkBukti": "http://localhost:3000/dashboard/tim-akreditasi/lkps",
+    "type": "keragaman-asal",
+    "id": 12
   }
 ]
