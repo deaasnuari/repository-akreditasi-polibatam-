@@ -297,5 +297,83 @@
     "jumlah": "",
     "tahun": "2025",
     "type": "penggunaan-dana"
+  },
+  {
+    "id": "mgdwills52fe5a",
+    "unitKerja": "kdnkcsnkc",
+    "namaKetua": "jnsdjbxnsj",
+    "periode": "k",
+    "pendidikan": "njnsjxs",
+    "jabatan": "k",
+    "tupoksi": "k",
+    "sumberDana": "",
+    "jumlah": "",
+    "tahun": "",
+    "type": "tupoksi"
+  },
+  {
+    "id": "mgdwirenbyy7sr",
+    "unitKerja": "Teknik Informatika",
+    "namaKetua": "Juwita Dwi Wahyuni",
+    "periode": "2023–2027",
+    "pendidikan": "S2",
+    "jabatan": "Lektor",
+    "tupoksi": "Mengelola mutu akademik",
+    "sumberDana": "",
+    "jumlah": "",
+    "tahun": "",
+    "type": "tupoksi"
+  },
+  {
+    "id": "mgdwiren505oem",
+    "unitKerja": "Sistem Informasi",
+    "namaKetua": "Dea Kusuma",
+    "periode": "2023–2027",
+    "pendidikan": "S2",
+    "jabatan": "Asisten Ahli",
+    "tupoksi": "Mengelola mutu sistem informasi",
+    "sumberDana": "",
+    "jumlah": "",
+    "tahun": "",
+    "type": "tupoksi"
+  },
+  {
+    "id": "mgdwtsb50yeoae",
+    "unitKerja": "",
+    "namaKetua": "",
+    "periode": "",
+    "pendidikan": "",
+    "jabatan": "",
+    "tupoksi": "",
+    "sumberDana": "",
+    "jumlah": "",
+    "tahun": "2025",
+    "type": "penggunaan-dana"
+  },
+  {
+    "id": "mgdwtsb6sfh0c1",
+    "unitKerja": "",
+    "namaKetua": "",
+    "periode": "",
+    "pendidikan": "",
+    "jabatan": "",
+    "tupoksi": "",
+    "sumberDana": "",
+    "jumlah": "",
+    "tahun": "2025",
+    "type": "penggunaan-dana"
+  },
+  {
+    "id": "mgdwtsb6o0v92y",
+    "unitKerja": "",
+    "namaKetua": "",
+    "periode": "",
+    "pendidikan": "",
+    "jabatan": "",
+    "tupoksi": "",
+    "sumberDana": "",
+    "jumlah": "",
+    "tahun": "2025",
+    "type": "penggunaan-dana"
   }
 ]
