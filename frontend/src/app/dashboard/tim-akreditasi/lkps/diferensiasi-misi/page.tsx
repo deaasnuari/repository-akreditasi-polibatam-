@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { FileText, Download, Save } from 'lucide-react';
 
-export default function RelevansiPenelitianPage() {
+export default function diferensiasiPage() {
   const pathname = usePathname();
 
   const tabs = [
@@ -59,7 +59,7 @@ export default function RelevansiPenelitianPage() {
 
           {/* Konten halaman */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold mb-4">Relevansi Penelitian</h2>
+            <h2 className="text-xl font-semibold mb-4">Diferensiasi </h2>
             <p>Isi konten relevansi penelitian di sini. Bisa berupa tabel, chart, atau form input.</p>
           </div>
 
