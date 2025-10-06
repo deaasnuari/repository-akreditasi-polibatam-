@@ -5,6 +5,7 @@ import budayaMutuRoutes from "./routes/budayaMutu.js";
 import authRoutes from "./routes/auth.js";
 import relevansiRoutes from "./routes/relevansiPendidikan.js";
 import relevansiPenelitianRoutes from "./routes/relevansiPenelitian.js";
+import relevansiPendidikanRoutes from "./routes/relevansiPendidikan.js";
 
 const app = express();
 app.use(bodyParser.json());
@@ -23,7 +24,7 @@ app.use((req, res, next) => {
 app.use("/api/relevansi-penelitian", relevansiPenelitianRoutes);
 app.use("/api/budaya-mutu", budayaMutuRoutes);
 app.use("/api/auth", authRoutes);
-app.use("/api/relevansi-pendidikan", relevansiRoutes);
+app.use("/api/relevansi-pendidikan", relevansiPendidikanRoutes);
 
 const PORT = 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
