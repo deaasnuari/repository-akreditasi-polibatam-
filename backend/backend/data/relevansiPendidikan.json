@@ -1,1 +1,56 @@
-[]
+[
+  {
+    "id": 1,
+    "kategori": "Data Mahasiswa",
+    "tabel": "2.A.1",
+    "tahun": "2023",
+    "daya_tampung": 120,
+    "pendaftar": 320,
+    "diterima": 90,
+    "aktif": 85
+  },
+  {
+    "id": 2,
+    "kategori": "Keragaman Asal Mahasiswa",
+    "tabel": "2.A.2",
+    "tahun": "2023",
+    "asal_daerah": "Kota Batam",
+    "jumlah": 80
+  },
+  {
+    "tahun": "GHG",
+    "daya_tampung": "BHB",
+    "pendaftar": "JBJB",
+    "diterima": "BBVH",
+    "aktif": "JHJG",
+    "type": "mahasiswa",
+    "id": 3
+  },
+  {
+    "tahun": "GFVF",
+    "daya_tampung": "VFVF",
+    "pendaftar": "VFVF",
+    "diterima": "VFDVD",
+    "aktif": "DVFDVD",
+    "type": "mahasiswa",
+    "id": 4
+  },
+  {
+    "tahun": "XCSS",
+    "daya_tampung": "CSS",
+    "pendaftar": "CSCS",
+    "diterima": "CSCS",
+    "aktif": "DCSX",
+    "type": "mahasiswa",
+    "id": 5
+  },
+  {
+    "tahun": "SCSCS",
+    "daya_tampung": "CDCXS",
+    "pendaftar": "CSCS",
+    "diterima": "DXCS",
+    "aktif": "CXC",
+    "type": "mahasiswa",
+    "id": 6
+  }
+]

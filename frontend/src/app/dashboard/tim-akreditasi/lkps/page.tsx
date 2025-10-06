@@ -2,9 +2,13 @@
 
 import React, { useEffect, useState } from 'react';
 import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X } from 'lucide-react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 export default function LKPSPage() {
-  const [activeTab, setActiveTab] = useState('budaya-mutu');
+  const pathname = usePathname(); // ✅ posisi harus di atas, sebelum return
+
+  // Subtab data dan form
   const [activeSubTab, setActiveSubTab] = useState('tupoksi');
   const [data, setData] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -12,24 +16,38 @@ export default function LKPSPage() {
   const [formData, setFormData] = useState<any>({});
   const API_BASE = 'http://localhost:5000/api/budaya-mutu';
 
+  // =======================
+  // Tabs Navigasi Utama
+  // =======================
+  const tabs = [
+    { label: 'Budaya Mutu', href: '/dashboard/tim-akreditasi/lkps' },
+    { label: 'Relevansi Pendidikan', href: '/dashboard/tim-akreditasi/lkps/relevansi-pendidikan' },
+    { label: 'Relevansi Penelitian', href: '/dashboard/tim-akreditasi/lkps/relevansi-penelitian' },
+    { label: 'Relevansi Pkm', href: '/dashboard/tim-akreditasi/lkps/relevansi-pkm' },
+    { label: 'Akuntabilitas', href: '/dashboard/tim-akreditasi/lkps/akuntabilitas' },
+    { label: 'Diferensiasi Misi', href: '/dashboard/tim-akreditasi/lkps/diferensiasi-misi' },
+  ];
+
+
   // =========================
   // Fetch Data
   // =========================
-  const fetchData = async () => {
-    try {
-      const res = await fetch(`${API_BASE}?type=${activeSubTab}`);
-      if (!res.ok) throw new Error('Gagal fetch data');
-      const json = await res.json();
-      setData(json.data || []);
-    } catch (err) {
-      console.error('Fetch error:', err);
-      setData([]);
-    }
-  };
+ useEffect(() => {
+  console.log('Fetching data for:', activeSubTab);
+  fetchData();
+}, [activeSubTab]);
 
-  useEffect(() => {
-    fetchData();
-  }, [activeSubTab]);
+const fetchData = async () => {
+  try {
+    const res = await fetch(`${API_BASE}?type=${activeSubTab}`);
+    const json = await res.json();
+    console.log('Data fetched:', json.data); // ← cek ini
+    setData(json.data || []);
+  } catch (err) {
+    console.error('Fetch error:', err);
+    setData([]);
+  }
+};
 
   // =========================
   // Import Excel
@@ -223,6 +241,7 @@ export default function LKPSPage() {
         <main className="w-full p-4 md:p-6 max-w-full overflow-x-hidden">
 
           {/* Header */}
+
           <div className="bg-white rounded-lg shadow p-6 mb-6">
             <div className="flex justify-between items-start mb-4">
               <div className="flex items-center gap-3 mb-2">
@@ -244,25 +263,29 @@ export default function LKPSPage() {
                 </button>
               </div>
             </div>
+            </div>
+            
 
             {/* Tabs utama */}
-            <div className="flex gap-2 overflow-x-auto pb-2">
-              {['budaya-mutu', 'relevansi-pendidikan', 'relevansi-penelitian', 'relevansi-pkm', 'akuntabilitas', 'diferensiasi-misi'].map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-2 rounded-lg text-sm ${
-                    activeTab === tab ? 'bg-blue-100 text-blue-900 font-medium' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {tab.replace('-', ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
-                </button>
-              ))}
-            </div>
-          </div>
+<div className="flex gap-2 overflow-x-auto pb-2">
+  {tabs.map((tab) => (
+    <Link
+      key={tab.href}
+      href={tab.href}
+      className={`px-4 py-2 rounded-lg text-sm transition ${
+        pathname === tab.href
+          ? 'bg-blue-100 text-blue-900 font-medium'
+          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+      }`}
+    >
+      {tab.label}
+    </Link>
+  ))}
+</div>
+
 
           {/* Budaya Mutu Tab */}
-          {activeTab === 'budaya-mutu' && (
+          {pathname === '/dashboard/tim-akreditasi/lkps' && (
             <div className="bg-white rounded-lg shadow-md p-6 space-y-6">
 
               {/* Struktur Organisasi */}
@@ -277,7 +300,7 @@ export default function LKPSPage() {
                 </div>
               </div>
 
-              {/* Sub-tabs */}
+              {/* Sub-tabs */} {/* Tabs utama */}
               <div className="flex gap-2 border-b pb-2 mb-4">
                 {['tupoksi', 'pendanaan', 'penggunaan-dana', 'spmi'].map((sub) => (
                   <button
@@ -369,31 +392,30 @@ export default function LKPSPage() {
                       )}
 
                       {activeSubTab === 'penggunaan-dana' && (
-  <>
-    <input
-      name="jenisKegiatan"
-      value={formData.jenisKegiatan || ''}
-      onChange={handleChange}
-      placeholder="Jenis Kegiatan"
-      className="border p-3 rounded-lg w-full"
-    />
-    <input
-      name="jumlahDana"
-      value={formData.jumlahDana || ''}
-      onChange={handleChange}
-      placeholder="Jumlah Dana Digunakan"
-      className="border p-3 rounded-lg w-full"
-    />
-    <input
-      name="tahun"
-      value={formData.tahun || ''}
-      onChange={handleChange}
-      placeholder="Tahun"
-      className="border p-3 rounded-lg w-full"
-    />
-  </>
-)}
-
+                      <>
+                        <input
+                          name="jenisKegiatan"
+                          value={formData.jenisKegiatan || ''}
+                          onChange={handleChange}
+                          placeholder="Jenis Kegiatan"
+                          className="border p-3 rounded-lg w-full"
+                        />
+                        <input
+                          name="jumlahDana"
+                          value={formData.jumlahDana || ''}
+                          onChange={handleChange}
+                          placeholder="Jumlah Dana Digunakan"
+                          className="border p-3 rounded-lg w-full"
+                        />
+                        <input
+                          name="tahun"
+                          value={formData.tahun || ''}
+                          onChange={handleChange}
+                          placeholder="Tahun"
+                          className="border p-3 rounded-lg w-full"
+                        />
+                      </>
+                    )}
 
                       {/* ==================== Form SPMI ==================== */}
                       {activeSubTab === 'spmi' && (
@@ -422,4 +444,4 @@ export default function LKPSPage() {
       </div>
     </div>
   );
-}
+} 
