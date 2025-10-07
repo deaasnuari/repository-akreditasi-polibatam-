@@ -79,23 +79,61 @@ const normalizeRow = (row) => {
     unitKerja: get(["UNIT KERJA", "Unit Kerja", "unitKerja"]),
     namaKetua: get(["NAMA KETUA", "Nama Ketua", "namaKetua"]),
     periode: get(["PERIODE JABATAN", "Periode Jabatan", "periode"]),
-    pendidikan: get(["PENDIDIKAN TERAKHIR", "Pendidikan Terakhir", "pendidikan"]),
-    jabatan: get(["JABATAN FUNGSIONAL", "Jabatan Fungsional", "jabatan"]),
-    tupoksi: get(["TUPOKSI", "Tupoksi", "tupoksi"]),
+    pendidikanTerakhir: get(["PENDIDIKAN TERAKHIR", "Pendidikan Terakhir", "pendidikanTerakhir"]),
+    jabatanFungsional: get(["JABATAN FUNGSIONAL", "Jabatan Fungsional", "jabatanFungsional"]),
+    tugasPokokDanFungsi: get(["TUPOKSI", "Tupoksi", "tugasPokokDanFungsi"]),
+
+
 
     // PENDANAAN
-    sumberDana: get(["SUMBER DANA", "Sumber Dana", "sumberDana"]),
-    jumlah: get(["JUMLAH", "Jumlah", "jumlah"]),
-    tahun: get(["TAHUN", "Tahun", "tahun"]),
+    sumberPendanaan: get(["SUMBER PENDANAAN", "Sumber Pendanaan", "sumberPendanaan"]),
+    ts2: get(["TS-2", "Ts2", "ts2"]),
+    ts1: get(["TS-1", "Ts1", "ts1"]),
+    ts: get(["TS", "Ts", "ts"]),
+    linkBukti: get(["LINK BUKTI", "Link Bukti", "linkBukti"]),
 
     // PENGGUNAAN DANA ✅
-    jenisKegiatan: get(["JENIS KEGIATAN", "Jenis Kegiatan", "jenisKegiatan"]),
-    jumlahDana: get(["JUMLAH DANA", "Jumlah Dana", "jumlahDana"]),
+    penggunaanDana: get(["PENGGUNAAN DANA", "PenggunaanDana", "penggunaan-dana"]),
+    ts2: get(["TS-2", "Ts2", "ts2"]),
+    ts1: get(["TS-1", "Ts1", "ts1"]),
+    ts: get(["TS", "Ts", "ts"]),
+    linkBukti: get(["LINK BUKTI", "Link Bukti", "linkBukti"]),
 
-    // SPMI (kalau nanti)
-    namaDokumen: get(["NAMA DOKUMEN", "Nama Dokumen", "namaDokumen"]),
-    nomorDokumen: get(["NOMOR DOKUMEN", "Nomor Dokumen", "nomorDokumen"]),
-    tanggalBerlaku: get(["TANGGAL BERLAKU", "Tanggal Berlaku", "tanggalBerlaku"]),
+    // EWMP
+    no: get(["NO", "No", "no"]),
+    namaDTPR: get(["NAMA DTPR", "Nama DTPR", "namaDTPR"]),
+    psSendiri: get(["PS SENDIRI", "Ps Sendiri", "psSendiri"]),
+    psLainPTSendiri: get(["PS LAIN PT SENDIRI", "Ps Lain PT Sendiri", "psLainPTSendiri"]),
+    ptLain: get(["PT LAIN", "Pt Lain", "ptLain"]),
+    sksPenelitian: get(["SKS PENELITIAN", "Sks Penelitian", "sksPenelitian"]),
+    sksPengabdian: get(["SKS PENGABDIAN", "Sks Pengabdian", "sksPengabdian"]),
+    manajemenPTSendiri: get(["MANAJEMEN PT SENDIRI", "Manajemen PT Sendiri", "manajemenPTSendiri"]),
+    manajemenPTLain: get(["MANAJEMEN PT LAIN", "Manajemen PT Lain", "manajemenPTLain"]),
+    totalSKS: get(["TOTAL SKS", "Total SKS", "totalSKS"]),
+
+    //KTK
+    no: get(["NO", "No", "no"]),
+    jenisTenagaKependidikan: get(["JENIS TENAGA KEPENDIDIKAN", "Jenis Tenaga Kependidikan", "jenisTenagaKependidikan"]),
+    s3: get(["S3", "S3", "s3"]),
+    s2: get(["S2", "S2", "s2"]),
+    s1: get(["S1", "S1", "s1"]),
+    d4: get(["D4", "D4", "d4"]),
+    d3: get(["D3", "D3", "d3"]),
+    d2: get(["D2", "D2", "d2"]),
+    d1: get(["D1", "D1", "d1"]),
+    sma: get(["SMA", "Sma", "sma"]),
+    unitKerja: get(["UNIT KERJA", "Unit Kerja", "unitKerja"]),
+
+    // SPMI 
+    unitSPMI: get(["UNIT SPMI", "Unit SPMI", "unitSPMI"]),
+    namaUnitSPMI: get(["NAMA UNIT SPMI", "Nama Unit SPMI", "namaUnitSPMI"]),
+    dokumenSPMI: get(["DOKUMEN SPMI", "Dokumen SPMI", "dokumenSPMI"]),
+    jumlahAuditorMutuInternal: get(["JUMLAH AUDITOR MUTU INTERNAL", "Jumlah Auditor Mutu Internal", "jumlahAuditorMutuInternal"]),
+    certified: get(["CERTIFIED", "Certified", "certified"]),
+    nonCertified: get(["NON CERTIFIED", "Non Certified", "nonCertified"]),
+    frekuensiAudit: get(["FREKUENSI AUDIT", "Frekuensi Audit", "frekuensiAudit"]),
+    buktiCertifiedAuditor: get(["BUKTI CERTIFIED AUDITOR", "Bukti Certified Auditor", "buktiCertifiedAuditor"]),
+    laporanAudit: get(["LAPORAN AUDIT", "Laporan Audit", "laporanAudit"]),
   };
 };
 
