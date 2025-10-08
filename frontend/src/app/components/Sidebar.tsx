@@ -16,9 +16,12 @@ export default function Sidebar({ role }: SidebarProps) {
       <h2 className="text-xl font-bold mb-6">Menu {role.replace("_", " ")}</h2>
       <ul className="space-y-3 flex-1 overflow-auto">
         {menuItems.map((item) => (
-          <li key={item} className="hover:bg-gray-200 p-2 rounded cursor-pointer">
-            {item}
-          </li>
+          <li 
+  key={item} 
+  className="hover:bg-[#ADE7F7] p-2 rounded cursor-pointer transition-colors duration-200"
+>
+  {item}
+</li>
         ))}
       </ul>
       <div className="mt-auto">

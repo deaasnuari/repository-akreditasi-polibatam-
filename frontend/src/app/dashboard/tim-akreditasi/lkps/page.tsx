@@ -478,15 +478,20 @@ export default function LKPSPage() {
               {/* Form Input */}
               {showForm && (
                 <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-start md:items-center overflow-auto z-50 p-4">
-                  <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-3xl">
+                  <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-xl">
+                    
+                    {/* Header Form */}
                     <div className="flex justify-between items-center mb-6">
-                      <h2 className="text-lg font-semibold text-gray-800">{editIndex !== null ? 'Edit Data' : 'Tambah Data Baru'}</h2>
+                      <h2 className="text-lg font-semibold text-gray-800">
+                        {editIndex !== null ? 'Edit Data' : 'Tambah Data Baru'}
+                      </h2>
                       <button onClick={() => setShowForm(false)} className="text-gray-500 hover:text-gray-700">
                         <X size={24} />
                       </button>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      
 
                       {/* Form per sub-tab */}
                       {activeSubTab === 'tupoksi' && (

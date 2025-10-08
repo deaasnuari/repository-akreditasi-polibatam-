@@ -6,16 +6,6 @@
       "static/css/app/layout.css",
       "static/chunks/app/layout.js"
     ],
-    "/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/page.js"
-    ],
-    "/login/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/login/page.js"
-    ],
     "/dashboard/tim-akreditasi/layout": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -26,15 +16,40 @@
       "static/chunks/main-app.js",
       "static/chunks/app/dashboard/tim-akreditasi/page.js"
     ],
+    "/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/page.js"
+    ],
+    "/login/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/login/page.js"
+    ],
     "/dashboard/tim-akreditasi/lkps/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/dashboard/tim-akreditasi/lkps/page.js"
     ],
-    "/_not-found/page": [
+    "/dashboard/tim-akreditasi/lkps/relevansi-pendidikan/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/_not-found/page.js"
+      "static/chunks/app/dashboard/tim-akreditasi/lkps/relevansi-pendidikan/page.js"
+    ],
+    "/dashboard/tim-akreditasi/lkps/relevansi-penelitian/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/dashboard/tim-akreditasi/lkps/relevansi-penelitian/page.js"
+    ],
+    "/dashboard/tim-akreditasi/lkps/relevansi-pkm/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/dashboard/tim-akreditasi/lkps/relevansi-pkm/page.js"
+    ],
+    "/dashboard/tim-akreditasi/lkps/akuntabilitas/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/dashboard/tim-akreditasi/lkps/akuntabilitas/page.js"
     ]
   }
 }

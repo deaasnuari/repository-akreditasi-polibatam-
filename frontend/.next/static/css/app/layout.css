@@ -256,6 +256,13 @@
     }
   }
 }
+.hover\:bg-\[\#ADE7F7\] {
+  &:hover {
+    @media (hover: hover) {
+      background-color: #ADE7F7;
+    }
+  }
+}
 .hover\:underline {
   &:hover {
     @media (hover: hover) {
