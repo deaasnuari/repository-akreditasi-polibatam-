@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@next/swc-win32-x64-msvc": "^15.5.4",
     "flowbite": "^3.1.2",
     "flowbite-react": "^0.12.9",
     "lucide-react": "^0.544.0",

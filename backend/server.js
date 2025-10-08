@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
 import budayaMutuRoutes from "./routes/budayaMutu.js";
-import authRoutes from "./routes/auth.js";
+import authRoutes from "./routes/authRoutes.js";
 import relevansiRoutes from "./routes/relevansiPendidikan.js";
 import relevansiPenelitianRoutes from "./routes/relevansiPenelitian.js";
 import relevansiPendidikanRoutes from "./routes/relevansiPendidikan.js";
