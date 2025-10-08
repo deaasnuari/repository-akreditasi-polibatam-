@@ -1,4 +1,4 @@
-// File: D:\repository-akreditasi-polibatam-\frontend\src\app\dashboard\tim-akreditasi\layout.tsx
+// File: C:\Users\Thinkpad\PBL\repository-akreditasi-polibatam-\frontend\src\app\dashboard\tim-akreditasi\layout.tsx
 import * as entry from '../../../../../src/app/dashboard/tim-akreditasi/layout.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

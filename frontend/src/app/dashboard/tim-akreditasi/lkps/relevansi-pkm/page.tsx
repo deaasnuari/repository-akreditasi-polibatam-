@@ -236,16 +236,9 @@ export default function RelevansiPkmPage() {
                 <p className="text-sm text-gray-600">Kelola data kuantitatif berdasarkan kriteria akreditasi</p>
               </div>
             </div>
-            <div className="flex gap-2">
+      
 
-              <button className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-gray-50">
-                <Download size={16} /> Export PDF
-              </button>
-              <button className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-gray-50">
-
-                <Save size={16} /> Save Draft
-              </button>
-            </div>
+          
           </div>
 
           {/* Tabs utama */}

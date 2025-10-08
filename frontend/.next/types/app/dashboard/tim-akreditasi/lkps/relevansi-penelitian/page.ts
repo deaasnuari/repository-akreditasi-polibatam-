@@ -1,4 +1,4 @@
-// File: D:\repository-akreditasi-polibatam-\frontend\src\app\dashboard\tim-akreditasi\lkps\relevansi-penelitian\page.tsx
+// File: C:\Users\Thinkpad\PBL\repository-akreditasi-polibatam-\frontend\src\app\dashboard\tim-akreditasi\lkps\relevansi-penelitian\page.tsx
 import * as entry from '../../../../../../../src/app/dashboard/tim-akreditasi/lkps/relevansi-penelitian/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 
