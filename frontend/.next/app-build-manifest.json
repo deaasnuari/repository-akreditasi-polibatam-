@@ -30,31 +30,6 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/dashboard/tim-akreditasi/lkps/page.js"
-    ],
-    "/dashboard/tim-akreditasi/lkps/relevansi-pkm/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/tim-akreditasi/lkps/relevansi-pkm/page.js"
-    ],
-    "/dashboard/tim-akreditasi/lkps/relevansi-penelitian/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/tim-akreditasi/lkps/relevansi-penelitian/page.js"
-    ],
-    "/dashboard/tim-akreditasi/lkps/akuntabilitas/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/tim-akreditasi/lkps/akuntabilitas/page.js"
-    ],
-    "/dashboard/tim-akreditasi/lkps/diferensiasi-misi/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/tim-akreditasi/lkps/diferensiasi-misi/page.js"
-    ],
-    "/dashboard/tim-akreditasi/lkps/relevansi-pendidikan/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/tim-akreditasi/lkps/relevansi-pendidikan/page.js"
     ]
   }
 }

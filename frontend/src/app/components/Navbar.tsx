@@ -2,6 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { Irish_Grover } from 'next/font/google';
+
+const irishGrover = Irish_Grover({
+  subsets: ['latin'],
+  weight: '400',
+});
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -13,13 +19,15 @@ export default function Navbar() {
       <div className="flex items-center gap-4">
         <Link href="/">
           <img
-            src="/ReDDa_logo.png"
+            src="/Polibatam.png"
             alt="Logo"
             className="h-20 w-20 object-contain -mt-2 cursor-pointer"
           />
         </Link>
-        <span className="font-bold text-lg md:text-xl">
-          Repository Digital Data Akreditasi
+        <span
+          className={`${irishGrover.className} text-[#ADE7F7] text-lg md:text-xl font-bold tracking-wide`}
+        >
+          ReDDA POLIBATAM
         </span>
       </div>
 
