@@ -19,6 +19,7 @@
     "/dashboard/tim-akreditasi/layout": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
+      "static/css/app/dashboard/tim-akreditasi/layout.css",
       "static/chunks/app/dashboard/tim-akreditasi/layout.js"
     ],
     "/dashboard/tim-akreditasi/page": [

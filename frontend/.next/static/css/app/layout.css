@@ -186,6 +186,9 @@
 .table {
   display: table;
 }
+.h-full {
+  height: 100%;
+}
 .h-screen {
   height: 100vh;
 }
@@ -325,14 +328,32 @@
   --tw-border-style: dashed;
   border-style: dashed;
 }
+.border-\[\#2A4F85\] {
+  border-color: #2A4F85;
+}
 .border-\[\#183A64\] {
   border-color: #183A64;
+}
+.border-\[\#ADE7F7\]\/30 {
+  border-color: color-mix(in oklab, #ADE7F7 30%, transparent);
+}
+.border-\[\#FF7F00\]\/30 {
+  border-color: color-mix(in oklab, #FF7F00 30%, transparent);
 }
 .bg-\[\#0A2F56\] {
   background-color: #0A2F56;
 }
 .bg-\[\#183A64\] {
   background-color: #183A64;
+}
+.bg-\[\#ADE7F7\] {
+  background-color: #ADE7F7;
+}
+.bg-\[\#FF7F00\] {
+  background-color: #FF7F00;
+}
+.bg-\[\#FFA500\] {
+  background-color: #FFA500;
 }
 .bg-gradient-to-br {
   --tw-gradient-position: to bottom right in oklab;
@@ -350,6 +371,19 @@
 .text-right {
   text-align: right;
 }
+.font-\[\'Irish_Grover\'\] {
+  font-family: 'Irish Grover';
+}
+.font-\[\'pop\'\] {
+  font-family: 'pop';
+}
+.font-\[\'popins\'\] {
+  font-family: 'popins';
+}
+.font-\[var\(--font-poppins\)\] {
+  --tw-font-weight: var(--font-poppins);
+  font-weight: var(--font-poppins);
+}
 .whitespace-nowrap {
   white-space: nowrap;
 }
@@ -358,6 +392,9 @@
 }
 .text-\[\#ADE7F7\] {
   color: #ADE7F7;
+}
+.text-\[\#FFA500\] {
+  color: #FFA500;
 }
 .capitalize {
   text-transform: capitalize;
@@ -412,10 +449,45 @@
     }
   }
 }
+.hover\:bg-\[\#2A4F85\] {
+  &:hover {
+    @media (hover: hover) {
+      background-color: #2A4F85;
+    }
+  }
+}
 .hover\:bg-\[\#ADE7F7\] {
   &:hover {
     @media (hover: hover) {
       background-color: #ADE7F7;
+    }
+  }
+}
+.hover\:bg-\[\#ADE7F7\]\/30 {
+  &:hover {
+    @media (hover: hover) {
+      background-color: color-mix(in oklab, #ADE7F7 30%, transparent);
+    }
+  }
+}
+.hover\:bg-\[\#FF7F00\] {
+  &:hover {
+    @media (hover: hover) {
+      background-color: #FF7F00;
+    }
+  }
+}
+.hover\:bg-\[\#FFF2E0\] {
+  &:hover {
+    @media (hover: hover) {
+      background-color: #FFF2E0;
+    }
+  }
+}
+.hover\:bg-\[\#e69500\] {
+  &:hover {
+    @media (hover: hover) {
+      background-color: #e69500;
     }
   }
 }
@@ -8496,10 +8568,6 @@
   syntax: "*";
   inherits: false;
 }
-@property --tw-font-weight {
-  syntax: "*";
-  inherits: false;
-}
 @property --tw-tracking {
   syntax: "*";
   inherits: false;
@@ -8611,6 +8679,10 @@ html, #__next {
   syntax: "*";
   inherits: false;
   initial-value: solid;
+}
+@property --tw-font-weight {
+  syntax: "*";
+  inherits: false;
 }
 @property --tw-shadow {
   syntax: "*";
@@ -8759,6 +8831,7 @@ html, #__next {
       --tw-skew-y: initial;
       --tw-divide-y-reverse: 0;
       --tw-border-style: solid;
+      --tw-font-weight: initial;
       --tw-shadow: 0 0 #0000;
       --tw-shadow-color: initial;
       --tw-shadow-alpha: 100%;
@@ -8806,7 +8879,6 @@ html, #__next {
       --tw-gradient-via-position: 50%;
       --tw-gradient-to-position: 100%;
       --tw-leading: initial;
-      --tw-font-weight: initial;
       --tw-tracking: initial;
       --tw-outline-style: solid;
       --tw-backdrop-blur: initial;
