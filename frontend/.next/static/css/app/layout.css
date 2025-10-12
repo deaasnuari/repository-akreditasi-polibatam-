@@ -228,6 +228,12 @@
 .border-separate {
   border-collapse: separate;
 }
+.scale-105 {
+  --tw-scale-x: 105%;
+  --tw-scale-y: 105%;
+  --tw-scale-z: 105%;
+  scale: var(--tw-scale-x) var(--tw-scale-y);
+}
 .-rotate-90 {
   rotate: calc(90deg * -1);
 }
@@ -334,6 +340,9 @@
 .border-\[\#183A64\] {
   border-color: #183A64;
 }
+.border-\[\#ADE7F7\] {
+  border-color: #ADE7F7;
+}
 .border-\[\#ADE7F7\]\/30 {
   border-color: color-mix(in oklab, #ADE7F7 30%, transparent);
 }
@@ -386,6 +395,9 @@
 }
 .whitespace-nowrap {
   white-space: nowrap;
+}
+.text-\[\#0A2F56\] {
+  color: #0A2F56;
 }
 .text-\[\#183A64\] {
   color: #183A64;
@@ -456,6 +468,13 @@
     }
   }
 }
+.hover\:bg-\[\#92d8ec\] {
+  &:hover {
+    @media (hover: hover) {
+      background-color: #92d8ec;
+    }
+  }
+}
 .hover\:bg-\[\#ADE7F7\] {
   &:hover {
     @media (hover: hover) {
@@ -491,6 +510,13 @@
     }
   }
 }
+.hover\:text-\[\#0A2F56\] {
+  &:hover {
+    @media (hover: hover) {
+      color: #0A2F56;
+    }
+  }
+}
 .hover\:text-\[\#183A64\] {
   &:hover {
     @media (hover: hover) {
@@ -502,6 +528,13 @@
   &:hover {
     @media (hover: hover) {
       color: #ADE7F7;
+    }
+  }
+}
+.hover\:text-\[\#FF7F00\] {
+  &:hover {
+    @media (hover: hover) {
+      color: #FF7F00;
     }
   }
 }
@@ -8650,6 +8683,21 @@ html, #__next {
 .font-irish {
   font-family: var(--font-irish-grover);
 }
+@property --tw-scale-x {
+  syntax: "*";
+  inherits: false;
+  initial-value: 1;
+}
+@property --tw-scale-y {
+  syntax: "*";
+  inherits: false;
+  initial-value: 1;
+}
+@property --tw-scale-z {
+  syntax: "*";
+  inherits: false;
+  initial-value: 1;
+}
 @property --tw-rotate-x {
   syntax: "*";
   inherits: false;
@@ -8806,24 +8854,12 @@ html, #__next {
   syntax: "*";
   inherits: false;
 }
-@property --tw-scale-x {
-  syntax: "*";
-  inherits: false;
-  initial-value: 1;
-}
-@property --tw-scale-y {
-  syntax: "*";
-  inherits: false;
-  initial-value: 1;
-}
-@property --tw-scale-z {
-  syntax: "*";
-  inherits: false;
-  initial-value: 1;
-}
 @layer properties {
   @supports ((-webkit-hyphens: none) and (not (margin-trim: inline))) or ((-moz-orient: inline) and (not (color:rgb(from red r g b)))) {
     *, ::before, ::after, ::backdrop {
+      --tw-scale-x: 1;
+      --tw-scale-y: 1;
+      --tw-scale-z: 1;
       --tw-rotate-x: initial;
       --tw-rotate-y: initial;
       --tw-rotate-z: initial;
@@ -8860,9 +8896,6 @@ html, #__next {
       --tw-drop-shadow-alpha: 100%;
       --tw-drop-shadow-size: initial;
       --tw-duration: initial;
-      --tw-scale-x: 1;
-      --tw-scale-y: 1;
-      --tw-scale-z: 1;
       --tw-translate-x: 0;
       --tw-translate-y: 0;
       --tw-translate-z: 0;

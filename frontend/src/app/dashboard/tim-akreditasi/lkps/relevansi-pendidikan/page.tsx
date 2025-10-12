@@ -481,21 +481,24 @@ export default function RelevansiPendidikanPage() {
           </div>
 
           {/* Tabs utama */}
-          <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
-            {tabs.map((tab) => (
-              <Link
-                key={tab.href}
-                href={tab.href}
-                className={`px-4 py-2 rounded-lg text-sm transition ${
-                  pathname === tab.href
-                    ? 'bg-blue-100 text-blue-900 font-medium'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {tab.label}
-              </Link>
-            ))}
-          </div>
+          <div className="flex gap-2 overflow-x-auto pb-2">
+                    {tabs.map((tab) => {
+                      const isActive = pathname === tab.href; 
+                      return (
+                        <Link
+                          key={tab.href}
+                          href={tab.href}
+                          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                            isActive
+                              ? 'bg-[#183A64] text-[#ADE7F7] shadow-md scale-105'
+                              : 'bg-gray-100 text-gray-700 hover:bg-[#ADE7F7] hover:text-[#183A64]'
+                          }`}
+                        >
+                          {tab.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
 
           {/* Konten */}
           <div className="bg-white rounded-lg shadow p-6">
