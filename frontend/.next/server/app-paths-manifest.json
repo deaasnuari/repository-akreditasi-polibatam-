@@ -1,5 +1,7 @@
 {
-  "/favicon.ico/route": "app/favicon.ico/route.js",
   "/dashboard/tim-akreditasi/lkps/relevansi-pkm/page": "app/dashboard/tim-akreditasi/lkps/relevansi-pkm/page.js",
+  "/dashboard/tim-akreditasi/lkps/page": "app/dashboard/tim-akreditasi/lkps/page.js",
+  "/dashboard/tim-akreditasi/lkps/relevansi-penelitian/page": "app/dashboard/tim-akreditasi/lkps/relevansi-penelitian/page.js",
+  "/dashboard/tim-akreditasi/lkps/relevansi-pendidikan/page": "app/dashboard/tim-akreditasi/lkps/relevansi-pendidikan/page.js",
   "/dashboard/tim-akreditasi/lkps/akuntabilitas/page": "app/dashboard/tim-akreditasi/lkps/akuntabilitas/page.js"
 }
