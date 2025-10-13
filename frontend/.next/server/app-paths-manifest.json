@@ -1,0 +1,5 @@
+{
+  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/dashboard/tim-akreditasi/lkps/relevansi-pkm/page": "app/dashboard/tim-akreditasi/lkps/relevansi-pkm/page.js",
+  "/dashboard/tim-akreditasi/lkps/akuntabilitas/page": "app/dashboard/tim-akreditasi/lkps/akuntabilitas/page.js"
+}

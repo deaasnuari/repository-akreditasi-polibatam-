@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X } from 'lucide-react';
+import { FileText, Upload, Plus, Edit, Trash2, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -14,16 +14,9 @@ export default function RelevansiPkmPage() {
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [formData, setFormData] = useState<any>({});
   const [importing, setImporting] = useState(false);
-  const [previewFile, setPreviewFile] = useState<File | null>(null);
-  const [previewHeaders, setPreviewHeaders] = useState<string[]>([]);
-  const [previewRows, setPreviewRows] = useState<any[]>([]);
-  const [suggestions, setSuggestions] = useState<Record<string, string>>({});
-  const [showPreviewModal, setShowPreviewModal] = useState(false);
-  const [mapping, setMapping] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
   const API_BASE = 'http://localhost:5000/api/relevansi-pkm';
-
 
   const tabs = [
     { label: 'Budaya Mutu', href: '/dashboard/tim-akreditasi/lkps' },
@@ -34,7 +27,6 @@ export default function RelevansiPkmPage() {
     { label: 'Diferensiasi Misi', href: '/dashboard/tim-akreditasi/lkps/diferensiasi-misi' },
   ];
 
-
   useEffect(() => {
     fetchData();
   }, [activeSubTab]);
@@ -43,10 +35,7 @@ export default function RelevansiPkmPage() {
     try {
       setErrorMsg(null);
       const res = await fetch(`${API_BASE}?type=${activeSubTab}`);
-      if (!res.ok) {
-        const txt = await res.text().catch(() => '');
-        throw new Error(`HTTP ${res.status} ${res.statusText} - ${txt}`);
-      }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       setData(json.data ?? json ?? []);
     } catch (err: any) {
@@ -56,75 +45,58 @@ export default function RelevansiPkmPage() {
     }
   };
 
-  // ================= IMPORT EXCEL =================
-  async function handleFileChange(e: any) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setImporting(true);
-    setErrorMsg(null);
-    try {
-      const fd = new FormData();
-      fd.append('file', file);
-      fd.append('type', activeSubTab);
-      fd.append('preview', 'true');
-
-      const res = await fetch(`${API_BASE}/import`, { method: 'POST', body: fd });
-      if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
-      const json = await res.json();
-
-      setPreviewFile(file);
-      setPreviewHeaders(json.headers || []);
-      setPreviewRows(json.previewRows || []);
-      setSuggestions(json.suggestions || {});
-      const initMap: Record<string, string> = {};
-      (json.headers || []).forEach((h: string) => {
-        initMap[h] = json.suggestions && json.suggestions[h] ? json.suggestions[h] : '';
-      });
-      setMapping(initMap);
-      setShowPreviewModal(true);
-    } catch (err: any) {
-      setErrorMsg(err?.message || String(err));
-    } finally {
-      setImporting(false);
-      try { e.target.value = ''; } catch {}
-    }
-  }
-
-  async function commitImport() {
-    if (!previewFile) return;
-    setImporting(true);
-    try {
-      const fd = new FormData();
-      fd.append('file', previewFile);
-      fd.append('type', activeSubTab);
-      fd.append('mapping', JSON.stringify(mapping));
-      const res = await fetch(`${API_BASE}/import`, { method: 'POST', body: fd });
-      if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
-      const json = await res.json();
-      await fetchData();
-      setShowPreviewModal(false);
-      alert(json.message || 'Import berhasil');
-    } catch (err: any) {
-      setErrorMsg(err?.message || String(err));
-    } finally {
-      setImporting(false);
-    }
-  }
-
-  // ================= FORM =================
+  // =============== FORM ===============
   const openAdd = () => {
     setFormData({});
     setEditIndex(null);
     setShowForm(true);
   };
+
   const openEdit = (item: any) => {
     setFormData({ ...item });
     setEditIndex(item.id ?? null);
     setShowForm(true);
   };
-  const handleChange = (e: any) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
-  // ================= DEFINISI KOLOM PKM =================
+  const handleChange = (e: any) =>
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+
+  // ✅ Tambahan fungsi submit ke backend Express
+  const handleSubmit = async () => {
+    try {
+      setSaving(true);
+      setErrorMsg(null);
+
+      const method = editIndex ? 'PUT' : 'POST';
+      const url = editIndex
+        ? `${API_BASE}/${activeSubTab}/${editIndex}`
+        : `${API_BASE}/${activeSubTab}`;
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...formData,
+          type: activeSubTab,
+        }),
+      });
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+
+      alert(json.message || 'Data berhasil disimpan');
+      setShowForm(false);
+      setFormData({});
+      setEditIndex(null);
+      await fetchData();
+    } catch (err: any) {
+      console.error('handleSubmit error', err);
+      setErrorMsg(err?.message || String(err));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const subtabFields: Record<string, Array<{ key: string; label: string }>> = {
     'sarana-prasarana': [
       { key: 'namaPrasarana', label: 'Nama Sarana/Prasarana' },
@@ -167,15 +139,13 @@ export default function RelevansiPkmPage() {
     ],
   };
 
-  const orderedFields = subtabFields;
-
   const renderColumns = () =>
-    (orderedFields[activeSubTab] ?? []).map((c) => (
+    (subtabFields[activeSubTab] ?? []).map((c) => (
       <th key={c.key} className="whitespace-nowrap">{c.label}</th>
     ));
 
   const renderRows = () => {
-    const cols = orderedFields[activeSubTab] ?? [];
+    const cols = subtabFields[activeSubTab] ?? [];
     if (data.length === 0) {
       return (
         <tr>
@@ -218,31 +188,27 @@ export default function RelevansiPkmPage() {
     ));
   };
 
-  // ================= RENDER =================
-
   return (
     <div className="flex w-full bg-gray-100">
       <div className="flex-1 w-full">
         <main className="w-full p-4 md:p-6 max-w-full overflow-x-hidden">
-
 
           {/* Header */}
           <div className="bg-white rounded-lg shadow p-4 sm:p-6 mb-6 flex flex-col sm:flex-row justify-between items-start gap-4">
             <div className="flex items-center gap-3">
               <FileText className="text-blue-900" size={32} />
               <div>
-                <h1 className="text-2xl font-bold text-gray-800">Relevansi Pengabdian kepada Masyarakat (PkM)</h1>
-
-                <p className="text-sm text-gray-600">Kelola data kuantitatif berdasarkan kriteria akreditasi</p>
+                <h1 className="text-2xl font-bold text-gray-800">
+                  Relevansi Pengabdian kepada Masyarakat (PkM)
+                </h1>
+                <p className="text-sm text-gray-600">
+                  Kelola data kuantitatif berdasarkan kriteria akreditasi
+                </p>
               </div>
             </div>
-      
-
-          
           </div>
 
           {/* Tabs utama */}
-
           <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
             {tabs.map((tab) => (
               <Link
@@ -258,7 +224,6 @@ export default function RelevansiPkmPage() {
               </Link>
             ))}
           </div>
-
 
           {/* Subtabs */}
           <div className="flex gap-2 border-b pb-2 mb-4 overflow-x-auto">
@@ -285,7 +250,9 @@ export default function RelevansiPkmPage() {
           {/* Table Section */}
           <div className="bg-white rounded-lg shadow overflow-hidden">
             <div className="flex justify-between items-center p-4 border-b bg-gray-50">
-              <h3 className="font-semibold text-gray-900 capitalize">Data {activeSubTab.replace('-', ' ')}</h3>
+              <h3 className="font-semibold text-gray-900 capitalize">
+                Data {activeSubTab.replace('-', ' ')}
+              </h3>
               <div className="flex gap-2">
                 <button
                   onClick={openAdd}
@@ -293,12 +260,6 @@ export default function RelevansiPkmPage() {
                 >
                   <Plus size={16} /> Tambah Data
                 </button>
-                <form>
-                  <label className="flex items-center gap-2 px-4 py-2 text-sm bg-white border rounded-lg hover:bg-gray-100 cursor-pointer">
-                    <Upload size={16} /> {importing ? 'Importing...' : 'Import Excel'}
-                    <input onChange={handleFileChange} type="file" accept=".xlsx,.xls" className="hidden" />
-                  </label>
-                </form>
               </div>
             </div>
 
@@ -328,14 +289,19 @@ export default function RelevansiPkmPage() {
                   <h2 className="text-lg font-semibold text-gray-800">
                     {editIndex !== null ? 'Edit Data' : 'Tambah Data Baru'}
                   </h2>
-                  <button onClick={() => setShowForm(false)} className="text-gray-500 hover:text-gray-700">
+                  <button
+                    onClick={() => setShowForm(false)}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
                     <X size={24} />
                   </button>
                 </div>
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
                   {(subtabFields[activeSubTab] || []).map((f) => (
                     <div key={f.key}>
-                      <label className="block text-sm text-gray-700 mb-1">{f.label}</label>
+                      <label className="block text-sm text-gray-700 mb-1">
+                        {f.label}
+                      </label>
                       <input
                         name={f.key}
                         value={formData[f.key] ?? ''}
@@ -346,17 +312,23 @@ export default function RelevansiPkmPage() {
                   ))}
                 </div>
                 <div className="flex justify-end gap-2 mt-6">
-                  <button onClick={() => setShowForm(false)} className="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300">
+                  <button
+                    onClick={() => setShowForm(false)}
+                    className="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300"
+                  >
                     Batal
                   </button>
-                  <button onClick={() => setShowForm(false)} className="px-4 py-2 bg-blue-700 text-white rounded hover:bg-blue-800">
-                    Simpan
+                  <button
+                    onClick={handleSubmit}
+                    disabled={saving}
+                    className="px-4 py-2 bg-blue-700 text-white rounded hover:bg-blue-800 disabled:opacity-50"
+                  >
+                    {saving ? 'Menyimpan...' : 'Simpan'}
                   </button>
                 </div>
               </div>
             </div>
           )}
-
         </main>
       </div>
     </div>
