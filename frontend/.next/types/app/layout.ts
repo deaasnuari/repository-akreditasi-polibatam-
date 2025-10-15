@@ -1,4 +1,4 @@
-// File: C:\Users\Thinkpad\PBL\repository-akreditasi-polibatam-\frontend\src\app\layout.tsx
+// File: C:\Users\ASUS\repository-akreditasi-polibatam--1\frontend\src\app\layout.tsx
 import * as entry from '../../../src/app/layout.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

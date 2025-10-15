@@ -3,6 +3,9 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { loginUser, registerUser } from "../../services/auth";
+
+
 
 type Tab = 'login' | 'register';
 
@@ -30,54 +33,46 @@ export default function AuthPage() {
   if (!mounted) return null;
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-    try {
-      const res = await fetch('http://localhost:5000/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: loginEmail, password: loginPassword, role: loginRole }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Login gagal');
+  e.preventDefault();
+  setError('');
+  setLoading(true);
 
-      if (loginRole === 'tim-akreditasi') router.push('/dashboard/tim-akreditasi');
-      else if (loginRole === 'p4m') router.push('/dashboard/p4m');
-      else if (loginRole === 'reviewer') router.push('/dashboard/reviewer');
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  try {
+    const data = await loginUser(loginEmail, loginPassword, loginRole);
+
+    if (loginRole === 'tim-akreditasi') router.push('/dashboard/tim-akreditasi');
+    else if (loginRole === 'p4m') router.push('/dashboard/p4m');
+    else if (loginRole === 'reviewer') router.push('/dashboard/reviewer');
+
+  } catch (err: any) {
+    setError(err.message);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setSuccess('');
-    setLoading(true);
-    try {
-      const res = await fetch('http://localhost:5000/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: regName, email: regEmail, password: regPassword, role: regRole }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Registrasi gagal');
+  e.preventDefault();
+  setError('');
+  setSuccess('');
+  setLoading(true);
 
-      setSuccess('Registrasi berhasil! Silakan login.');
-      setRegName('');
-      setRegEmail('');
-      setRegPassword('');
-      setRegRole('tim-akreditasi');
-      setActiveTab('login');
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  try {
+    await registerUser(regName, regEmail, regPassword, regRole);
+    setSuccess('Registrasi berhasil! Silakan login.');
+    setActiveTab('login');
+    setRegName('');
+    setRegEmail('');
+    setRegPassword('');
+    setRegRole('tim-akreditasi');
+  } catch (err: any) {
+    setError(err.message);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100 px-4 py-8">
