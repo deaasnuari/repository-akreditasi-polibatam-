@@ -47,10 +47,10 @@
       "static/chunks/main-app.js",
       "static/chunks/app/dashboard/tim-akreditasi/lkps/relevansi-pkm/page.js"
     ],
-    "/dashboard/tim-akreditasi/lkps/diferensiasi-misi/page": [
+    "/_not-found/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/tim-akreditasi/lkps/diferensiasi-misi/page.js"
+      "static/chunks/app/_not-found/page.js"
     ]
   }
 }

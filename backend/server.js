@@ -30,6 +30,7 @@ app.use("/api/budaya-mutu", budayaMutuRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/relevansi-pendidikan", relevansiPendidikanRoutes);
 
+
 // 🆕 Tambahan route untuk PKM
 app.use("/api/relevansi-pkm", relevansiPkmRoutes);
 

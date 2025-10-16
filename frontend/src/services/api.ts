@@ -1,5 +1,5 @@
 // src/services/api.ts
-export const API_URL = "http://localhost:5000/api"; // backend kamu port 5000
+export const API_URL = "http://localhost:5000/api"; // backend  port 5000
 
 export async function fetchData(endpoint: string, options: RequestInit = {}) {
   try {
