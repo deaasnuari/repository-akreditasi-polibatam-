@@ -10,7 +10,7 @@ export async function fetchData(endpoint: string, options: RequestInit = {}) {
       ...options,
     });
 
-    // Kalau status bukan 2xx, lempar error
+    // Kalau status bukan , lempar error
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
       throw new Error(errData.message || `Error ${res.status}`);

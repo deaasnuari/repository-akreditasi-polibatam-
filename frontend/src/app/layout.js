@@ -1,5 +1,5 @@
 import "./globals.css";
-import { Poppins, Irish_Grover } from "next/font/google";
+import { Poppins } from "next/font/google";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -7,11 +7,6 @@ const poppins = Poppins({
   variable: "--font-poppins",
 });
 
-const irishGrover = Irish_Grover({
-  subsets: ["latin"],
-  weight: "400",
-  variable: "--font-irish-grover",
-});
 
 export const metadata = {
   title: "Repository Digital Data Akreditasi Polibatam",
@@ -20,7 +15,7 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`${poppins.variable} ${irishGrover.variable}`}>
+    <html lang="en" className={`${poppins.variable} font-sans`}>
       <body className="antialiased">{children}</body>
     </html>
   );

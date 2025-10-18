@@ -48,15 +48,15 @@ export default function Sidebar({ role }: SidebarProps) {
   };
 
   return (
-    <aside className="fixed left-0 top-0 w-64 bg-white shadow-lg h-screen p-6 flex flex-col border-r border-gray-200">
+    <aside className="fixed left-0 top-0 w-64 h-screen bg-white border-r border-gray-200 shadow-lg flex flex-col p-6 font-sans">
+      {/* Judul Sidebar */}
       <h2 className="text-xl font-bold mb-6 text-[#163A70]">
         Menu {role?.replace("_", " ")}
       </h2>
 
-      {/* === Menu List === */}
+      {/* Daftar Menu */}
       <ul className="space-y-2 flex-1 overflow-auto">
         {menuItems.map((item) => {
-          // ✅ Logika highlight aktif, termasuk subpath
           const isActive =
             pathname === item.href || pathname.startsWith(item.href + "/");
 
@@ -77,11 +77,11 @@ export default function Sidebar({ role }: SidebarProps) {
         })}
       </ul>
 
-      {/* === Tombol Logout === */}
+      {/* Tombol Logout */}
       <div className="mt-auto">
         <button
           onClick={handleLogout}
-          className="w-full bg-red-500 hover:bg-red-600 text-white py-2 rounded transition"
+          className="w-full bg-red-500 hover:bg-red-600 text-white py-2 rounded font-semibold transition"
         >
           Logout
         </button>

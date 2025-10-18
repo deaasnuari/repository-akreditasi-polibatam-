@@ -74,6 +74,36 @@ const normalizeRow = (row) => {
     return "";
   };
 
+  // ✅ SUBMIT DATA (dari tombol Submit di frontend)
+router.post("/submit/:type", (req, res) => {
+  try {
+    const { type } = req.params;
+    const arr = readData();
+
+    // ubah semua data dengan type tertentu jadi status "submitted"
+    const updated = arr.map((item) =>
+      item.type === type
+        ? { ...item, status: "submitted", submittedAt: new Date().toISOString() }
+        : item
+    );
+
+    writeData(updated);
+
+    res.json({
+      success: true,
+      message: `Data ${type} berhasil dikirim untuk verifikasi.`,
+      data: updated.filter((d) => d.type === type),
+    });
+  } catch (err) {
+    console.error("❌ Gagal submit data:", err);
+    res.status(500).json({
+      success: false,
+      message: "Gagal submit data",
+    });
+  }
+});
+
+
   return {
     // TUPOKSI
     unitKerja: get(["UNIT KERJA", "Unit Kerja", "unitKerja"]),
