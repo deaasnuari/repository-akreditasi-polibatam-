@@ -1,0 +1,30 @@
+[
+  {
+    "id": 1760706458220,
+    "tipe_data": "Misi",
+    "unit_kerja": "Program Studi",
+    "konten": "dcd",
+    "type": "visi-misi"
+  },
+  {
+    "id": 1760706467246,
+    "tipe_data": "Visi",
+    "unit_kerja": "UPPS",
+    "konten": "Menjadi program studi unggul dalam bidang teknologi informasi yang berkontribusi terhadap pembangunan berkelanjutan di tingkat nasional maupun internasional.",
+    "type": "visi-misi"
+  },
+  {
+    "id": 1760706477250,
+    "tipe_data": "Misi",
+    "unit_kerja": "UPPS",
+    "konten": "dfd",
+    "type": "visi-misi"
+  },
+  {
+    "id": 1760706747938,
+    "tipe_data": "Visi",
+    "unit_kerja": "Perguruan Tinggi",
+    "konten": "dfghgf",
+    "type": "visi-misi"
+  }
+]

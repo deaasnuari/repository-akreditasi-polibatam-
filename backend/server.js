@@ -6,6 +6,7 @@ import authRoutes from "./routes/authRoutes.js";
 import relevansiRoutes from "./routes/relevansiPendidikan.js";
 import relevansiPenelitianRoutes from "./routes/relevansiPenelitian.js";
 import relevansiPendidikanRoutes from "./routes/relevansiPendidikan.js";
+import diferensiasiMisiRoutes from './routes/diferensiasiMisi.js';
 
 
 // 🆕 Tambahan untuk Relevansi PKM
@@ -16,7 +17,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Enable CORS early so all routes receive CORS headers
-app.use(cors({ origin: "http://localhost:3000" }));
+app.use(cors());
 
 // Simple request logger to help debugging (prints method + url)
 app.use((req, res, next) => {
@@ -29,6 +30,8 @@ app.use("/api/relevansi-penelitian", relevansiPenelitianRoutes);
 app.use("/api/budaya-mutu", budayaMutuRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/relevansi-pendidikan", relevansiPendidikanRoutes);
+app.use('/api/diferensiasi-misi', diferensiasiMisiRoutes);
+
 
 
 // 🆕 Tambahan route untuk PKM
