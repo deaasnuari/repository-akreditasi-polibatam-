@@ -1,12 +1,14 @@
 import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
-import budayaMutuRoutes from "./routes/budayaMutu.js";
+
 import authRoutes from "./routes/authRoutes.js";
 import relevansiRoutes from "./routes/relevansiPendidikan.js";
 import relevansiPenelitianRoutes from "./routes/relevansiPenelitian.js";
 import relevansiPendidikanRoutes from "./routes/relevansiPendidikan.js";
 import diferensiasiMisiRoutes from './routes/diferensiasiMisi.js';
+import { Pool } from "pg";
+import budayaMutuRoutes from "./routes/budayaMutu.js";
 
 
 // 🆕 Tambahan untuk Relevansi PKM
@@ -18,6 +20,8 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // Enable CORS early so all routes receive CORS headers
 app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Simple request logger to help debugging (prints method + url)
 app.use((req, res, next) => {
@@ -27,15 +31,20 @@ app.use((req, res, next) => {
 
 // 📂 ROUTES 
 app.use("/api/relevansi-penelitian", relevansiPenelitianRoutes);
-app.use("/api/budaya-mutu", budayaMutuRoutes);
+
 app.use("/api/auth", authRoutes);
 app.use("/api/relevansi-pendidikan", relevansiPendidikanRoutes);
 app.use('/api/diferensiasi-misi', diferensiasiMisiRoutes);
-
-
-
-// 🆕 Tambahan route untuk PKM
 app.use("/api/relevansi-pkm", relevansiPkmRoutes);
+app.use("/api/budaya-mutu", budayaMutuRoutes);
 
 const PORT = 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+const pool = new Pool({
+  user: 'postgres',        // Username PostgreSQL Anda
+  host: 'localhost',
+  database: 'repository_polibatam',     // Nama database yang tadi dibuat
+  password: '030104', // Password PostgreSQL Anda
+  port: 5432,
+}); 

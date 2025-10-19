@@ -1,22 +1,33 @@
-// src/services/auth.ts
-import { fetchData } from "./api";
+const API_URL = 'http://localhost:5000/api/auth';
 
-// Fungsi untuk login user;
-export async function loginUser(email: string, password: string, role: string) {
-  return fetchData("auth/login", {
-    method: "POST",
-    body: JSON.stringify({ email, password, role }),
+export const loginUser = async (email: string, password: string, role: string) => {
+  const res = await fetch(`${API_URL}/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password, role })
   });
-}
-// Fungsi untuk register user
-export async function registerUser(
-  name: string,
-  email: string,
-  password: string,
-  role: string
-) {
-  return fetchData("auth/register", {
-    method: "POST",
-    body: JSON.stringify({ name, email, password, role }),
+
+  const data = await res.json();
+
+  if (!res.ok || !data.success) {
+    throw new Error(data.msg || 'Login gagal');
+  }
+
+  return data;
+};
+
+export const registerUser = async (name: string, email: string, password: string, role: string) => {
+  const res = await fetch(`${API_URL}/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: name, email, password, role })
   });
-}
+
+  const data = await res.json();
+
+  if (!res.ok || !data.success) {
+    throw new Error(data.msg || 'Registrasi gagal');
+  }
+
+  return data;
+};

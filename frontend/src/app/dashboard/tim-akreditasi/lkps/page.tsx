@@ -4,19 +4,13 @@ import React, { useEffect, useState } from 'react';
 import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { loadDraftBudayaMutu, saveDraftBudayaMutu, fetchBudayaMutuData } from '@/services/budayaMutuService';
+
 
 export default function LKPSPage() {
   const pathname = usePathname();
 
-  // =========================
-  // Tipe SubTab
-  // =========================
   type SubTab = 'tupoksi' | 'pendanaan' | 'penggunaan-dana' | 'ewmp' | 'ktk' | 'spmi';
-
-
-  // =========================
-  // deskripsi & judul tabel tiap sub-tab
-  // =========================
 
   const tableTitles: Record<SubTab, string> = {
     tupoksi: 'Tabel 1.A.1 Tabel Pimpinan dan Tupoksi UPPS dan PS',
@@ -27,19 +21,21 @@ export default function LKPSPage() {
     spmi: 'Tabel 1.B Tabel Unit SPMI dan SDM',
   };
 
-  // =========================
-  // State
-  // =========================
   const [activeSubTab, setActiveSubTab] = useState<SubTab>('tupoksi');
-  const [data, setData] = useState<any[]>([]);
+  const [tabData, setTabData] = useState<Record<SubTab, any[]>>({
+    tupoksi: [],
+    pendanaan: [],
+    'penggunaan-dana': [],
+    ewmp: [],
+    ktk: [],
+    spmi: [],
+  });
   const [showForm, setShowForm] = useState(false);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [formData, setFormData] = useState<any>({});
+
   const API_BASE = 'http://localhost:5000/api/budaya-mutu';
 
-  // =========================
-  // Tabs Navigasi Utama
-  // =========================
   const tabs = [
     { label: 'Budaya Mutu', href: '/dashboard/tim-akreditasi/lkps' },
     { label: 'Relevansi Pendidikan', href: '/dashboard/tim-akreditasi/lkps/relevansi-pendidikan' },
@@ -50,22 +46,36 @@ export default function LKPSPage() {
   ];
 
   // =========================
-  // Fetch Data
+  // Fetch Data per Sub-Tab
   // =========================
-  useEffect(() => {
-    fetchData();
-  }, [activeSubTab]);
+ useEffect(() => {
+  const draft = loadDraftBudayaMutu(activeSubTab);
+  if (draft.length) {
+    setTabData(prev => ({ ...prev, [activeSubTab]: draft }));
+  } else {
+    fetchBudayaMutuData(activeSubTab).then(data => {
+      setTabData(prev => ({ ...prev, [activeSubTab]: data }));
+    });
+  }
+}, [activeSubTab]);
+
 
   const fetchData = async () => {
-    try {
-      const res = await fetch(`${API_BASE}?type=${activeSubTab}`);
-      const json = await res.json();
-      setData(json.data || []);
-    } catch (err) {
-      console.error('Fetch error:', err);
-      setData([]);
-    }
-  };
+  try {
+    const res = await fetch(`${API_BASE}?type=${activeSubTab}`);
+    const json = await res.json();
+    setTabData(prev => ({
+      ...prev,
+      [activeSubTab]: json.data.map(item => ({
+        id: item.id,
+        data: item.data // pastikan flat
+      }))
+    }));
+  } catch (err) {
+    console.error('Fetch error:', err);
+    setTabData(prev => ({ ...prev, [activeSubTab]: [] }));
+  }
+};
 
   // =========================
   // Import Excel
@@ -73,15 +83,23 @@ export default function LKPSPage() {
   const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
     const fd = new FormData();
     fd.append('file', file);
 
     try {
       const res = await fetch(`${API_BASE}/import/${activeSubTab}`, { method: 'POST', body: fd });
       const json = await res.json();
+
       if (res.ok && json.success) {
         alert(`✅ Import ${activeSubTab} berhasil`);
-        await fetchData();
+        if (Array.isArray(json.data)) {
+          setTabData(prev => ({
+            ...prev,
+            [activeSubTab]: json.data.map((d: any) => ({ id: d.id, data: d.data }))
+          }));
+        }
+
       } else {
         alert(json.message || 'Gagal import file');
       }
@@ -97,53 +115,70 @@ export default function LKPSPage() {
   // Tambah / Edit / Hapus
   // =========================
   const openAdd = () => {
-    setFormData({});
+    setFormData(getEmptyFormData(activeSubTab));
     setEditIndex(null);
     setShowForm(true);
   };
 
-  const handleSave = async () => {
-    try {
-      const method = editIndex !== null && formData.id ? 'PUT' : 'POST';
-      const url = method === 'PUT' ? `${API_BASE}/${formData.id}` : API_BASE;
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, type: activeSubTab }),
-      });
-      const json = await res.json();
-      if (res.ok) {
-        alert('✅ Data berhasil disimpan');
-        setShowForm(false);
-        await fetchData();
-      } else {
-        alert(json.message || 'Gagal menyimpan data');
-      }
-    } catch (err) {
-      console.error('Save error:', err);
+ // Handle Save
+const handleSave = async () => {
+  try {
+    const method = editIndex !== null ? 'PUT' : 'POST';
+    const url = editIndex !== null && formData.id ? `${API_BASE}/${formData.id}` : API_BASE;
+
+    const body = JSON.stringify({ type: activeSubTab, data: formData });
+    const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body });
+    const json = await res.json();
+
+    if (!res.ok || !json.success) {
+      alert(json.message || 'Gagal menyimpan data');
+      return;
     }
-  };  
+
+    setTabData(prev => {
+      const prevData = prev[activeSubTab] || [];
+      const newData =
+        editIndex !== null
+          ? prevData.map((d, i) => (i === editIndex ? { ...d, data: formData } : d))
+          : [...prevData, { id: json.data.id, data: formData }];
+      return { ...prev, [activeSubTab]: newData };
+    });
+
+    saveDraftBudayaMutu(activeSubTab, [...tabData[activeSubTab], { id: json.data.id, data: formData }]);
+    alert('✅ Data berhasil disimpan');
+    setShowForm(false);
+  } catch (err) {
+    console.error(err);
+    alert('❌ Gagal menyimpan data');
+  }
+};
 
   const handleEdit = (item: any) => {
-    setFormData(item);
-    const idx = data.findIndex((d) => d.id === item.id);
+    setFormData(item.data);
+    const idx = tabData[activeSubTab].findIndex(d => d.id === item.id);
     setEditIndex(idx !== -1 ? idx : null);
     setShowForm(true);
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm('Yakin hapus data ini?')) return;
+
     try {
       const res = await fetch(`${API_BASE}/${id}`, { method: 'DELETE' });
       const json = await res.json();
+
       if (res.ok) {
+        setTabData(prev => {
+          const prevData = prev[activeSubTab] || [];
+          return { ...prev, [activeSubTab]: prevData.filter(d => d.id !== id) };
+        });
         alert('🗑️ Data dihapus');
-        setData((prev) => prev.filter((d) => d.id !== id));
       } else {
         alert(json.message || 'Gagal menghapus');
       }
     } catch (err) {
       console.error('Delete error:', err);
+      alert('❌ Gagal menghapus data');
     }
   };
 
@@ -151,207 +186,125 @@ export default function LKPSPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // =========================
-  // Render Table Columns & Rows
-  // =========================
-  
-  const renderColumns = () => {
-    switch (activeSubTab) {
+  const getEmptyFormData = (subTab: SubTab) => {
+    switch (subTab) {
       case 'tupoksi':
-        return (
-          <>
-            <th className="px-6 py-3">Unit Kerja</th>
-            <th className="px-6 py-3">Nama Ketua</th>
-            <th className="px-6 py-3">Periode</th>
-            <th className="px-6 py-3">Pendidikan Terakhir</th>
-            <th className="px-6 py-3">Jabatan Fungsional</th>
-            <th className="px-6 py-3">Tugas Pokok dan Fungsi</th>
-          </>
-        );
+        return { unitKerja: '', namaKetua: '', periode: '', pendidikanTerakhir: '', jabatanFungsional: '', tugasPokokDanFungsi: '' };
       case 'pendanaan':
-        return (
-          <>
-            <th className="px-6 py-3">Sumber Pendanaan</th>
-            <th className="px-6 py-3">TS-2</th>
-            <th className="px-6 py-3">TS-1</th>
-            <th className="px-6 py-3">TS</th>
-            <th className="px-6 py-3">Link Bukti</th>
-          </>
-        );
-
+        return { sumberPendanaan: '', ts2: '', ts1: '', ts: '', linkBukti: '' };
       case 'penggunaan-dana':
-        return (
-          <>
-            <th className="px-6 py-3">Penggunaan Dana</th>
-            <th className="px-6 py-3">TS-2</th>
-            <th className="px-6 py-3">TS-1</th>
-            <th className="px-6 py-3">TS</th>
-            <th className="px-6 py-3">Link Bukti</th>
-          </>
-        );
-        case 'ewmp':
-        return (
-          <>
-            <th className="px-6 py-3">No</th>
-            <th className="px-6 py-3">Nama DTPR</th>
-            <th className="px-6 py-3">PS Sendiri</th>
-            <th className="px-6 py-3">PS Lain, PT Sendiri</th>
-            <th className="px-6 py-3">PT Lain</th>
-            <th className="px-6 py-3">SKS Penelitian</th>
-            <th className="px-6 py-3">SKS Pengabdian</th>
-            <th className="px-6 py-3">Manajemen PT Sendiri</th>
-            <th className="px-6 py-3">Manajemen PT Lain</th>
-            <th className="px-6 py-3">Total SKS</th>
-          </>
-        );
-
-        case 'ktk':
-                return (
-            <>
-              <th className="px-6 py-3">No</th>
-              <th className="px-6 py-3">Jenis Tenaga Kependidikan </th>
-              <th className="px-6 py-3">S3</th>
-              <th className="px-6 py-3">S2</th>
-              <th className="px-6 py-3">S1</th>
-              <th className="px-6 py-3">D4</th>
-              <th className="px-6 py-3">D3</th>
-              <th className="px-6 py-3">D2</th>
-              <th className="px-6 py-3">D1</th>
-              <th className="px-6 py-3">Sma</th>
-              <th className="px-6 py-3">Unit Kerja</th>
-            </>
-          );
-
+        return { penggunaanDana: '', ts2: '', ts1: '', ts: '', linkBukti: '' };
+      case 'ewmp':
+        return { no: '', namaDTPR: '', psSendiri: '', psLainPTSendiri: '', ptLain: '', sksPenelitian: '', sksPengabdian: '', manajemenPTSendiri: '', manajemenPTLain: '', totalSKS: '' };
+      case 'ktk':
+        return { no: '', jenisTenagaKependidikan: '', s3: '', s2: '', s1: '', d4: '', d3: '', d2: '', d1: '', sma: '', unitKerja: '' };
       case 'spmi':
-        return (
-          <>
-            <th className="px-6 py-3">Unit SPMI</th>
-            <th className="px-6 py-3">Nama Unit SPMI</th>
-            <th className="px-6 py-3">Dokumen SPMI</th>
-            <th className="px-6 py-3">Jumlah Auditor Mutu Internal</th>
-            <th className="px-6 py-3">Certified</th>
-            <th className="px-6 py-3">Non Certified</th>
-            <th className="px-6 py-3">Frekuensi Audit</th>
-            <th className="px-6 py-3">Bukti Certified Auditor</th>
-            <th className="px-6 py-3">Laporan Audit</th>
-          </>
-        );
+        return { unitSPMI: '', namaUnitSPMI: '', dokumenSPMI: '', jumlahAuditorMutuInternal: '', certified: '', nonCertified: '', frekuensiAudit: '', buktiCertifiedAuditor: '', laporanAudit: '' };
     }
   };
 
+  const subTabFields: Record<SubTab, { label: string; key: string }[]> = {
+    tupoksi: [
+      { key: 'unitKerja', label: 'Unit Kerja' },
+      { key: 'namaKetua', label: 'Nama Ketua' },
+      { key: 'periode', label: 'Periode' },
+      { key: 'pendidikanTerakhir', label: 'Pendidikan' },
+      { key: 'jabatanFungsional', label: 'Jabatan' },
+      { key: 'tugasPokokDanFungsi', label: 'Tupoksi' },
+    ],
+    pendanaan: [
+      { key: 'sumberPendanaan', label: 'Sumber Pendanaan' },
+      { key: 'ts2', label: 'TS-2' },
+      { key: 'ts1', label: 'TS-1' },
+      { key: 'ts', label: 'TS' },
+      { key: 'linkBukti', label: 'Link Bukti' },
+    ],
+    'penggunaan-dana': [
+      { key: 'penggunaanDana', label: 'Penggunaan Dana' },
+      { key: 'ts2', label: 'TS-2' },
+      { key: 'ts1', label: 'TS-1' },
+      { key: 'ts', label: 'TS' },
+      { key: 'linkBukti', label: 'Link Bukti' },
+    ],
+    ewmp: [
+      { key: 'no', label: 'No' },
+      { key: 'namaDTPR', label: 'Nama DTPR' },
+      { key: 'psSendiri', label: 'PS Sendiri' },
+      { key: 'psLainPTSendiri', label: 'PS Lain PT Sendiri' },
+      { key: 'ptLain', label: 'PT Lain' },
+      { key: 'sksPenelitian', label: 'SKS Penelitian' },
+      { key: 'sksPengabdian', label: 'SKS Pengabdian' },
+      { key: 'manajemenPTSendiri', label: 'Manajemen PT Sendiri' },
+      { key: 'manajemenPTLain', label: 'Manajemen PT Lain' },
+      { key: 'totalSKS', label: 'Total SKS' },
+    ],
+    ktk: [
+      { key: 'no', label: 'No' },
+      { key: 'jenisTenagaKependidikan', label: 'Jenis Tenaga' },
+      { key: 's3', label: 'S3' },
+      { key: 's2', label: 'S2' },
+      { key: 's1', label: 'S1' },
+      { key: 'd4', label: 'D4' },
+      { key: 'd3', label: 'D3' },
+      { key: 'd2', label: 'D2' },
+      { key: 'd1', label: 'D1' },
+      { key: 'sma', label: 'SMA' },
+      { key: 'unitKerja', label: 'Unit Kerja' },
+    ],
+    spmi: [
+      { key: 'unitSPMI', label: 'Unit SPMI' },
+      { key: 'namaUnitSPMI', label: 'Nama Unit' },
+      { key: 'dokumenSPMI', label: 'Dokumen' },
+      { key: 'jumlahAuditorMutuInternal', label: 'Jumlah Auditor' },
+      { key: 'certified', label: 'Certified' },
+      { key: 'nonCertified', label: 'Non Certified' },
+      { key: 'frekuensiAudit', label: 'Frekuensi Audit' },
+      { key: 'buktiCertifiedAuditor', label: 'Bukti Certified' },
+      { key: 'laporanAudit', label: 'Laporan Audit' },
+    ],
+  };
 
-// =========================
-  // Render Table Rows
-// =========================
-  const renderRows = () =>
-    data.length === 0 ? (
+  const data = tabData[activeSubTab];
+
+  const renderColumns = () => (
+    <tr>
+      {subTabFields[activeSubTab].map(col => (
+        <th key={col.key}>{col.label}</th>
+      ))}
+      <th className="px-6 py-3 text-center">Aksi</th>
+    </tr>
+  );
+
+  const renderRows = () => {
+  if (!data.length)
+    return (
       <tr>
-        <td colSpan={8} className="text-center py-6 text-gray-500">
+        <td colSpan={20} className="text-center py-6 text-gray-500">
           Belum ada data
         </td>
       </tr>
-    ) : (
-      data.map((item) => (
-        <tr key={item.id} className="bg-white rounded-lg shadow-sm hover:bg-gray-50">
-          {activeSubTab === 'tupoksi' && (
-            <>
-              <td className="px-6 py-3">{item.unitKerja}</td>
-              <td className="px-6 py-3">{item.namaKetua}</td>
-              <td className="px-6 py-3">{item.periode}</td>
-              <td className="px-6 py-3">{item.pendidikanTerakhir}</td>
-              <td className="px-6 py-3">{item.jabatanFungsional}</td>
-              <td className="px-6 py-3">{item.tugasPokokDanFungsi}</td>
-            </>
-          )}
-          {activeSubTab === 'pendanaan' && (
-            <>
-              <td className="px-6 py-3">{item.sumberPendanaan}</td>
-              <td className="px-6 py-3">{item.ts2}</td>
-              <td className="px-6 py-3">{item.ts1}</td>
-              <td className="px-6 py-3">{item.ts}</td>
-              <td className="px-6 py-3">
-                {item.linkBukti ? (
-                  <a href={item.linkBukti} target="_blank" className="text-blue-600 hover:underline">Lihat</a>
-                ) : '-'}
-              </td>
-            </>
-          )}
-          {activeSubTab === 'penggunaan-dana' && (
-            <>
-              <td className="px-6 py-3">{item.penggunaanDana}</td>
-              <td className="px-6 py-3">{item.ts2}</td>
-              <td className="px-6 py-3">{item.ts1}</td>
-              <td className="px-6 py-3">{item.ts}</td>
-              <td className="px-6 py-3">
-                {item.linkBukti ? (
-                  <a href={item.linkBukti} target="_blank" className="text-blue-600 hover:underline">Lihat</a>
-                ) : '-'}
-              </td>
-            </>
-          )}
-
-          {activeSubTab === 'ewmp' && (
-            <>
-              <td className="px-6 py-3">{item.no}</td>
-              <td className="px-6 py-3">{item.namaDTPR}</td>
-              <td className="px-6 py-3">{item.psSendiri}</td>
-              <td className="px-6 py-3">{item.psLainPTSendiri}</td>
-              <td className="px-6 py-3">{item.ptLain}</td>
-              <td className="px-6 py-3">{item.sksPenelitian}</td>
-              <td className="px-6 py-3">{item.sksPengabdian}</td>
-              <td className="px-6 py-3">{item.manajemenPTSendiri}</td>
-              <td className="px-6 py-3">{item.manajemenPTLain}</td>
-              <td className="px-6 py-3">{item.totalSKS}</td>
-            </>
-          )}
-
-          {activeSubTab === 'ktk' && (
-            <>
-              <td className="px-6 py-3">{item.no}</td>
-              <td className="px-6 py-3">{item.jenisTenagaKependidikan}</td>
-              <td className="px-6 py-3">{item.s3}</td>
-              <td className="px-6 py-3">{item.s2}</td>
-              <td className="px-6 py-3">{item.s1}</td>
-              <td className="px-6 py-3">{item.d4}</td>
-              <td className="px-6 py-3">{item.d3}</td>
-              <td className="px-6 py-3">{item.d2}</td>
-              <td className="px-6 py-3">{item.d1}</td>
-              <td className="px-6 py-3">{item.sma}</td>
-              <td className="px-6 py-3">{item.unitKerja}</td>
-            </>
-          )}
-
-          {activeSubTab === 'spmi' && (
-            <>
-              <td className="px-6 py-3">{item.unitSPMI}</td>
-              <td className="px-6 py-3">{item.namaUnitSPMI}</td>
-              <td className="px-6 py-3">{item.dokumenSPMI}</td>
-              <td className="px-6 py-3">{item.jumlahAuditorMutuInternal}</td>
-              <td className="px-6 py-3">{item.certified}</td>
-              <td className="px-6 py-3">{item.nonCertified}</td>
-              <td className="px-6 py-3">{item.frekuensiAudit}</td>
-              <td className="px-6 py-3">
-                {item.buktiCertifiedAuditor ? (
-                  <a href={item.buktiCertifiedAuditor} target="_blank" className="text-blue-600 hover:underline">Lihat</a>    
-                ) : '-'}
-              </td>
-              <td className="px-6 py-3">{item.laporanAudit ? (
-                  <a href={item.laporanAudit} target="_blank" className="text-blue-600 hover:underline">Lihat</a>    
-                ) : '-'}
-              </td>
-            </>
-          )}
-          <td className="px-6 py-3 text-center flex justify-center gap-2">
-            <button onClick={() => handleEdit(item)} className="text-blue-600 hover:text-blue-800">
-              <Edit size={16} />
-            </button>
-            <button onClick={() => handleDelete(item.id)} className="text-red-600 hover:text-red-800">
-              <Trash2 size={16} />
-            </button>
-          </td>
-        </tr>
-      ))
     );
+
+  return data.map(item => (
+    <tr key={item.id} className="bg-white rounded-lg shadow-sm hover:bg-gray-50 border-b">
+      {subTabFields[activeSubTab].map(col => (
+        <td key={col.key} className="px-4 py-2 text-gray-800">
+          {col.key === 'linkBukti' ? (
+            item.data[col.key] ? (
+              <a href={item.data[col.key]} target="_blank" className="text-blue-600 hover:underline">Lihat</a>
+            ) : '-'
+          ) : item.data[col.key]}
+        </td>
+      ))}
+      <td className="px-6 py-3 text-center flex gap-2 justify-center">
+        <button onClick={() => handleEdit(item)} className="text-blue-600 hover:text-blue-800"><Edit size={16} /></button>
+        <button onClick={() => handleDelete(item.id)} className="text-red-600 hover:text-red-800"><Trash2 size={16} /></button>
+      </td>
+    </tr>
+  ));
+};
+
+
 
   // =========================
   // Render Page
@@ -360,54 +313,34 @@ export default function LKPSPage() {
     <div className="flex w-full bg-gray-100">
       <div className="flex-1 w-full">
         <main className="w-full p-4 md:p-6 max-w-full overflow-x-hidden">
+
           {/* Header */}
-          <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <div className="flex justify-between items-start mb-4">
-              <div className="flex items-center gap-3 mb-2">
-                <FileText className="text-blue-900" size={32} />
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-800">Laporan Kinerja Program Studi (LKPS)</h1>
-                  <p className="text-sm text-gray-600">Kelola data kuantitatif berdasarkan kriteria akreditasi</p>
-                </div>
+          <div className="bg-white rounded-lg shadow p-6 mb-6 flex justify-between items-start">
+            <div className="flex items-center gap-3">
+              <FileText className="text-blue-900" size={32} />
+              <div>
+                <h1 className="text-2xl font-bold text-gray-800">Laporan Kinerja Program Studi (LKPS)</h1>
+                <p className="text-sm text-gray-600">Kelola data kuantitatif berdasarkan kriteria akreditasi</p>
               </div>
-              <div className="flex gap-2">
-                <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-                  <Download size={16} /> Export PDF
-                </button>
-                <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-                  <Save size={16} /> Save Draft
-                </button>
-                <button className="flex items-center gap-2 px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800">
-                  <FileText size={16} /> Submit
-                </button>
-              </div>
+            </div>
+            <div className="flex gap-2">
+              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"><Download size={16} /> Export PDF</button>
+              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"><Save size={16} /> Save Draft</button>
+              <button className="flex items-center gap-2 px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800"><FileText size={16} /> Submit</button>
             </div>
           </div>
 
           {/* Tabs utama */}
-          <div className="flex gap-2 overflow-x-auto pb-2">
-          {tabs.map((tab) => {
-            const isActive = pathname === tab.href; 
-            return (
-              <Link
-                key={tab.href}
-                href={tab.href}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                  isActive
-                    ? 'bg-[#183A64] text-[#ADE7F7] shadow-md scale-105'
-                    : 'bg-gray-100 text-gray-700 hover:bg-[#ADE7F7] hover:text-[#183A64]'
-                }`}
-              >
-                {tab.label}
-              </Link>
-            );
-          })}
-        </div>
-
+          <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
+            {tabs.map(tab => (
+              <Link key={tab.href} href={tab.href} className={`px-4 py-2 rounded-lg text-sm font-medium ${pathname === tab.href ? 'bg-[#183A64] text-[#ADE7F7]' : 'bg-gray-100 text-gray-700 hover:bg-[#ADE7F7] hover:text-[#183A64]'}`}>{tab.label}</Link>
+            ))}
+          </div>
 
           {/* Budaya Mutu Tab */}
           {pathname === '/dashboard/tim-akreditasi/lkps' && (
             <div className="bg-white rounded-lg shadow-md p-6 space-y-6">
+              
               {/* Struktur Organisasi */}
               <div className="bg-white rounded-lg shadow p-4">
                 <div className="flex justify-between items-center mb-4">
@@ -422,16 +355,10 @@ export default function LKPSPage() {
 
               {/* Sub-tabs */}
               <div className="flex gap-2 border-b pb-2 mb-4">
-                
-                {['tupoksi', 'pendanaan', 'penggunaan-dana', 'ewmp', 'ktk', 'spmi'].map((sub) => (
-                  <button
-                    key={sub}
-                    onClick={() => setActiveSubTab(sub as SubTab)}
-                    className={`px-4 py-2 text-sm rounded-t-lg ${
-                      activeSubTab === sub ? 'bg-blue-100 text-blue-900 font-semibold' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    {sub.replace('-', ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+                {['tupoksi','pendanaan','penggunaan-dana','ewmp','ktk','spmi'].map(sub => (
+                  <button key={sub} onClick={() => setActiveSubTab(sub as SubTab)}
+                    className={`px-4 py-2 text-sm rounded-t-lg ${activeSubTab === sub ? 'bg-blue-100 text-blue-900 font-semibold' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
+                    {sub.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase())}
                   </button>
                 ))}
               </div>
@@ -443,39 +370,24 @@ export default function LKPSPage() {
                   <h2 className="text-sm text-gray-600">{tableTitles[activeSubTab]}</h2>
 
                   <div className="flex gap-2 flex-wrap">
-                    <button
-                      onClick={openAdd}
-                      className="flex items-center gap-2 px-4 py-2 text-sm text-white bg-blue-700 rounded-lg hover:bg-blue-800"
-                    >
-                      <Plus size={16} /> Tambah Data
-                    </button>
-                    <form onSubmit={(e) => e.preventDefault()} className="relative">
-                      <input
-                        type="file"
-                        accept=".xlsx, .xls"
-                        id="importExcel"
-                        className="absolute inset-0 opacity-0 cursor-pointer"
-                        onChange={handleImportExcel}
-                      />
-                      <label
-                        htmlFor="importExcel"
-                        className="flex items-center gap-2 px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-100 cursor-pointer"
-                      >
+                    <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2 text-sm text-white bg-blue-700 rounded-lg hover:bg-blue-800"><Plus size={16} /> Tambah Data</button>
+                    <form onSubmit={e => e.preventDefault()} className="relative">
+                      <input type="file" accept=".xlsx, .xls" id="importExcel" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleImportExcel} />
+                      <label htmlFor="importExcel" className="flex items-center gap-2 px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-100 cursor-pointer">
                         <Upload size={16} /> Import Excel
                       </label>
                     </form>
                   </div>
                 </div>
 
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm text-left text-gray-500 border-separate border-spacing-y-2">
+                <div className="overflow-x-auto px-4 py-2">
+                  <table className="w-full text-sm border-separate border-spacing-y-2">
                     <thead className="text-xs text-gray-700 uppercase bg-gray-50 border-b">
-                      <tr>
-                        {renderColumns()}
-                        <th className="px-6 py-3 text-center">Aksi</th>
-                      </tr>
-                    </thead>
-                    <tbody>{renderRows()}</tbody>
+                  {renderColumns()}
+                </thead>
+                <tbody>
+                  {renderRows()}
+                </tbody>
                   </table>
                 </div>
               </div>
@@ -484,102 +396,29 @@ export default function LKPSPage() {
               {showForm && (
                 <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-start md:items-center overflow-auto z-50 p-4">
                   <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-xl">
-                    
-                    {/* Header Form */}
                     <div className="flex justify-between items-center mb-6">
-                      <h2 className="text-lg font-semibold text-gray-800">
-                        {editIndex !== null ? 'Edit Data' : 'Tambah Data Baru'}
-                      </h2>
-                      <button onClick={() => setShowForm(false)} className="text-gray-500 hover:text-gray-700">
-                        <X size={24} />
-                      </button>
+                      <h2 className="text-lg font-semibold text-gray-800">{editIndex !== null ? 'Edit Data' : 'Tambah Data Baru'}</h2>
+                      <button onClick={() => setShowForm(false)} className="text-gray-500 hover:text-gray-700"><X size={24} /></button>
                     </div>
 
+                    
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      
-
-                      {/* Form per sub-tab */}
-                      {activeSubTab === 'tupoksi' && (
-                        <>
-                          <input name="unitKerja" value={formData.unitKerja || ''} onChange={handleChange} placeholder="Unit Kerja" className="border p-3 rounded-lg w-full" />
-                          <input name="namaKetua" value={formData.namaKetua || ''} onChange={handleChange} placeholder="Nama Ketua" className="border p-3 rounded-lg w-full" />
-                          <input name="periode" value={formData.periode || ''} onChange={handleChange} placeholder="Periode Jabatan" className="border p-3 rounded-lg w-full" />
-                          <input name="pendidikanTerakhir" value={formData.pendidikanTerakhir || ''} onChange={handleChange} placeholder="Pendidikan Terakhir" className="border p-3 rounded-lg w-full" />
-                          <input name="jabatanFungsional" value={formData.jabatanFungsional || ''} onChange={handleChange} placeholder="Jabatan Fungsional" className="border p-3 rounded-lg w-full" />
-                          <input name="tugasPokokDanFungsi" value={formData.tugasPokokDanFungsi || ''} onChange={handleChange} placeholder="Tupoksi" className="border p-3 rounded-lg w-full" />
-                        </>
-                      )}
-
-                      {/* ==================== Form Pendanaan ==================== */}
-                        {activeSubTab === 'pendanaan' && (
-                          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                            <input name="sumberPendanaan" value={formData.sumberPendanaan || ''} onChange={handleChange} placeholder="Sumber Pendanaan" className="border p-3 rounded-lg w-full" />
-                            <input name="ts2" type="number" value={formData.ts2 || ''} onChange={handleChange} placeholder="TS-2" className="border p-3 rounded-lg w-full" />
-                            <input name="ts1" type="number" value={formData.ts1 || ''} onChange={handleChange} placeholder="TS-1" className="border p-3 rounded-lg w-full" />
-                            <input name="ts"  type="number" value={formData.ts || ''} onChange={handleChange} placeholder="TS" className="border p-3 rounded-lg w-full" />
-                            <input name="linkBukti"  value={formData.linkBukti || ''} onChange={handleChange} placeholder="Link Bukti" className="border p-3 rounded-lg w-full" />
-                          </div>
-                        )}
-                      {/* ==================== Form Penggunaan Dana ==================== */}
-                      {activeSubTab === 'penggunaan-dana' && (
-                            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                            <input name="penggunaanDana" value={formData.penggunaanDana || ''} onChange={handleChange} placeholder="Penggunaan Dana" className="border p-3 rounded-lg w-full" />
-                            <input name="ts2" type="number" value={formData.ts2 || ''} onChange={handleChange} placeholder="TS-2" className="border p-3 rounded-lg w-full" />
-                            <input name="ts1" type="number" value={formData.ts1 || ''} onChange={handleChange} placeholder="TS-1" className="border p-3 rounded-lg w-full" />
-                            <input name="ts"  type="number" value={formData.ts || ''} onChange={handleChange} placeholder="TS" className="border p-3 rounded-lg w-full" />
-                            <input name="linkBukti"  value={formData.linkBukti || ''} onChange={handleChange} placeholder="Link Bukti" className="border p-3 rounded-lg w-full" />
-                          </div>
-                        )}
-                      {/* ==================== Form EWMP ==================== */}
-                          {activeSubTab === 'ewmp' && (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <input name="no" value={formData.no || ''} onChange={handleChange} placeholder="No" className="border p-3 rounded-lg w-full" />
-                              <input name="namaDTPR" value={formData.namaDTPR || ''} onChange={handleChange} placeholder="Nama DTPR" className="border p-3 rounded-lg w-full" />
-                              <input name="psSendiri"  value={formData.psSendiri || ''} onChange={handleChange} placeholder="PS Sendiri" className="border p-3 rounded-lg w-full" />
-                              <input name="psLainPTSendiri" value={formData.psLainPTSendiri || ''} onChange={handleChange} placeholder="PS Lain, PT Sendiri" className="border p-3 rounded-lg w-full" />
-                              <input name="ptLain"  value={formData.ptLain || ''} onChange={handleChange} placeholder="PT Lain" className="border p-3 rounded-lg w-full" />
-                              <input name="sksPenelitian"  value={formData.sksPenelitian || ''} onChange={handleChange} placeholder="SKS Penelitian" className="border p-3 rounded-lg w-full" />
-                              <input name="sksPengabdian"  value={formData.sksPengabdian || ''} onChange={handleChange} placeholder="SKS Pengabdian" className="border p-3 rounded-lg w-full" />
-                              <input name="manajemenPTSendiri"  value={formData.manajemenPTSendiri || ''} onChange={handleChange} placeholder="Manajemen PT Sendiri" className="border p-3 rounded-lg w-full" />
-                              <input name="manajemenPTLain"  value={formData.manajemenPTLain || ''} onChange={handleChange} placeholder="Manajemen PT Lain" className="border p-3 rounded-lg w-full" />
-                              <input name="totalSKS"  value={formData.totalSKS || ''} onChange={handleChange} placeholder="Total SKS" className="border p-3 rounded-lg w-full" />
-                            </div>
-                          )}
-                      {/* ==================== Form KTK ==================== */}
-                        {activeSubTab === 'ktk' && (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <input name="no" value={formData.no || ''} onChange={handleChange} placeholder="No" className="border p-3 rounded-lg w-full" />
-                              <input name="jenisTenagaKependidikan" value={formData.jenisTenagaKependidikan || ''} onChange={handleChange} placeholder="Jenis Tenaga Kependidikan" className="border p-3 rounded-lg w-full" />
-                              <input name="s3" value={formData.s3 || ''} onChange={handleChange} placeholder="S3" className="border p-3 rounded-lg w-full" />
-                              <input name="s2" value={formData.s2 || ''} onChange={handleChange} placeholder="S2" className="border p-3 rounded-lg w-full" />
-                              <input name="s1" value={formData.s1 || ''} onChange={handleChange} placeholder="S1" className="border p-3 rounded-lg w-full" />
-                              <input name="d4" value={formData.d4 || ''} onChange={handleChange} placeholder="D4" className="border p-3 rounded-lg w-full" />
-                              <input name="d3" value={formData.d3 || ''} onChange={handleChange} placeholder="D3" className="border p-3 rounded-lg w-full" />
-                              <input name="d2" value={formData.d2 || ''} onChange={handleChange} placeholder="D2" className="border p-3 rounded-lg w-full" />
-                              <input name="d1" value={formData.d1 || ''} onChange={handleChange} placeholder="D1" className="border p-3 rounded-lg w-full" />
-                              <input name="sma" value={formData.sma || ''} onChange={handleChange} placeholder="SMA" className="border p-3 rounded-lg w-full" />
-                              <input name="unitKerja" value={formData.unitKerja || ''} onChange={handleChange} placeholder="Unit Kerja" className="border p-3 rounded-lg w-full" />
-                            </div>
-                          )}
-
-                      {activeSubTab === 'spmi' && (
-                        <>
-                          <input name="unitSPMI" value={formData.unitSPMI || ''} onChange={handleChange} placeholder="Unit SPMI" className="border p-3 rounded-lg w-full" />
-                          <input name="namaUnitSPMI" value={formData.namaUnitSPMI || ''} onChange={handleChange} placeholder="Nama Unit SPMI" className="border p-3 rounded-lg w-full" />
-                          <input name="dokumenSPMI" value={formData.dokumenSPMI || ''} onChange={handleChange} placeholder="Dokumen SPMI" className="border p-3 rounded-lg w-full" />
-                          <input name="jumlahAuditorMutuInternal" type="number" value={formData.jumlahAuditorMutuInternal || ''} onChange={handleChange} placeholder="Jumlah Auditor Mutu Internal" className="border p-3 rounded-lg w-full" />
-                          <input name="certified"  value={formData.certified || ''} onChange={handleChange} placeholder="Certified" className="border p-3 rounded-lg w-full" />
-                          <input name="nonCertified" type="number" value={formData.nonCertified || ''} onChange={handleChange} placeholder="Non Certified" className="border p-3 rounded-lg w-full" />  
-                          <input name="frekuensiAudit" value={formData.frekuensiAudit || ''} onChange={handleChange} placeholder="Frekuensi Audit" className="border p-3 rounded-lg w-full" />  
-                          <input name="buktiCertifiedAuditor" value={formData.buktiCertifiedAuditor || ''} onChange={handleChange} placeholder="Bukti Certified Auditor" className="border p-3 rounded-lg w-full" />
-                          <input name="laporanAudit" value={formData.laporanAudit || ''} onChange={handleChange} placeholder="Laporan Audit" className="border p-3 rounded-lg w-full" />
-                        </>
-                      )}
-
+                      {subTabFields[activeSubTab].map(field => (
+                        <input 
+                          key={field.key} 
+                          name={field.key} 
+                          value={formData[field.key] || ''} 
+                          onChange={handleChange} 
+                          placeholder={field.label} 
+                          className="border p-3 rounded-lg w-full text-gray-800 focus:ring-2 focus:ring-blue-300" 
+                        />
+                      ))}
                     </div>
-                    <div className="flex justify-end gap-2 mt-8">
-                      <button onClick={() => setShowForm(false)} className="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300">Batal</button>
-                      <button onClick={handleSave} className="px-4 py-2 bg-blue-700 text-white rounded hover:bg-blue-800">Simpan</button>
+
+
+                    <div className="flex justify-end mt-6 gap-2">
+                      <button onClick={() => setShowForm(false)} className="px-4 py-2 border rounded hover:bg-gray-100">Batal</button>
+                      <button onClick={handleSave} className="px-4 py-2 bg-blue-900 text-white rounded hover:bg-blue-800">Simpan</button>
                     </div>
                   </div>
                 </div>
@@ -593,3 +432,4 @@ export default function LKPSPage() {
     </div>
   );
 }
+
