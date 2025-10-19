@@ -354,20 +354,27 @@ export default function RelevansiPenelitianPage() {
 
   return (
     <div className="flex w-full bg-gray-100">
-      <div className="flex-1 w-full">
-        <main className="w-full p-4 md:p-6 max-w-full overflow-x-hidden">
-          {/* Header */}
-          <div className="bg-white rounded-lg shadow p-4 sm:p-6 mb-6 flex flex-col sm:flex-row justify-between items-start gap-4">
-            <div className="flex items-center gap-3">
-              <FileText className="text-blue-900" size={32} />
-              <div>
-                <h1 className="text-2xl font-bold text-gray-800">Relevansi Penelitian</h1>
-                <p className="text-sm text-gray-600">Kelola data kuantitatif berdasarkan kriteria akreditasi</p>
+          <div className="flex-1 w-full">
+            <main className="w-full p-4 md:p-6 max-w-full overflow-x-hidden">
+              {/* Header LKPS */}
+              <div className="bg-white rounded-lg shadow p-6 mb-6 flex justify-between items-start">
+                <div className="flex items-center gap-3 mb-2">
+                  <FileText className="text-blue-900" size={32} />
+                  <div>
+                    <h1 className="text-2xl font-bold text-gray-800">Laporan Kinerja Program Studi (LKPS)</h1>
+                    <p className="text-sm text-gray-600">Kelola data kuantitatif berdasarkan kriteria akreditasi</p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+                    <Download size={16} /> Export PDF
+                  </button>
+                  <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+                    <Save size={16} /> Save Draft
+                  </button>
+                </div>
               </div>
-            </div>
-            
-          </div>
-
+              
           {/* Tabs utama */}
           <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
             {tabs.map((tab) => (
