@@ -1,11 +1,6 @@
 'use client';
 
-import { Irish_Grover, Poppins } from 'next/font/google';
-
-const irishGrover = Irish_Grover({
-  subsets: ['latin'],
-  weight: '400',
-});
+import { Poppins } from 'next/font/google';
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -14,61 +9,44 @@ const poppins = Poppins({
 
 export default function Footer() {
   return (
-    <footer className="bg-[#0A2F56] text-white mt-10 relative">
-      <div className="px-6 py-6">
-        <div className="flex flex-col md:flex-row justify-between items-start relative">
-          {/* === Kiri === */}
-          <div className="flex items-start gap-4">
-            {/* Logo */}
+    <footer className={`mt-10 w-full ${poppins.className}`}>
+      {/* Bagian Atas */}
+      <div className="bg-[#0A2F56] text-white w-full">
+        <div className="max-w-[1600px] mx-auto flex justify-between items-start px-6 py-6">
+          
+          {/* Kiri */}
+         <div className="bg-[#0A2F56] text-white flex items-center gap-6 px-8 py-4">
             <img
-              src="/Polibatam.png"
-              alt="Logo"
-              className="h-14 w-14 object-contain"
+              src="/polibatam.png"
+              alt="Logo Polibatam"
+              className="w-14 h-14 object-contain"
             />
-
-            {/* Teks */}
-            <div className={poppins.className}>
-              <p className="text-lg font-bold">
-                <span className={`${irishGrover.className} text-[#ADE7F7]`}>
-                  ReDDA POLIBATAM
-                </span>{' '}
-                
-              </p>
-
+            <div>
+              <h1 className="font-semibold text-[#ADE7F7]">ReDDa Polibatam</h1>
               <p className="text-sm font-semibold">
-                Pusat Repository Digital Data Akreditasi Polibatam <br />
-                Jurusan Informatika
+                Pusat Repository Digital Data Akreditasi Polibatam
               </p>
-              <p className="text-xs mt-2">
-                Alamat: Jl Ahmad Yani Batam Kota, Kota Batam Kepulauan Riau, Indonesia
-              </p>
+              <p className="text-sm">Jurusan Informatika</p>
             </div>
           </div>
 
-          {/* === Kanan (pojok kanan atas) === */}
-          <div
-            className={`absolute top-6 right-6 flex gap-6 font-semibold ${poppins.className}`}
-          >
-            <a
-              href="#"
-              className="text-[#ADE7F7] hover:text-white transition-colors duration-200"
-            >
-              About
-            </a>
-            <a
-              href="#"
-              className="text-[#ADE7F7] hover:text-white transition-colors duration-200"
-            >
-              Support
-            </a>
+          {/* Kanan */}
+          <div className="text-right">
+            <p className="text-sm">
+              <span className="font-semibold">Alamat:</span> Jl. Ahmad Yani Batam<br />
+              Kota. Kota Batam, Kepulauan Riau, Indonesia
+            </p>
+            <p className="text-sm mt-4">
+              <span className="font-semibold">Phone:</span> +62-778-469858 Ext.1017<br />
+              <span className="font-semibold">Fax:</span> +62-778-463620<br />
+              <span className="font-semibold">Email:</span> info@polibatam.ac.id
+            </p>
           </div>
         </div>
       </div>
 
-      {/* === Bawah === */}
-      <div
-        className={`bg-orange-500 text-center text-xs py-2 ${poppins.className}`}
-      >
+      {/* Bagian Bawah */}
+      <div className="bg-[#F97316] text-white text-center py-2 text-sm font-medium">
         © 2025 Politeknik Negeri Batam
       </div>
     </footer>
