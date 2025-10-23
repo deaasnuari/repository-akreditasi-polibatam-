@@ -1,11 +1,23 @@
-const API_BASE = 'http://localhost:5000/api/budaya-mutu';
+const API_BASE_LKPS = 'http://localhost:5000/api/budaya-mutu-';
+const API_BASE_LED = 'http://localhost:5000/api/led';
 
-export type SubTab = 'tupoksi' | 'pendanaan' | 'penggunaan-dana' | 'ewmp' | 'ktk' | 'spmi';
+// ==================== 🔹 TYPE ====================
+export type SubTab =
+  | 'tupoksi'
+  | 'pendanaan'
+  | 'penggunaan-dana'
+  | 'ewmp'
+  | 'ktk'
+  | 'spmi'
+  | 'budaya-mutu'; // tambahan untuk LED
 
-// ==================== API ====================
+// ===================================================
+// ============== 🟦 LKPS SECTION (TIDAK DIUBAH) =====
+// ===================================================
+
 export const fetchBudayaMutuData = async (type: SubTab) => {
   try {
-    const res = await fetch(`${API_BASE}?type=${type}`);
+    const res = await fetch(`${API_BASE_LKPS}?type=${type}`);
     const json = await res.json();
     return json.success ? json.data : [];
   } catch (err) {
@@ -16,10 +28,10 @@ export const fetchBudayaMutuData = async (type: SubTab) => {
 
 export const createBudayaMutuData = async (type: SubTab, data: any) => {
   try {
-    const res = await fetch(API_BASE, {
+    const res = await fetch(API_BASE_LKPS, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type, data })
+      body: JSON.stringify({ type, data }),
     });
     return await res.json();
   } catch (err) {
@@ -30,10 +42,10 @@ export const createBudayaMutuData = async (type: SubTab, data: any) => {
 
 export const updateBudayaMutuData = async (id: string, type: SubTab, data: any) => {
   try {
-    const res = await fetch(`${API_BASE}/${id}`, {
+    const res = await fetch(`${API_BASE_LKPS}/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type, data })
+      body: JSON.stringify({ type, data }),
     });
     return await res.json();
   } catch (err) {
@@ -44,7 +56,7 @@ export const updateBudayaMutuData = async (id: string, type: SubTab, data: any) 
 
 export const deleteBudayaMutuData = async (id: string) => {
   try {
-    const res = await fetch(`${API_BASE}/${id}`, { method: 'DELETE' });
+    const res = await fetch(`${API_BASE_LKPS}/${id}`, { method: 'DELETE' });
     return await res.json();
   } catch (err) {
     console.error(err);
@@ -56,7 +68,7 @@ export const importExcelBudayaMutu = async (file: File, type: SubTab) => {
   const formData = new FormData();
   formData.append('file', file);
   try {
-    const res = await fetch(`${API_BASE}/import/${type}`, { method: 'POST', body: formData });
+    const res = await fetch(`${API_BASE_LKPS}/import/${type}`, { method: 'POST', body: formData });
     return await res.json();
   } catch (err) {
     console.error(err);
@@ -69,7 +81,7 @@ export function saveDraftBudayaMutu(subTab: SubTab, data: any[]) {
   try {
     localStorage.setItem(`lkps_${subTab}`, JSON.stringify(data));
   } catch (error) {
-    console.error("Gagal menyimpan draft:", error);
+    console.error('Gagal menyimpan draft:', error);
   }
 }
 
@@ -78,7 +90,86 @@ export function loadDraftBudayaMutu(subTab: SubTab) {
     const saved = localStorage.getItem(`lkps_${subTab}`);
     return saved ? JSON.parse(saved) : [];
   } catch (error) {
-    console.error("Gagal memuat draft:", error);
+    console.error('Gagal memuat draft:', error);
     return [];
   }
 }
+
+// ===================================================
+// ============== 🟨 LED SECTION (DITAMBAHKAN) =======
+// ===================================================
+
+export const fetchBudayaMutuLED = async () => {
+  try {
+    const res = await fetch(API_BASE_LED);
+    if (!res.ok) {
+      console.error('Fetch error, status:', res.status);
+      return [];
+    }
+    return await res.json();
+  } catch (err) {
+    console.error('fetchBudayaMutuLED error:', err);
+    return [];
+  }
+};
+
+export const createBudayaMutuLED = async (data: any) => {
+  try {
+    const res = await fetch(API_BASE_LED, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+
+    // baca body sekali saja
+    const text = await res.text();
+    let json;
+    try {
+      json = JSON.parse(text);
+    } catch {
+      json = null;
+    }
+
+    if (!res.ok) throw new Error(`Create failed: ${res.status} ${text}`);
+
+    return json;
+  } catch (err) {
+    console.error('createBudayaMutuLED error:', err);
+    return null;
+  }
+};
+
+export const updateBudayaMutuLED = async (id: string, data: any) => {
+  try {
+    const res = await fetch(`${API_BASE_LED}/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+
+    const text = await res.text();
+    let json;
+    try {
+      json = JSON.parse(text);
+    } catch {
+      json = null;
+    }
+
+    if (!res.ok) throw new Error(`Update failed: ${res.status} ${text}`);
+
+    return json;
+  } catch (err) {
+    console.error('updateBudayaMutuLED error:', err);
+    return null;
+  }
+};
+
+// Draft di localStorage
+export const saveDraftBudayaMutuLED = (data: any) => {
+  localStorage.setItem('draftBudayaMutuLED', JSON.stringify(data));
+};
+
+export const loadDraftBudayaMutuLED = () => {
+  const raw = localStorage.getItem('draftBudayaMutuLED');
+  return raw ? JSON.parse(raw) : null;
+};

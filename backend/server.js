@@ -3,12 +3,12 @@ import cors from "cors";
 import bodyParser from "body-parser";
 
 import authRoutes from "./routes/authRoutes.js";
-import relevansiRoutes from "./routes/relevansiPendidikan.js";
 import relevansiPenelitianRoutes from "./routes/relevansiPenelitian.js";
 import relevansiPendidikanRoutes from "./routes/relevansiPendidikan.js";
 import diferensiasiMisiRoutes from './routes/diferensiasiMisi.js';
 import { Pool } from "pg";
 import budayaMutuRoutes from "./routes/budayaMutu.js";
+import ledRoutes from './routes/ledRoutes.js';
 
 
 // 🆕 Tambahan untuk Relevansi PKM
@@ -37,6 +37,7 @@ app.use("/api/relevansi-pendidikan", relevansiPendidikanRoutes);
 app.use('/api/diferensiasi-misi', diferensiasiMisiRoutes);
 app.use("/api/relevansi-pkm", relevansiPkmRoutes);
 app.use("/api/budaya-mutu", budayaMutuRoutes);
+app.use('/api/led', ledRoutes);
 
 const PORT = 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
