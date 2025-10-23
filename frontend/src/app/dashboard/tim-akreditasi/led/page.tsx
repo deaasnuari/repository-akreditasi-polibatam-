@@ -500,6 +500,7 @@ function SectionEval({ evalRows, onAdd, onRemove, onUpdate }: SectionEvalProps) 
     onRemove('evalRows', id);
   };
 
+  
   return (
     <div className="mb-8">
       <h3 className="font-semibold text-[#183A64] text-lg mb-3 flex items-center gap-2">
