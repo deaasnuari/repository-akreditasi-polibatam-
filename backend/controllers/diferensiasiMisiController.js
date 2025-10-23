@@ -1,92 +1,65 @@
-import fs from "fs";
-import path from "path";
+// backend/controllers/diferensiasiMisiController.js
+import pool from "../db.js";
 
-const filePath = path.resolve("backend/data/diferensiasiMisi.json");
-
-// Fungsi untuk membaca data dari file JSON
-const readData = () => {
-  if (!fs.existsSync(filePath)) return [];
-  const raw = fs.readFileSync(filePath);
-  return JSON.parse(raw || "[]");
-};
-
-// Fungsi untuk menyimpan data ke file JSON
-const saveData = (data) => {
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
-};
-
-// --- GET (Ambil Data) ---
+// GET semua data
 export const getDiferensiasiMisi = async (req, res) => {
   try {
-    const { type } = req.query;
-    const data = readData(); // 🔹 Ambil data dari file JSON
-
-    // Jika ada query ?type=..., filter datanya
-    const filtered = type ? data.filter((item) => item.type === type) : data;
-
-    res.json({ data: filtered });
+    const result = await pool.query("SELECT * FROM diferensiasi_misi ORDER BY id ASC");
+    res.json({ data: result.rows });
   } catch (err) {
-    console.error("Error reading data:", err);
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({ message: "Gagal mengambil data", error: err.message });
   }
 };
 
-// --- POST (Tambah Data) ---
-export const addDiferensiasiMisi = (req, res) => {
+// POST tambah data
+export const addDiferensiasiMisi = async (req, res) => {
   try {
-    const data = readData();
-    const newItem = {
-      id: Date.now(),
-      tipe_data: req.body.tipe_data,
-      unit_kerja: req.body.unit_kerja,
-      konten: req.body.konten,
-      type: req.body.type || "visi-misi",
-    };
-
-    data.push(newItem);
-    saveData(data);
-
-    res.json({ message: "✅ Data berhasil ditambahkan", data: newItem });
+    const { tipe_data, unit_kerja, konten, type } = req.body;
+    const result = await pool.query(
+      `INSERT INTO diferensiasi_misi (tipe_data, unit_kerja, konten, type)
+       VALUES ($1, $2, $3, $4) RETURNING *`,
+      [tipe_data, unit_kerja, konten, type]
+    );
+    res.json({ message: "✅ Data berhasil ditambahkan", data: result.rows[0] });
   } catch (err) {
-    console.error("Error adding data:", err);
-    res.status(500).json({ message: "Gagal menambahkan data" });
+    res.status(500).json({ message: "Gagal menambahkan data", error: err.message });
   }
 };
 
-// --- PUT (Update Data) ---
-export const updateDiferensiasiMisi = (req, res) => {
+// PUT update data
+export const updateDiferensiasiMisi = async (req, res) => {
   try {
-    const data = readData();
-    const id = parseInt(req.params.id);
-    const index = data.findIndex((item) => item.id === id);
+    const { id } = req.params;
+    const { tipe_data, unit_kerja, konten, type } = req.body;
+    const result = await pool.query(
+      `UPDATE diferensiasi_misi
+       SET tipe_data=$1, unit_kerja=$2, konten=$3, type=$4
+       WHERE id=$5 RETURNING *`,
+      [tipe_data, unit_kerja, konten, type, id]
+    );
 
-    if (index === -1)
+    if (result.rowCount === 0) {
       return res.status(404).json({ message: "Data tidak ditemukan" });
+    }
 
-    data[index] = { ...data[index], ...req.body };
-    saveData(data);
-
-    res.json({ message: "✅ Data berhasil diperbarui", data: data[index] });
+    res.json({ message: "✅ Data berhasil diperbarui", data: result.rows[0] });
   } catch (err) {
-    console.error("Error updating data:", err);
-    res.status(500).json({ message: "Gagal memperbarui data" });
+    res.status(500).json({ message: "Gagal memperbarui data", error: err.message });
   }
 };
 
-// --- DELETE (Hapus Data) ---
-export const deleteDiferensiasiMisi = (req, res) => {
+// DELETE hapus data
+export const deleteDiferensiasiMisi = async (req, res) => {
   try {
-    const data = readData();
-    const id = parseInt(req.params.id);
-    const filtered = data.filter((item) => item.id !== id);
+    const { id } = req.params;
+    const result = await pool.query(`DELETE FROM diferensiasi_misi WHERE id=$1`, [id]);
 
-    if (filtered.length === data.length)
+    if (result.rowCount === 0) {
       return res.status(404).json({ message: "Data tidak ditemukan" });
+    }
 
-    saveData(filtered);
     res.json({ message: "🗑️ Data berhasil dihapus" });
   } catch (err) {
-    console.error("Error deleting data:", err);
-    res.status(500).json({ message: "Gagal menghapus data" });
+    res.status(500).json({ message: "Gagal menghapus data", error: err.message });
   }
 };

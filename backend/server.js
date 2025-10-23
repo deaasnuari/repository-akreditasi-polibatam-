@@ -41,11 +41,3 @@ app.use('/api/led', ledRoutes);
 
 const PORT = 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
-const pool = new Pool({
-  user: 'postgres',        // Username PostgreSQL Anda
-  host: 'localhost',
-  database: 'repository_polibatam',     // Nama database yang tadi dibuat
-  password: '030104', // Password PostgreSQL Anda
-  port: 5432,
-}); 
