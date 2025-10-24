@@ -48,34 +48,60 @@ export default function LKPSPage() {
   // =========================
   // Fetch Data per Sub-Tab
   // =========================
- useEffect(() => {
-  const draft = loadDraftBudayaMutu(activeSubTab);
-  if (draft.length) {
-    setTabData(prev => ({ ...prev, [activeSubTab]: draft }));
-  } else {
-    fetchBudayaMutuData(activeSubTab).then(data => {
-      setTabData(prev => ({ ...prev, [activeSubTab]: data }));
-    });
-  }
-}, [activeSubTab]);
+  useEffect(() => {
+    const draft = loadDraftBudayaMutu(activeSubTab);
+    if (draft.length) {
+      setTabData(prev => ({ ...prev, [activeSubTab]: draft }));
+    } else {
+      fetchBudayaMutuData(activeSubTab)
+        .then(data => {
+          setTabData(prev => ({ ...prev, [activeSubTab]: data }));
+        })
+        .catch(err => {
+          console.error('Error loading data:', err);
+          setTabData(prev => ({ ...prev, [activeSubTab]: [] }));
+        });
+    }
+  }, [activeSubTab]);
 
 
   const fetchData = async () => {
-  try {
-    const res = await fetch(`${API_BASE}?type=${activeSubTab}`);
-    const json = await res.json();
-    setTabData(prev => ({
-      ...prev,
-      [activeSubTab]: json.data.map(item => ({
-        id: item.id,
-        data: item.data // pastikan flat
-      }))
-    }));
-  } catch (err) {
-    console.error('Fetch error:', err);
-    setTabData(prev => ({ ...prev, [activeSubTab]: [] }));
-  }
-};
+    try {
+      const res = await fetch(`${API_BASE}?type=${activeSubTab}`);
+      
+      // Cek apakah response OK
+      if (!res.ok) {
+        console.error(`HTTP error! status: ${res.status}`);
+        setTabData(prev => ({ ...prev, [activeSubTab]: [] }));
+        return;
+      }
+
+      // Cek apakah response adalah JSON
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        console.error('Response bukan JSON:', await res.text());
+        setTabData(prev => ({ ...prev, [activeSubTab]: [] }));
+        return;
+      }
+
+      const json = await res.json();
+      
+      if (json.success && Array.isArray(json.data)) {
+        setTabData(prev => ({
+          ...prev,
+          [activeSubTab]: json.data.map(item => ({
+            id: item.id,
+            data: item.data
+          }))
+        }));
+      } else {
+        setTabData(prev => ({ ...prev, [activeSubTab]: [] }));
+      }
+    } catch (err) {
+      console.error('Fetch error:', err);
+      setTabData(prev => ({ ...prev, [activeSubTab]: [] }));
+    }
+  };
 
   // =========================
   // Import Excel
@@ -89,6 +115,15 @@ export default function LKPSPage() {
 
     try {
       const res = await fetch(`${API_BASE}/import/${activeSubTab}`, { method: 'POST', body: fd });
+      
+      // Cek content type
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        alert('❌ Server error - bukan JSON response');
+        console.error('Response:', await res.text());
+        return;
+      }
+
       const json = await res.json();
 
       if (res.ok && json.success) {
@@ -99,7 +134,6 @@ export default function LKPSPage() {
             [activeSubTab]: json.data.map((d: any) => ({ id: d.id, data: d.data }))
           }));
         }
-
       } else {
         alert(json.message || 'Gagal import file');
       }
@@ -120,41 +154,85 @@ export default function LKPSPage() {
     setShowForm(true);
   };
 
- // Handle Save
-const handleSave = async () => {
-  try {
-    const method = editIndex !== null ? 'PUT' : 'POST';
-    const url = editIndex !== null && formData.id ? `${API_BASE}/${formData.id}` : API_BASE;
-
-    const body = JSON.stringify({ type: activeSubTab, data: formData });
-    const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body });
-    const json = await res.json();
-
-    if (!res.ok || !json.success) {
-      alert(json.message || 'Gagal menyimpan data');
-      return;
-    }
-
-    setTabData(prev => {
-      const prevData = prev[activeSubTab] || [];
-      const newData =
-        editIndex !== null
-          ? prevData.map((d, i) => (i === editIndex ? { ...d, data: formData } : d))
-          : [...prevData, { id: json.data.id, data: formData }];
-      return { ...prev, [activeSubTab]: newData };
-    });
-
-    saveDraftBudayaMutu(activeSubTab, [...tabData[activeSubTab], { id: json.data.id, data: formData }]);
-    alert('✅ Data berhasil disimpan');
+  const handleCloseForm = () => {
     setShowForm(false);
-  } catch (err) {
-    console.error(err);
-    alert('❌ Gagal menyimpan data');
-  }
-};
+    setEditIndex(null);
+    setFormData({});
+  };
+
+  // Handle Save
+  const handleSave = async () => {
+    try {
+      // Pisahkan ID dari formData untuk body request
+      const { id: itemId, ...dataToSave } = formData;
+      
+      const method = editIndex !== null && itemId ? 'PUT' : 'POST';
+      const url = editIndex !== null && itemId ? `${API_BASE}/${itemId}` : API_BASE;
+
+      const body = JSON.stringify({ type: activeSubTab, data: dataToSave });
+      
+      console.log('Saving data:', { method, url, body }); // Debug log
+      
+      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body });
+      
+      // Cek content type
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const responseText = await res.text();
+        alert('❌ Server error - response bukan JSON');
+        console.error('Response:', responseText);
+        console.error('Status:', res.status);
+        console.error('URL:', url);
+        return;
+      }
+
+      const json = await res.json();
+
+      if (!res.ok || !json.success) {
+        alert(json.message || 'Gagal menyimpan data');
+        return;
+      }
+
+      // Update state
+      setTabData(prev => {
+        const prevData = prev[activeSubTab] || [];
+        let newData;
+        
+        if (editIndex !== null) {
+          // Mode edit - update data yang ada
+          newData = prevData.map((d, i) => 
+            i === editIndex ? { ...d, id: itemId, data: dataToSave } : d
+          );
+        } else {
+          // Mode tambah - tambah data baru
+          newData = [...prevData, { id: json.data.id, data: dataToSave }];
+        }
+        
+        return { ...prev, [activeSubTab]: newData };
+      });
+
+      // Save draft
+      const updatedData = editIndex !== null 
+        ? tabData[activeSubTab].map((d, i) => 
+            i === editIndex ? { id: itemId, data: dataToSave } : d
+          )
+        : [...tabData[activeSubTab], { id: json.data.id, data: dataToSave }];
+      
+      saveDraftBudayaMutu(activeSubTab, updatedData);
+      
+      alert('✅ Data berhasil disimpan');
+      setShowForm(false);
+      setEditIndex(null);
+      setFormData({});
+    } catch (err) {
+      console.error('Save error:', err);
+      alert('❌ Gagal menyimpan data');
+    }
+  };
 
   const handleEdit = (item: any) => {
-    setFormData(item.data);
+    // Simpan data item lengkap termasuk ID
+    setFormData({ ...item.data, id: item.id });
     const idx = tabData[activeSubTab].findIndex(d => d.id === item.id);
     setEditIndex(idx !== -1 ? idx : null);
     setShowForm(true);
@@ -165,6 +243,15 @@ const handleSave = async () => {
 
     try {
       const res = await fetch(`${API_BASE}/${id}`, { method: 'DELETE' });
+      
+      // Cek content type
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        alert('❌ Server error - response bukan JSON');
+        console.error('Response:', await res.text());
+        return;
+      }
+
       const json = await res.json();
 
       if (res.ok) {
@@ -195,9 +282,9 @@ const handleSave = async () => {
       case 'penggunaan-dana':
         return { penggunaanDana: '', ts2: '', ts1: '', ts: '', linkBukti: '' };
       case 'ewmp':
-        return { no: '', namaDTPR: '', psSendiri: '', psLainPTSendiri: '', ptLain: '', sksPenelitian: '', sksPengabdian: '', manajemenPTSendiri: '', manajemenPTLain: '', totalSKS: '' };
+        return { namaDTPR: '', psSendiri: '', psLainPTSendiri: '', ptLain: '', sksPenelitian: '', sksPengabdian: '', manajemenPTSendiri: '', manajemenPTLain: '', totalSKS: '' };
       case 'ktk':
-        return { no: '', jenisTenagaKependidikan: '', s3: '', s2: '', s1: '', d4: '', d3: '', d2: '', d1: '', sma: '', unitKerja: '' };
+        return { jenisTenagaKependidikan: '', s3: '', s2: '', s1: '', d4: '', d3: '', d2: '', d1: '', sma: '', unitKerja: '' };
       case 'spmi':
         return { unitSPMI: '', namaUnitSPMI: '', dokumenSPMI: '', jumlahAuditorMutuInternal: '', certified: '', nonCertified: '', frekuensiAudit: '', buktiCertifiedAuditor: '', laporanAudit: '' };
     }
@@ -264,47 +351,74 @@ const handleSave = async () => {
     ],
   };
 
+  // Get form fields (exclude 'no' for ewmp and ktk)
+  const getFormFields = (subTab: SubTab) => {
+    return subTabFields[subTab].filter(field => field.key !== 'no');
+  };
+
   const data = tabData[activeSubTab];
 
   const renderColumns = () => (
     <tr>
       {subTabFields[activeSubTab].map(col => (
-        <th key={col.key}>{col.label}</th>
+        <th key={col.key} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          {col.label}
+        </th>
       ))}
-      <th className="px-6 py-3 text-center">Aksi</th>
+      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
     </tr>
   );
 
   const renderRows = () => {
-  if (!data.length)
-    return (
-      <tr>
-        <td colSpan={20} className="text-center py-6 text-gray-500">
-          Belum ada data
+    if (!data.length)
+      return (
+        <tr>
+          <td colSpan={subTabFields[activeSubTab].length + 1} className="text-center py-6 text-gray-500">
+            Belum ada data
+          </td>
+        </tr>
+      );
+
+    return data.map((item, index) => (
+      <tr key={item.id} className="bg-white rounded-lg shadow-sm hover:bg-gray-50 border-b">
+        {subTabFields[activeSubTab].map(col => (
+          <td key={col.key} className="px-6 py-4 text-gray-800">
+            {col.key === 'no' ? (
+              index + 1
+            ) : col.key === 'linkBukti' || col.key === 'dokumenSPMI' || col.key === 'buktiCertifiedAuditor' || col.key === 'laporanAudit' ? (
+              item.data?.[col.key] ? (
+                <a href={item.data[col.key]} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                  Lihat
+                </a>
+              ) : (
+                '-'
+              )
+            ) : (
+              item.data?.[col.key] ?? '-'
+            )}
+          </td>
+        ))}
+        <td className="px-6 py-4 text-center">
+          <div className="flex gap-2 justify-center">
+            <button 
+              onClick={() => handleEdit(item)} 
+              className="text-blue-600 hover:text-blue-800 transition"
+              title="Edit"
+            >
+              <Edit size={16} />
+            </button>
+            <button 
+              onClick={() => handleDelete(item.id)} 
+              className="text-red-600 hover:text-red-800 transition"
+              title="Hapus"
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
         </td>
       </tr>
-    );
-
-  return data.map(item => (
-    <tr key={item.id} className="bg-white rounded-lg shadow-sm hover:bg-gray-50 border-b">
-      {subTabFields[activeSubTab].map(col => (
-        <td key={col.key} className="px-4 py-2 text-gray-800">
-          {col.key === 'linkBukti' ? (
-            item.data[col.key] ? (
-              <a href={item.data[col.key]} target="_blank" className="text-blue-600 hover:underline">Lihat</a>
-            ) : '-'
-          ) : item.data[col.key]}
-        </td>
-      ))}
-      <td className="px-6 py-3 text-center flex gap-2 justify-center">
-        <button onClick={() => handleEdit(item)} className="text-blue-600 hover:text-blue-800"><Edit size={16} /></button>
-        <button onClick={() => handleDelete(item.id)} className="text-red-600 hover:text-red-800"><Trash2 size={16} /></button>
-      </td>
-    </tr>
-  ));
-};
-
-
+    ));
+  };
 
   // =========================
   // Render Page
@@ -333,7 +447,7 @@ const handleSave = async () => {
           {/* Tabs utama */}
           <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
             {tabs.map(tab => (
-              <Link key={tab.href} href={tab.href} className={`px-4 py-2 rounded-lg text-sm font-medium ${pathname === tab.href ? 'bg-[#183A64] text-[#ADE7F7]' : 'bg-gray-100 text-gray-700 hover:bg-[#ADE7F7] hover:text-[#183A64]'}`}>{tab.label}</Link>
+              <Link key={tab.href} href={tab.href} className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap ${pathname === tab.href ? 'bg-[#183A64] text-[#ADE7F7]' : 'bg-gray-100 text-gray-700 hover:bg-[#ADE7F7] hover:text-[#183A64]'}`}>{tab.label}</Link>
             ))}
           </div>
 
@@ -354,10 +468,10 @@ const handleSave = async () => {
               </div>
 
               {/* Sub-tabs */}
-              <div className="flex gap-2 border-b pb-2 mb-4">
+              <div className="flex gap-2 border-b pb-2 mb-4 overflow-x-auto">
                 {['tupoksi','pendanaan','penggunaan-dana','ewmp','ktk','spmi'].map(sub => (
                   <button key={sub} onClick={() => setActiveSubTab(sub as SubTab)}
-                    className={`px-4 py-2 text-sm rounded-t-lg ${activeSubTab === sub ? 'bg-blue-100 text-blue-900 font-semibold' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
+                    className={`px-4 py-2 text-sm rounded-t-lg whitespace-nowrap ${activeSubTab === sub ? 'bg-blue-100 text-blue-900 font-semibold' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
                     {sub.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase())}
                   </button>
                 ))}
@@ -381,13 +495,13 @@ const handleSave = async () => {
                 </div>
 
                 <div className="overflow-x-auto px-4 py-2">
-                  <table className="w-full text-sm border-separate border-spacing-y-2">
-                    <thead className="text-xs text-gray-700 uppercase bg-gray-50 border-b">
-                  {renderColumns()}
-                </thead>
-                <tbody>
-                  {renderRows()}
-                </tbody>
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      {renderColumns()}
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {renderRows()}
+                    </tbody>
                   </table>
                 </div>
               </div>
@@ -395,7 +509,7 @@ const handleSave = async () => {
               {/* Form Input */}
               {showForm && (
                 <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-start md:items-center overflow-auto z-50 p-4">
-                  <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-xl">
+                  <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
                     <div className="flex justify-between items-center mb-6">
                       <h2 className="text-lg font-semibold text-gray-800">{editIndex !== null ? 'Edit Data' : 'Tambah Data Baru'}</h2>
                       <button onClick={() => setShowForm(false)} className="text-gray-500 hover:text-gray-700"><X size={24} /></button>
@@ -403,22 +517,27 @@ const handleSave = async () => {
 
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {subTabFields[activeSubTab].map(field => (
-                        <input 
-                          key={field.key} 
-                          name={field.key} 
-                          value={formData[field.key] || ''} 
-                          onChange={handleChange} 
-                          placeholder={field.label} 
-                          className="border p-3 rounded-lg w-full text-gray-800 focus:ring-2 focus:ring-blue-300" 
-                        />
+                      {getFormFields(activeSubTab).map(field => (
+                        <div key={field.key} className={field.key === 'tugasPokokDanFungsi' || field.key === 'dokumenSPMI' ? 'md:col-span-2' : ''}>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            {field.label}
+                          </label>
+                          <input 
+                            type="text"
+                            name={field.key} 
+                            value={formData[field.key] || ''} 
+                            onChange={handleChange} 
+                            placeholder={`Masukkan ${field.label}`}
+                            className="border border-gray-300 p-3 rounded-lg w-full text-gray-800 focus:ring-2 focus:ring-blue-300 focus:border-blue-300" 
+                          />
+                        </div>
                       ))}
                     </div>
 
 
                     <div className="flex justify-end mt-6 gap-2">
-                      <button onClick={() => setShowForm(false)} className="px-4 py-2 border rounded hover:bg-gray-100">Batal</button>
-                      <button onClick={handleSave} className="px-4 py-2 bg-blue-900 text-white rounded hover:bg-blue-800">Simpan</button>
+                      <button onClick={() => setShowForm(false)} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100">Batal</button>
+                      <button onClick={handleSave} className="px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800">Simpan</button>
                     </div>
                   </div>
                 </div>
@@ -432,4 +551,3 @@ const handleSave = async () => {
     </div>
   );
 }
-

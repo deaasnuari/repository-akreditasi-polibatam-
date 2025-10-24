@@ -2,88 +2,105 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import React from "react";
+import React, { useState } from "react";
+import { Menu, ChevronLeft, Home, Users, FileText, Settings, Book, FileCheck } from "lucide-react";
 
 interface SidebarProps {
   role?: string;
+  onToggle?: (collapsed: boolean) => void;
 }
 
-export default function Sidebar({ role }: SidebarProps) {
+export default function Sidebar({ role, onToggle }: SidebarProps) {
   const pathname = usePathname();
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
-  // === Menu utama tergantung role ===
-  let menuItems: { label: string; href: string }[] = [];
+  const toggleSidebar = () => {
+    const newState = !isCollapsed;
+    setIsCollapsed(newState);
+    onToggle?.(newState);
+  };
+
+  let menuItems: { label: string; href: string; icon: React.ReactNode }[] = [];
 
   if (role === "tata_usaha")
     menuItems = [
-      { label: "Dashboard", href: "/dashboard/tata-usaha" },
-      { label: "Data Mahasiswa", href: "/dashboard/tata-usaha/data-mahasiswa" },
-      { label: "Laporan", href: "/dashboard/tata-usaha/laporan" },
-      { label: "Settings", href: "/dashboard/tata-usaha/settings" },
+      { label: "Dashboard", href: "/dashboard/tata-usaha", icon: <Home size={18} /> },
+      { label: "Data Mahasiswa", href: "/dashboard/tata-usaha/data-mahasiswa", icon: <Users size={18} /> },
+      { label: "Laporan", href: "/dashboard/tata-usaha/laporan", icon: <FileText size={18} /> },
+      { label: "Settings", href: "/dashboard/tata-usaha/settings", icon: <Settings size={18} /> },
     ];
   else if (role === "tim_akreditasi")
     menuItems = [
-      { label: "Dashboard", href: "/dashboard/tim-akreditasi" },
-      { label: "LKPS", href: "/dashboard/tim-akreditasi/lkps" },
-      { label: "LED", href: "/dashboard/tim-akreditasi/led" },
-      { label: "Bukti Pendukung", href: "/dashboard/tim-akreditasi/bukti-pendukung" },
+      { label: "Dashboard", href: "/dashboard/tim-akreditasi", icon: <Home size={18} /> },
+      { label: "LKPS", href: "/dashboard/tim-akreditasi/lkps", icon: <Book size={18} /> },
+      { label: "LED", href: "/dashboard/tim-akreditasi/led", icon: <FileText size={18} /> },
+      { label: "Bukti Pendukung", href: "/dashboard/tim-akreditasi/bukti-pendukung", icon: <FileCheck size={18} /> },
     ];
   else if (role === "p4m")
     menuItems = [
-      { label: "Dashboard", href: "/dashboard/p4m" },
-      { label: "Monitoring", href: "/dashboard/p4m/monitoring" },
-      { label: "Laporan", href: "/dashboard/p4m/laporan" },
+      { label: "Dashboard", href: "/dashboard/p4m", icon: <Home size={18} /> },
+      { label: "Monitoring", href: "/dashboard/p4m/monitoring", icon: <Users size={18} /> },
+      { label: "Laporan", href: "/dashboard/p4m/laporan", icon: <FileText size={18} /> },
     ];
 
   const handleLogout = () => {
-    try {
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("token");
-        localStorage.removeItem("role");
-        window.location.href = "/";
-      }
-    } catch (err) {
-      console.error("Logout error:", err);
-    }
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    window.location.href = "/";
   };
 
   return (
-    <aside className="fixed left-0 top-0 w-64 h-screen bg-white border-r border-gray-200 shadow-lg flex flex-col p-6 font-sans">
-      {/* Judul Sidebar */}
-      <h2 className="text-xl font-bold mb-6 text-[#163A70]">
-        Menu {role?.replace("_", " ")}
-      </h2>
+    <aside
+      className={`fixed left-0 top-0 h-screen bg-white border-r border-gray-200 shadow-lg flex flex-col
+      transition-all duration-300 font-sans
+      ${isCollapsed ? "w-20" : "w-64"}
+    `}
+    >
+      {/* Header + toggle */}
+      <div className="flex items-center justify-between px-3 py-4">
+        {!isCollapsed && (
+          <h2 className="text-lg font-bold text-[#163A70] truncate">Menu {role?.replace("_", " ")}</h2>
+        )}
 
-      {/* Daftar Menu */}
+        <button
+          onClick={toggleSidebar}
+          className="p-2 rounded hover:bg-gray-100 transition"
+        >
+          {isCollapsed ? <Menu size={20} /> : <ChevronLeft size={20} />}
+        </button>
+      </div>
+
       <ul className="space-y-2 flex-1 overflow-auto">
         {menuItems.map((item) => {
           const isActive =
-            pathname === item.href || pathname.startsWith(item.href + "/");
+    item.href === `/dashboard/${role}`
+      ? pathname === item.href
+      : pathname.startsWith(item.href);
 
           return (
             <li key={item.href}>
               <Link
                 href={item.href}
-                className={`block px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                  isActive
-                    ? "bg-[#163A70] text-[#ADE7F7] shadow-md scale-[1.02]"
-                    : "text-gray-700 hover:bg-[#E6F3FF]"
-                }`}
+                className={`flex items-center gap-3 px-4 py-2 text-sm font-medium rounded-md transition
+                ${isActive ? "bg-[#163A70] text-white" : "text-gray-700 hover:bg-[#E6F3FF]"}
+                `}
               >
-                {item.label}
+                {item.icon}
+                {!isCollapsed && <span>{item.label}</span>}
               </Link>
             </li>
           );
         })}
       </ul>
 
-      {/* Tombol Logout */}
-      <div className="mt-auto">
+      <div className="mt-auto p-4">
         <button
           onClick={handleLogout}
-          className="w-full bg-red-500 hover:bg-red-600 text-white py-2 rounded font-semibold transition"
+          className={`w-full bg-red-500 hover:bg-red-600 text-white py-2 rounded font-semibold transition
+          ${isCollapsed ? "text-[0px] px-0" : ""}
+        `}
         >
-          Logout
+          {!isCollapsed && "Logout"}
         </button>
       </div>
     </aside>

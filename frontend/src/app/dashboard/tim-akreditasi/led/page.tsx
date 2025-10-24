@@ -352,7 +352,7 @@ export default function BudayaMutuLEDPage() {
               className="inline-flex items-center gap-2 bg-[#183A64] text-white px-6 py-3 rounded-lg hover:bg-[#2C5F8D] transition-all duration-200 shadow-md hover:shadow-lg font-medium"
             >
               <Save className="h-5 w-5" />
-              💾 Simpan Data ke Server
+          Simpan Data ke Server
             </button>
           </div>
         </div>

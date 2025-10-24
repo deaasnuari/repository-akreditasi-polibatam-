@@ -12,11 +12,10 @@ import {
   BarChart3,
   Download,
   Menu,
-  X,
+  ChevronLeft,
   LogOut,
 } from 'lucide-react';
 
-// === Import font Poppins ===
 const poppins = Poppins({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
@@ -28,7 +27,7 @@ export default function LayoutTimAkreditasi({
 }: {
   children: React.ReactNode;
 }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false); // ✅ Default tertutup
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const pathname = usePathname();
 
   const menuItems = [
@@ -42,50 +41,60 @@ export default function LayoutTimAkreditasi({
 
   return (
     <div className={`flex w-full bg-gray-100 ${poppins.variable} font-sans`}>
+      
       {/* === SIDEBAR === */}
       <div
-        className={`${
-          sidebarOpen ? 'w-64' : 'w-0'
-        } bg-[#183A64] text-white transition-all duration-300 overflow-hidden flex-shrink-0 sticky top-0 h-screen flex flex-col`}
+        className={`
+          ${sidebarOpen ? 'w-64' : 'w-20'}
+          bg-[#183A64] text-white transition-all duration-300 overflow-hidden 
+          sticky top-0 h-screen flex flex-col
+        `}
       >
-        {/* === Header Sidebar === */}
-        <div className="p-6 border-b border-[#ADE7F7]/30 flex items-center gap-3">
-          <div className="w-24 aspect-square bg-[#ADE7F7] rounded-full flex items-center justify-center text-[#183A64] font-bold text-xl shadow-md">
-            ReDDA
+
+        {/* Sidebar Header */}
+        <div className="p-4 border-b border-[#ADE7F7]/30 flex items-center gap-3">
+          {/* Logo */}
+          <div className="w-12 h-12 bg-[#ADE7F7] rounded-full flex items-center justify-center text-[#183A64] font-bold shadow-md flex-shrink-0">
+            R
           </div>
 
-          <div>
-            <h2 className="text-[#ADE7F7] text-lg font-bold leading-tight">
-              Repository Akreditasi
-            </h2>
-            <p className="text-[#ADE7F7]/80 text-sm font-bold">POLIBATAM</p>
-          </div>
+          {sidebarOpen && (
+            <div>
+              <h2 className="text-[#ADE7F7] text-base font-bold leading-tight">
+                Repository Akreditasi
+              </h2>
+              <p className="text-[#ADE7F7]/80 text-xs font-bold">POLIBATAM</p>
+            </div>
+          )}
         </div>
 
-        {/* === Menu === */}
+        {/* Menu Items */}
         <div className="flex-1 flex flex-col justify-between font-medium">
           <div className="flex flex-col h-full">
-            <div className="p-4 flex-1 overflow-y-auto">
-              <h3 className="text-xs font-bold text-[#ADE7F7] mb-3 tracking-wider">
-                MENU UTAMA
-              </h3>
+            <div className="p-3 flex-1 overflow-y-auto">
+              {sidebarOpen && (
+                <h3 className="text-xs font-bold text-[#ADE7F7] mb-3 tracking-wider">
+                  MENU UTAMA
+                </h3>
+              )}
+
               <nav className="space-y-1">
                 {menuItems.map((item) => {
-                  const isActive =
-                    pathname === item.href ||
-                    (item.name !== 'Dashboard' && pathname.startsWith(item.href + '/'));
-
+                  const isActive = 
+                    item.href === '/dashboard/tim-akreditasi'
+                      ? pathname === item.href
+                      : pathname.startsWith(item.href);
+                  
                   return (
-                    <Link key={item.name} href={item.href} className="block">
+                    <Link key={item.name} href={item.href}>
                       <div
-                        className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors duration-200 ${
-                          isActive
-                            ? 'bg-[#ADE7F7] text-[#183A64] font-semibold'
-                            : 'hover:bg-[#ADE7F7]/30 hover:text-[#ADE7F7]'
-                        }`}
+                        className={`
+                          flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition
+                          ${isActive ? 'bg-[#ADE7F7] text-[#183A64]' : 'hover:bg-[#ADE7F7]/30 hover:text-[#ADE7F7]'}
+                        `}
                       >
                         {item.icon}
-                        <span>{item.name}</span>
+                        {sidebarOpen && <span>{item.name}</span>}
                       </div>
                     </Link>
                   );
@@ -94,11 +103,14 @@ export default function LayoutTimAkreditasi({
             </div>
           </div>
 
-          {/* === Tombol Logout === */}
-          <div className="p-4 border-t border-[#FF7F00]/30">
-            <button className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-[#ADE7F7] text-[#183A64] rounded-lg font-semibold hover:bg-[#FF7F00] hover:text-white transition">
+          {/* Logout */}
+          <div className="p-3 border-t border-[#ADE7F7]/20">
+            <button className={`
+              w-full flex items-center gap-2 justify-center px-3 py-2 bg-[#ADE7F7] text-[#183A64]
+              rounded-lg font-semibold hover:bg-[#FF7F00] hover:text-white transition
+            `}>
               <LogOut size={18} />
-              Logout
+              {sidebarOpen && 'Logout'}
             </button>
           </div>
         </div>
@@ -106,16 +118,22 @@ export default function LayoutTimAkreditasi({
 
       {/* === MAIN CONTENT === */}
       <div className="flex-1 relative">
-        {/* Sidebar Toggle Button */}
+        
+        {/* Toggle Button - DI LUAR SIDEBAR, SEBELAH KANAN, SEJAJAR DENGAN HEADER */}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="fixed top-20 left-4 z-50 p-2 bg-[#183A64] text-white rounded-lg shadow-lg hover:bg-[#2A4F85] transition-colors"
+          className="fixed top-8 z-50 p-2 bg-[#183A64] text-white rounded-lg hover:bg-[#2A4F85] transition shadow-lg"
+          style={{
+            left: sidebarOpen ? 'calc(16rem + 1rem)' : 'calc(5rem + 1rem)'
+          }}
         >
-          {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+          {sidebarOpen ? <ChevronLeft size={20} /> : <Menu size={20} />}
         </button>
 
-        {/* Child Page Content */}
-        <main className="p-6">{children}</main>
+        {/* Page Content */}
+        <main className="p-6">
+          {children}
+        </main>
       </div>
     </div>
   );

@@ -27,16 +27,16 @@ export default function Navbar() {
 
   return (
     <nav
-      className={`fixed top-0 left-0 right-0 z-50 bg-[#0A2F56] text-white px-6 h-16 flex items-center justify-between shadow-md ${poppins.className}`}
+      className={`fixed top-0 left-0 right-0 z-50 bg-[#0A2F56] text-white px-8 h-16 flex items-center justify-between shadow-md ${poppins.className}`}
     >
       {/* === LOGO KIRI === */}
-      <div className="flex items-center gap-4 cursor-pointer" onClick={handleHomeClick}>
+      <div className="flex items-center gap-5 cursor-pointer" onClick={handleHomeClick}>
         <img
           src="/Polibatam.png"
           alt="Logo"
           className="h-20 w-20 object-contain -mt-2"
         />
-        <span className="text-[#ADE7F7] text-lg md:text-xl font-bold tracking-wide">
+        <span className="text-[#77777] text-lg md:text-xl font-bold tracking-wide">
           ReDDA POLIBATAM
         </span>
       </div>

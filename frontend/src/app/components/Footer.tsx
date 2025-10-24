@@ -21,13 +21,12 @@ export default function Footer() {
               alt="Logo Polibatam"
               className="w-14 h-14 object-contain"
             />
-            <div>
-              <h1 className="font-semibold text-[#ADE7F7]">ReDDa Polibatam</h1>
-              <p className="text-sm font-semibold">
-                Pusat Repository Digital Data Akreditasi Polibatam
-              </p>
-              <p className="text-sm">Jurusan Informatika</p>
-            </div>
+            {/* Kiri */}
+        <div className="flex flex-col">
+          <h2>ReDDa Polibatam</h2>
+          <span>Pusat Repository Digital Data Akreditasi Polibatam</span>
+          <span>Jurusan Informatika</span>
+        </div>
           </div>
 
           {/* Kanan */}
