@@ -1,15 +1,27 @@
-import express from "express";
-import { getByType, createItem, deleteItem } from "../controllers/relevansiPkmController.js";
+import express from 'express';
+import {
+  getData,
+  createData,
+  updateData,
+  deleteData,
+  importExcel
+} from '../controllers/relevansiPkmController.js'; // pastikan ini controller PKM
 
 const router = express.Router();
 
-// Ambil data PKM berdasarkan type (query ?type=)
-router.get("/", getByType);
+// GET data per subtab ?type=subtab
+router.get('/', getData);
 
-// Tambah data PKM
-router.post("/:type", createItem);
+// POST — tambah data baru
+router.post('/', createData);
 
-// Hapus data PKM
-router.delete("/:type/:id", deleteItem);
+// PUT — update data by ID
+router.put('/:id', updateData);
+
+// DELETE — hapus data by ID
+router.delete('/:id', deleteData);
+
+// POST — import Excel
+router.post('/import', importExcel);
 
 export default router;

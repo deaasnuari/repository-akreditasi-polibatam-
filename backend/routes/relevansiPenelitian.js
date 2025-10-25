@@ -1,12 +1,27 @@
 import express from 'express';
-import { getData, createData, updateData, deleteData, importExcel } from '../controllers/relevansiPenelitianController.js';
+import {
+  getData,
+  createData,
+  updateData,
+  deleteData,
+  importExcel
+} from '../controllers/relevansiPenelitianController.js';
 
 const router = express.Router();
 
-router.get('/', getData);                   // ?type=xxx
+// GET all data by subtab ?type=xxx
+router.get('/', getData);
+
+// POST — tambah data baru
 router.post('/', createData);
+
+// PUT — update data by ID
 router.put('/:id', updateData);
+
+// DELETE — hapus data by ID
 router.delete('/:id', deleteData);
-router.post('/import', importExcel);        // file: Excel, type: subtab
+
+// POST — import Excel
+router.post('/import', importExcel);
 
 export default router;

@@ -13,7 +13,6 @@ export default function RelevansiPkmPage() {
   const [showForm, setShowForm] = useState(false);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [formData, setFormData] = useState<any>({});
-  const [importing, setImporting] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const API_BASE = 'http://localhost:5000/api/relevansi-pkm';
@@ -35,7 +34,12 @@ export default function RelevansiPkmPage() {
     try {
       setErrorMsg(null);
       const res = await fetch(`${API_BASE}?type=${activeSubTab}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        throw new Error(errorData?.message || `HTTP ${res.status}`);
+      }
+      
       const json = await res.json();
       setData(json.data ?? json ?? []);
     } catch (err: any) {
@@ -61,28 +65,31 @@ export default function RelevansiPkmPage() {
   const handleChange = (e: any) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
 
-  // ✅ Tambahan fungsi submit ke backend Express
   const handleSubmit = async () => {
     try {
       setSaving(true);
       setErrorMsg(null);
 
       const method = editIndex ? 'PUT' : 'POST';
-      const url = editIndex
-        ? `${API_BASE}/${activeSubTab}/${editIndex}`
-        : `${API_BASE}/${activeSubTab}`;
+      const url = editIndex ? `${API_BASE}/${editIndex}` : `${API_BASE}`;
+
+      const payload = { ...formData, type: activeSubTab };
+      
+      console.log('🚀 Sending data:', payload); // Debug log
 
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          type: activeSubTab,
-        }),
+        body: JSON.stringify(payload),
       });
 
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      // Parse response body terlebih dahulu
       const json = await res.json();
+
+      // Cek status response
+      if (!res.ok) {
+        throw new Error(json.message || json.error || `HTTP ${res.status}: ${res.statusText}`);
+      }
 
       alert(json.message || 'Data berhasil disimpan');
       setShowForm(false);
@@ -90,10 +97,35 @@ export default function RelevansiPkmPage() {
       setEditIndex(null);
       await fetchData();
     } catch (err: any) {
-      console.error('handleSubmit error', err);
+      console.error('❌ handleSubmit error:', err);
       setErrorMsg(err?.message || String(err));
+      alert(`Gagal menyimpan data: ${err?.message || String(err)}`);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDelete = async (item: any) => {
+    if (!item.id) {
+      alert('ID tidak ditemukan');
+      return;
+    }
+    
+    if (!confirm('Hapus data ini?')) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/${item.id}`, { method: 'DELETE' });
+      const json = await res.json();
+
+      if (!res.ok) {
+        throw new Error(json.message || `HTTP ${res.status}`);
+      }
+
+      alert(json.message || 'Data berhasil dihapus');
+      await fetchData();
+    } catch (err: any) {
+      console.error('❌ Delete error:', err);
+      alert(`Gagal menghapus data: ${err?.message || String(err)}`);
     }
   };
 
@@ -109,8 +141,8 @@ export default function RelevansiPkmPage() {
     ],
     'pkm-hibah': [
       { key: 'no', label: 'No' },
-      { key: 'namaDTPR', label: 'Nama DTPR (Ketua)' },
-      { key: 'judulPkM', label: 'Judul PkM' },
+      { key: 'namaDtpr', label: 'Nama DTPR (Ketua)' },
+      { key: 'judulPkm', label: 'Judul PkM' },
       { key: 'jumlahMahasiswa', label: 'Jumlah Mahasiswa Terlibat' },
       { key: 'jenisHibah', label: 'Jenis Hibah / Jenis Kegiatan' },
       { key: 'sumberDana', label: 'Sumber Dana' },
@@ -132,8 +164,8 @@ export default function RelevansiPkmPage() {
     'hki-pkm': [
       { key: 'no', label: 'No' },
       { key: 'judul', label: 'Judul' },
-      { key: 'jenisHKI', label: 'Jenis HKI' },
-      { key: 'namaDTPR', label: 'Nama DTPR' },
+      { key: 'jenisHki', label: 'Jenis HKI' },
+      { key: 'namaDtpr', label: 'Nama DTPR' },
       { key: 'tahun', label: 'Tahun Perolehan' },
       { key: 'linkBukti', label: 'Link Bukti' },
     ],
@@ -141,7 +173,7 @@ export default function RelevansiPkmPage() {
 
   const renderColumns = () =>
     (subtabFields[activeSubTab] ?? []).map((c) => (
-      <th key={c.key} className="whitespace-nowrap">{c.label}</th>
+      <th key={c.key} className="px-4 py-2 whitespace-nowrap">{c.label}</th>
     ));
 
   const renderRows = () => {
@@ -163,23 +195,17 @@ export default function RelevansiPkmPage() {
           </td>
         ))}
         <td className="px-4 py-2 border-t text-center">
-          <button onClick={() => openEdit(item)} className="text-blue-600 hover:text-blue-800 mr-2">
+          <button 
+            onClick={() => openEdit(item)} 
+            className="text-blue-600 hover:text-blue-800 mr-2"
+            title="Edit"
+          >
             <Edit size={16} />
           </button>
           <button
-            onClick={async () => {
-              if (!item.id) return;
-              if (!confirm('Hapus data ini?')) return;
-              try {
-                const res = await fetch(`${API_BASE}/${activeSubTab}/${item.id}`, { method: 'DELETE' });
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                await res.json();
-                await fetchData();
-              } catch (err) {
-                console.error(err);
-              }
-            }}
+            onClick={() => handleDelete(item)}
             className="text-red-600 hover:text-red-800"
+            title="Hapus"
           >
             <Trash2 size={16} />
           </button>
@@ -189,7 +215,7 @@ export default function RelevansiPkmPage() {
   };
 
   return (
-   <div className="flex w-full bg-gray-100">
+    <div className="flex w-full bg-gray-100">
       <div className="flex-1 w-full">
         <main className="w-full p-4 md:p-6 max-w-full overflow-x-hidden">
           {/* Header LKPS */}
@@ -269,14 +295,14 @@ export default function RelevansiPkmPage() {
             <div className="overflow-x-auto">
               {errorMsg && (
                 <div className="p-4 bg-red-50 text-red-700 border-t border-red-100">
-                  Error: {errorMsg}
+                  ❌ Error: {errorMsg}
                 </div>
               )}
               <table className="w-full text-sm text-left text-gray-600 border-collapse table-auto">
                 <thead className="bg-gray-100 text-gray-700 uppercase sticky top-0">
                   <tr>
                     {renderColumns()}
-                    <th className="whitespace-nowrap">Aksi</th>
+                    <th className="px-4 py-2 whitespace-nowrap">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="text-xs sm:text-sm">{renderRows()}</tbody>
@@ -293,12 +319,22 @@ export default function RelevansiPkmPage() {
                     {editIndex !== null ? 'Edit Data' : 'Tambah Data Baru'}
                   </h2>
                   <button
-                    onClick={() => setShowForm(false)}
+                    onClick={() => {
+                      setShowForm(false);
+                      setErrorMsg(null);
+                    }}
                     className="text-gray-500 hover:text-gray-700"
                   >
                     <X size={24} />
                   </button>
                 </div>
+
+                {errorMsg && (
+                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
+                    ❌ {errorMsg}
+                  </div>
+                )}
+
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
                   {(subtabFields[activeSubTab] || []).map((f) => (
                     <div key={f.key}>
@@ -309,14 +345,18 @@ export default function RelevansiPkmPage() {
                         name={f.key}
                         value={formData[f.key] ?? ''}
                         onChange={handleChange}
-                        className="w-full px-3 py-2 border rounded"
+                        className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder={f.label}
                       />
                     </div>
                   ))}
                 </div>
                 <div className="flex justify-end gap-2 mt-6">
                   <button
-                    onClick={() => setShowForm(false)}
+                    onClick={() => {
+                      setShowForm(false);
+                      setErrorMsg(null);
+                    }}
                     className="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300"
                   >
                     Batal
@@ -324,7 +364,7 @@ export default function RelevansiPkmPage() {
                   <button
                     onClick={handleSubmit}
                     disabled={saving}
-                    className="px-4 py-2 bg-blue-700 text-white rounded hover:bg-blue-800 disabled:opacity-50"
+                    className="px-4 py-2 bg-blue-700 text-white rounded hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {saving ? 'Menyimpan...' : 'Simpan'}
                   </button>

@@ -41,56 +41,57 @@ export default function RelevansiPenelitianPage() {
   ];
 
   // --- Subtab fields ---
-  const subtabFields: Record<string, Array<{ key: string; label: string }>> = {
-    'sarana-prasarana': [
-      { key: 'namaPrasarana', label: 'Nama Prasarana' },
-      { key: 'dayaTampung', label: 'Daya Tampung' },
-      { key: 'luasRuang', label: 'Luas Ruang (m²)' },
-      { key: 'status', label: 'Status (M/W)' },
-      { key: 'lisensi', label: 'Lisensi (L/P/T)' },
-      { key: 'perangkat', label: 'Perangkat' },
-      { key: 'linkBukti', label: 'Link Bukti' },
-    ],
-    'hibah-dan-pembiayaan': [
-      { key: 'namaDTPR', label: 'Nama DTPR' },
-      { key: 'judulPenelitian', label: 'Judul Penelitian' },
-      { key: 'jumlahMahasiswaTerlibat', label: 'Jumlah Mahasiswa Terlibat' },
-      { key: 'jenisHibah', label: 'Jenis Hibah' },
-      { key: 'sumber', label: 'Sumber' },
-      { key: 'durasi', label: 'Durasi (tahun)' },
-      { key: 'pendanaan', label: 'Pendanaan (Rp Juta)' },
-      { key: 'tahun', label: 'Tahun' },
-    ],
-    'pengembangan-dtpr': [
-      { key: 'namaDTPR', label: 'Nama DTPR' },
-      { key: 'jenisPengembangan', label: 'Jenis Pengembangan' },
-      { key: 'tahunAkademik', label: 'Tahun Akademik' },
-      { key: 'linkBukti', label: 'Link Bukti' },
-    ],
-    'kerjasama-penelitian': [
-      { key: 'judulKerjasama', label: 'Judul Kerjasama' },
-      { key: 'mitra', label: 'Mitra' },
-      { key: 'sumber', label: 'Sumber' },
-      { key: 'durasi', label: 'Durasi (tahun)' },
-      { key: 'pendanaan', label: 'Pendanaan (Rp Juta)' },
-      { key: 'tahun', label: 'Tahun' },
-      { key: 'linkBukti', label: 'Link Bukti' },
-    ],
-    'publikasi-penelitian': [
-      { key: 'namaDTPR', label: 'Nama DTPR' },
-      { key: 'judulPublikasi', label: 'Judul Publikasi' },
-      { key: 'jenisPublikasi', label: 'Jenis Publikasi' },
-      { key: 'tahun', label: 'Tahun' },
-      { key: 'linkBukti', label: 'Link Bukti' },
-    ],
-    'perolehan-hki': [
-      { key: 'judul', label: 'Judul' },
-      { key: 'jenisHKI', label: 'Jenis HKI' },
-      { key: 'namaDTPR', label: 'Nama DTPR' },
-      { key: 'tahun', label: 'Tahun' },
-      { key: 'linkBukti', label: 'Link Bukti' },
-    ],
-  };
+ const subtabFields: Record<string, Array<{ key: string; label: string }>> = {
+  'sarana-prasarana': [
+    { key: 'namaprasarana', label: 'Nama Prasarana' },
+    { key: 'dayatampung', label: 'Daya Tampung' },
+    { key: 'luasruang', label: 'Luas Ruang (m²)' },
+    { key: 'status', label: 'Status (M/W)' },
+    { key: 'lisensi', label: 'Lisensi (L/P/T)' },
+    { key: 'perangkat', label: 'Perangkat' },
+    { key: 'linkbukti', label: 'Link Bukti' },
+  ],
+  'hibah-dan-pembiayaan': [
+    { key: 'namadtpr', label: 'Nama DTPR' },
+    { key: 'judulpenelitian', label: 'Judul Penelitian' },
+    { key: 'jumlahmahasiswaterlibat', label: 'Jumlah Mahasiswa Terlibat' },
+    { key: 'jenishibah', label: 'Jenis Hibah' },
+    { key: 'sumber', label: 'Sumber' },
+    { key: 'durasi', label: 'Durasi (tahun)' },
+    { key: 'pendanaan', label: 'Pendanaan (Rp Juta)' },
+    { key: 'tahun', label: 'Tahun' },
+  ],
+  'pengembangan-dtpr': [
+    { key: 'namadtpr', label: 'Nama DTPR' },
+    { key: 'jenispengembangan', label: 'Jenis Pengembangan' },
+    { key: 'tahunakademik', label: 'Tahun Akademik' },
+    { key: 'linkbukti', label: 'Link Bukti' },
+  ],
+  'kerjasama-penelitian': [
+    { key: 'judulkerjasama', label: 'Judul Kerjasama' },
+    { key: 'mitra', label: 'Mitra' },
+    { key: 'sumber', label: 'Sumber' },
+    { key: 'durasi', label: 'Durasi (tahun)' },
+    { key: 'pendanaan', label: 'Pendanaan (Rp Juta)' },
+    { key: 'tahun', label: 'Tahun' },
+    { key: 'linkbukti', label: 'Link Bukti' },
+  ],
+  'publikasi-penelitian': [
+    { key: 'namadtpr', label: 'Nama DTPR' },
+    { key: 'judulpublikasi', label: 'Judul Publikasi' },
+    { key: 'jenispublikasi', label: 'Jenis Publikasi' },
+    { key: 'tahun', label: 'Tahun' },
+    { key: 'linkbukti', label: 'Link Bukti' },
+  ],
+  'perolehan-hki': [
+    { key: 'judul', label: 'Judul' },
+    { key: 'jenishki', label: 'Jenis HKI' },
+    { key: 'namadtpr', label: 'Nama DTPR' },
+    { key: 'tahun', label: 'Tahun' },
+    { key: 'linkbukti', label: 'Link Bukti' },
+  ],
+};
+
 
   // Ordered fields (untuk tabel)
   const orderedFields: Record<string, Array<{ key: string; label: string }>> = subtabFields;
