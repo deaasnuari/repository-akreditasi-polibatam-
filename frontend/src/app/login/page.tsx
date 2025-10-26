@@ -5,8 +5,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { loginUser, registerUser } from "../../services/auth";
 
-
-
 type Tab = 'login' | 'register';
 
 export default function AuthPage() {
@@ -33,46 +31,54 @@ export default function AuthPage() {
   if (!mounted) return null;
 
   const handleLogin = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setError('');
-  setLoading(true);
+    e.preventDefault();
+    setError('');
+    setLoading(true);
 
-  try {
-    const data = await loginUser(loginEmail, loginPassword, loginRole);
+    try {
+      const data = await loginUser(loginEmail, loginPassword, loginRole);
 
-    if (loginRole === 'tim-akreditasi') router.push('/dashboard/tim-akreditasi');
-    else if (loginRole === 'p4m') router.push('/dashboard/p4m');
-    else if (loginRole === 'reviewer') router.push('/dashboard/reviewer');
+      if (data.success) {
+        // Tunggu sedikit untuk memastikan localStorage sudah tersimpan
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Redirect berdasarkan role
+        if (loginRole === 'tim-akreditasi') {
+          router.push('/dashboard/tim-akreditasi');
+        } else if (loginRole === 'p4m') {
+          router.push('/dashboard/p4m');
+        } else if (loginRole === 'tu') {
+          router.push('/dashboard/tata-usaha');
+        }
+      }
 
-  } catch (err: any) {
-    setError(err.message);
-  } finally {
-    setLoading(false);
-  }
-};
-
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleRegister = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setError('');
-  setSuccess('');
-  setLoading(true);
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+    setLoading(true);
 
-  try {
-    await registerUser(regName, regEmail, regPassword, regRole);
-    setSuccess('Registrasi berhasil! Silakan login.');
-    setActiveTab('login');
-    setRegName('');
-    setRegEmail('');
-    setRegPassword('');
-    setRegRole('tim-akreditasi');
-  } catch (err: any) {
-    setError(err.message);
-  } finally {
-    setLoading(false);
-  }
-};
-
+    try {
+      await registerUser(regName, regEmail, regPassword, regRole);
+      setSuccess('Registrasi berhasil! Silakan login.');
+      setActiveTab('login');
+      setRegName('');
+      setRegEmail('');
+      setRegPassword('');
+      setRegRole('tim-akreditasi');
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100 px-4 py-8">
@@ -146,7 +152,7 @@ export default function AuthPage() {
             >
               <option value="tim-akreditasi">Tim Akreditasi</option>
               <option value="p4m">P4M</option>
-              <option value="reviewer">Reviewer</option>
+              <option value="tu">Tata Usaha</option>
             </select>
 
             <button
@@ -199,7 +205,7 @@ export default function AuthPage() {
             >
               <option value="tim-akreditasi">Tim Akreditasi</option>
               <option value="p4m">P4M</option>
-              <option value="reviewer">Reviewer</option>
+              <option value="tu">Tata Usaha</option>
             </select>
 
             <button

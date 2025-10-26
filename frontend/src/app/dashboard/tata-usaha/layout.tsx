@@ -2,19 +2,19 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { Poppins } from 'next/font/google';
+import { useRouter } from 'next/navigation';
 import {
   Home,
   FileText,
-  BookOpen,
   Upload,
-  BarChart3,
-  Download,
+  Users,
   Menu,
   ChevronLeft,
   LogOut,
 } from 'lucide-react';
+import { logout } from '@/services/auth'; // ✅ pastikan path ini sesuai struktur project-mu
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -22,7 +22,7 @@ const poppins = Poppins({
   variable: '--font-poppins',
 });
 
-export default function LayoutTimAkreditasi({
+export default function LayoutTataUsaha({
   children,
 }: {
   children: React.ReactNode;
@@ -32,24 +32,24 @@ export default function LayoutTimAkreditasi({
   const router = useRouter();
 
   const menuItems = [
-    { name: 'Dashboard', href: '/dashboard/tim-akreditasi', icon: <Home size={18} /> },
-    { name: 'LKPS', href: '/dashboard/tim-akreditasi/lkps', icon: <FileText size={18} /> },
-    { name: 'LED', href: '/dashboard/tim-akreditasi/led', icon: <BookOpen size={18} /> },
-    { name: 'Bukti Pendukung', href: '/dashboard/tim-akreditasi/bukti-pendukung', icon: <Upload size={18} /> },
-    { name: 'Matriks Penilaian', href: '/dashboard/tim-akreditasi/matriks-penilaian', icon: <BarChart3 size={18} /> },
-    { name: 'Export', href: '/dashboard/tim-akreditasi/export', icon: <Download size={18} /> },
+    { name: 'Dashboard', href: '/dashboard/tata-usaha', icon: <Home size={18} /> },
+    { name: 'LKPS', href: '/dashboard/tata-usaha/lkps', icon: <FileText size={18} /> },
+    { name: 'Bukti Pendukung', href: '/dashboard/tata-usaha/bukti-pendukung', icon: <Upload size={18} /> },
+    { name: 'Manajemen Akun', href: '/dashboard/tata-usaha/manajemen-akun', icon: <Users size={18} /> },
   ];
 
-  // === Fungsi Logout ===
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    router.push('/auth'); // arahkan ke halaman login
+  const handleLogout = async () => {
+    try {
+      await logout(); // ✅ panggil fungsi logout dari services/auth.ts
+    } catch (err) {
+      console.error('Logout gagal:', err);
+    } finally {
+      router.push('/auth'); // ✅ arahkan user ke halaman login
+    }
   };
 
   return (
     <div className={`flex w-full bg-gray-100 ${poppins.variable} font-sans`}>
-      
       {/* === SIDEBAR === */}
       <div
         className={`
@@ -58,10 +58,8 @@ export default function LayoutTimAkreditasi({
           sticky top-0 h-screen flex flex-col
         `}
       >
-
         {/* Sidebar Header */}
         <div className="p-4 border-b border-[#ADE7F7]/30 flex items-center gap-3">
-          {/* Logo */}
           <div className="w-12 h-12 bg-[#ADE7F7] rounded-full flex items-center justify-center text-[#183A64] font-bold shadow-md flex-shrink-0">
             R
           </div>
@@ -88,17 +86,20 @@ export default function LayoutTimAkreditasi({
 
               <nav className="space-y-1">
                 {menuItems.map((item) => {
-                  const isActive = 
-                    item.href === '/dashboard/tim-akreditasi'
+                  const isActive =
+                    item.href === '/dashboard/tata-usaha'
                       ? pathname === item.href
                       : pathname.startsWith(item.href);
-                  
+
                   return (
                     <Link key={item.name} href={item.href}>
                       <div
                         className={`
                           flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition
-                          ${isActive ? 'bg-[#ADE7F7] text-[#183A64]' : 'hover:bg-[#ADE7F7]/30 hover:text-[#ADE7F7]'}
+                          ${isActive
+                            ? 'bg-[#ADE7F7] text-[#183A64]'
+                            : 'hover:bg-[#ADE7F7]/30 hover:text-[#ADE7F7]'
+                          }
                         `}
                       >
                         {item.icon}
@@ -113,7 +114,7 @@ export default function LayoutTimAkreditasi({
 
           {/* Logout */}
           <div className="p-3 border-t border-[#ADE7F7]/20">
-            <button 
+            <button
               onClick={handleLogout}
               className={`
                 w-full flex items-center gap-2 justify-center px-3 py-2 bg-[#ADE7F7] text-[#183A64]
@@ -129,22 +130,19 @@ export default function LayoutTimAkreditasi({
 
       {/* === MAIN CONTENT === */}
       <div className="flex-1 relative">
-        
         {/* Toggle Button */}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
           className="fixed top-8 z-50 p-2 bg-[#183A64] text-white rounded-lg hover:bg-[#2A4F85] transition shadow-lg"
           style={{
-            left: sidebarOpen ? 'calc(16rem + 1rem)' : 'calc(5rem + 1rem)'
+            left: sidebarOpen ? 'calc(16rem + 1rem)' : 'calc(5rem + 1rem)',
           }}
         >
           {sidebarOpen ? <ChevronLeft size={20} /> : <Menu size={20} />}
         </button>
 
         {/* Page Content */}
-        <main className="p-6">
-          {children}
-        </main>
+        <main className="p-6">{children}</main>
       </div>
     </div>
   );
