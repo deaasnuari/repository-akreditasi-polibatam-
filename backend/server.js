@@ -9,6 +9,7 @@ import diferensiasiMisiRoutes from './routes/diferensiasiMisi.js';
 import { Pool } from "pg";
 import budayaMutuRoutes from "./routes/budayaMutu.js";
 import ledRoutes from './routes/ledRoutes.js';
+import uploadRoutes from "./routes/uploadRoutes.js";
 
 
 // 🆕 Tambahan untuk Relevansi PKM
@@ -38,6 +39,7 @@ app.use('/api/diferensiasi-misi', diferensiasiMisiRoutes);
 app.use("/api/relevansi-pkm", relevansiPkmRoutes);
 app.use("/api/budaya-mutu", budayaMutuRoutes);
 app.use('/api/led', ledRoutes);
+app.use("/api/upload", uploadRoutes);
 
 const PORT = 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
