@@ -24,6 +24,7 @@
     "dotenv": "^17.2.3",
     "flowbite": "^3.1.2",
     "flowbite-react": "^0.12.9",
+    "html2canvas": "^1.4.1",
     "jspdf": "^3.0.3",
     "jspdf-autotable": "^5.0.2",
     "lucide-react": "^0.544.0",
