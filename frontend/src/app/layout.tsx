@@ -10,19 +10,19 @@ const poppins = Poppins({
 });
 
 export const metadata = {
-  title: "Repository Digital Data Akreditasi Polibatam",
-  description: "Sistem Repository Akreditasi POLIBATAM",
+  title: "ReDDA POLIBATAM - Repository Digital Data Akreditasi",
+  description: "Sistem Informasi Akreditasi & Repositori Digital Politeknik Negeri Batam - Pusat Repository Digital Data Akreditasi Polibatam Jurusan Informatika",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${poppins.variable} font-sans`}>
+    <html lang="id" className={`${poppins.variable} font-sans`}>
       <body className="flex flex-col min-h-screen bg-white antialiased">
         {/* Navbar tetap di atas */}
         <Navbar />
 
         {/* Isi halaman */}
-        <main className="flex-1 flex items-center justify-center px-4 pt-20">
+        <main className="flex-1 mt-20">
           {children}
         </main>
 

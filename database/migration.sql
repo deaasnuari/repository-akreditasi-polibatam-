@@ -68,3 +68,4 @@ CREATE TABLE IF NOT EXISTS migration_log (
     description TEXT,
     executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+

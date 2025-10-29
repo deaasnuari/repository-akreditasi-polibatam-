@@ -42,3 +42,4 @@ SELECT
     created_at
 FROM diferensiasi_misi 
 ORDER BY tipe_data, unit_kerja, id;
+

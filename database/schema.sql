@@ -56,3 +56,4 @@ COMMENT ON COLUMN diferensiasi_misi.unit_kerja IS 'Unit kerja: Perguruan Tinggi,
 COMMENT ON COLUMN diferensiasi_misi.konten IS 'Konten visi atau misi';
 COMMENT ON COLUMN diferensiasi_misi.created_at IS 'Timestamp pembuatan data';
 COMMENT ON COLUMN diferensiasi_misi.updated_at IS 'Timestamp terakhir update data';
+

@@ -167,3 +167,4 @@ SELECT
 FROM pg_tables 
 WHERE schemaname = 'public' AND tablename = 'diferensiasi_misi';
 ```
+

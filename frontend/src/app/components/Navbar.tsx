@@ -45,15 +45,14 @@ export default function Navbar() {
       {!hideMenu && (
         <div className="flex gap-4 items-center">
           <button
-            onClick={handleHomeClick}
-            className="border border-[#183A64] text-[#ADE7F7] px-4 py-1.5 rounded-md font-semibold hover:bg-[#FF7F00] transition"
+          onClick={handleHomeClick}
+          className="bg-[#183A64] text-[#ADE7F7] px-4 py-1.5 rounded-md font-semibold hover:bg-[#FF7F00] hover:text-white transition-all duration-300"
           >
             Home
           </button>
-
           <Link
-            href="/login"
-            className="bg-[#183A64] text-[#ADE7F7] px-4 py-1.5 rounded-md font-semibold hover:bg-[#FF7F00] transition"
+          href="/login"
+          className="bg-[#183A64] text-[#ADE7F7] px-4 py-1.5 rounded-md font-semibold hover:bg-[#FF7F00] hover:text-white transition-all duration-300"
           >
             Login
           </Link>
