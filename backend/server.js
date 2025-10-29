@@ -11,6 +11,7 @@ import budayaMutuRoutes from "./routes/budayaMutu.js";
 import ledRoutes from './routes/ledRoutes.js';
 import uploadRoutes from "./routes/uploadRoutes.js";
 import reviewLEDP4MRoutes from "./routes/reviewLEDP4M.js";
+import akuntabilitasRoutes from "./routes/akuntabilitas.js";
 
 
 // 🆕 Tambahan untuk Relevansi PKM
@@ -42,6 +43,7 @@ app.use("/api/budaya-mutu", budayaMutuRoutes);
 app.use('/api/led', ledRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/p4m/reviewLED", reviewLEDP4MRoutes);
+app.use("/api/akuntabilitas", akuntabilitasRoutes);
 
 const PORT = 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
