@@ -1,19 +1,49 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { FileText, Download, Save, Plus, Upload, Trash2, Pencil } from 'lucide-react';
+import {
+  fetchAkuntabilitasData,
+  createAkuntabilitasData,
+  updateAkuntabilitasData,
+  deleteAkuntabilitasData,
+  saveDraftAkuntabilitas,
+  loadDraftAkuntabilitas
+} from '@/services/akuntabilitasService';
 
 export default function AkuntabilitasPage() {
   const pathname = usePathname();
   const [activeSubTab, setActiveSubTab] = useState<'tataKelola' | 'sarana'>('tataKelola');
-
-  const [tataKelolaData, setTataKelolaData] = useState<any[]>([]);
-  const [saranaData, setSaranaData] = useState<any[]>([]);
-
-  const [showModal, setShowModal] = useState(false);
+  const [tabData, setTabData] = useState<any[]>([]);
+  const [showForm, setShowForm] = useState(false);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [formData, setFormData] = useState<any>({});
+
+  const handleImportExcel = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const data = new Uint8Array(e.target?.result as ArrayBuffer);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+      const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+
+      const formattedData = jsonData.map((item: any) => ({
+        id: null,
+        data: item,
+      }));
+
+      setTabData(formattedData);
+      saveDraftAkuntabilitas(activeSubTab, formattedData);
+      alert('✅ Data dari Excel berhasil dimuat!');
+    };
+
+    reader.readAsArrayBuffer(file);
+  };
 
   const tabs = [
     { label: 'Budaya Mutu', href: '/dashboard/tim-akreditasi/lkps' },
@@ -24,70 +54,91 @@ export default function AkuntabilitasPage() {
     { label: 'Diferensiasi Misi', href: '/dashboard/tim-akreditasi/lkps/diferensiasi-misi' },
   ];
 
-  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) alert(`File ${file.name} berhasil diimpor (dummy)`);
-  };
-
-  const openModal = (index: number | null = null) => {
-    setEditIndex(index);
-    if (index !== null) {
-      setFormData(
-        activeSubTab === 'tataKelola' ? tataKelolaData[index] : saranaData[index]
-      );
+  useEffect(() => {
+    const draft = loadDraftAkuntabilitas(activeSubTab);
+    if (draft.length) {
+      setTabData(draft);
     } else {
-      setFormData({});
+      fetchAkuntabilitasData(activeSubTab).then(setTabData);
     }
-    setShowModal(true);
-  };
+  }, [activeSubTab]);
 
-  const closeModal = () => {
-    setShowModal(false);
+  const openAdd = () => {
     setFormData({});
     setEditIndex(null);
+    setShowForm(true);
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSave = async () => {
+    let res;
+    if (editIndex !== null && tabData[editIndex].id) {
+      res = await updateAkuntabilitasData(tabData[editIndex].id, activeSubTab, formData);
+    } else {
+      res = await createAkuntabilitasData(activeSubTab, formData);
+    }
+
+    if (res.success) {
+      const newData =
+        editIndex !== null
+          ? tabData.map((d, i) => (i === editIndex ? { ...d, data: formData } : d))
+          : [...tabData, res.data];
+      setTabData(newData);
+      saveDraftAkuntabilitas(activeSubTab, newData);
+      setShowForm(false);
+    } else {
+      alert(res.message);
+    }
+  };
+
+  const handleDelete = async (id: string | null | undefined) => {
+    if (!confirm('Yakin ingin menghapus data ini?')) return;
+
+    if (!id) {
+      const updated = tabData.filter((d: any) => d.id !== id);
+      setTabData(updated);
+      saveDraftAkuntabilitas(activeSubTab, updated);
+      alert("🗑️ Data import berhasil dihapus dari tampilan (belum ada di database).");
+      return;
+    }
+
+    const res = await deleteAkuntabilitasData(id);
+    if (res.success) {
+      const updated = tabData.filter((d: any) => d.id !== id);
+      setTabData(updated);
+      saveDraftAkuntabilitas(activeSubTab, updated);
+    } else alert(res.message);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
 
-  const handleSave = () => {
-    if (activeSubTab === 'tataKelola') {
-      if (editIndex !== null) {
-        const updated = [...tataKelolaData];
-        updated[editIndex] = formData;
-        setTataKelolaData(updated);
-      } else {
-        setTataKelolaData([...tataKelolaData, formData]);
-      }
-    } else {
-      if (editIndex !== null) {
-        const updated = [...saranaData];
-        updated[editIndex] = formData;
-        setSaranaData(updated);
-      } else {
-        setSaranaData([...saranaData, formData]);
-      }
-    }
-    closeModal();
-  };
-
-  const handleDelete = (index: number) => {
-    if (activeSubTab === 'tataKelola') {
-      setTataKelolaData(tataKelolaData.filter((_, i) => i !== index));
-    } else {
-      setSaranaData(saranaData.filter((_, i) => i !== index));
-    }
-  };
+  const fields =
+    activeSubTab === 'tataKelola'
+      ? [
+          { key: 'jenis', label: 'Jenis Tata Kelola' },
+          { key: 'nama', label: 'Nama Sistem Informasi' },
+          { key: 'akses', label: 'Akses' },
+          { key: 'unit', label: 'Unit Kerja' },
+          { key: 'link', label: 'Link Bukti' },
+        ]
+      : [
+          { key: 'nama', label: 'Nama Prasarana' },
+          { key: 'tampung', label: 'Daya Tampung' },
+          { key: 'luas', label: 'Luas Ruang' },
+          { key: 'status', label: 'Status' },
+          { key: 'lisensi', label: 'Lisensi' },
+          { key: 'perangkat', label: 'Perangkat' },
+          { key: 'link', label: 'Link Bukti' },
+        ];
 
   return (
     <div className="flex w-full bg-gray-100">
       <div className="flex-1 w-full">
-        <main className="w-full p-4 md:p-6 max-w-full overflow-x-hidden">
+        <main className="w-full p-4 md:p-6">
 
           {/* Header */}
           <div className="bg-white rounded-lg shadow p-6 mb-6 flex justify-between items-start">
-            <div className="flex items-center gap-3 mb-2">
+            <div className="flex items-center gap-3">
               <FileText className="text-blue-900" size={32} />
               <div>
                 <h1 className="text-2xl font-bold text-gray-800">Laporan Kinerja Program Studi (LKPS)</h1>
@@ -95,25 +146,21 @@ export default function AkuntabilitasPage() {
               </div>
             </div>
             <div className="flex gap-2">
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-                <Download size={16} /> Export PDF
-              </button>
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-                <Save size={16} /> Save Draft
-              </button>
+              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"><Download size={16} /> Export PDF</button>
+              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"><Save size={16} /> Save Draft</button>
             </div>
           </div>
 
-          {/* Tabs */}
+          {/* Tabs utama */}
           <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
             {tabs.map((tab) => (
               <Link
                 key={tab.href}
                 href={tab.href}
-                className={`px-4 py-2 rounded-lg text-sm transition ${
+                className={`px-4 py-2 rounded-lg text-sm font-medium ${
                   pathname === tab.href
-                    ? 'bg-blue-100 text-blue-900 font-medium'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    ? 'bg-[#183A64] text-[#ADE7F7]'
+                    : 'bg-gray-100 text-gray-700 hover:bg-[#ADE7F7] hover:text-[#183A64]'
                 }`}
               >
                 {tab.label}
@@ -121,13 +168,13 @@ export default function AkuntabilitasPage() {
             ))}
           </div>
 
-          {/* Sub Tabs */}
-          <div className="flex gap-2 mb-4 border-b">
+          {/* Sub-tabs */}
+          <div className="flex gap-2 border-b pb-2 mb-4">
             <button
               onClick={() => setActiveSubTab('tataKelola')}
-              className={`px-4 py-2 rounded-t-lg font-medium ${
+              className={`px-4 py-2 rounded-t-lg text-sm font-semibold ${
                 activeSubTab === 'tataKelola'
-                  ? 'bg-blue-100 text-blue-900 border-b-2 border-blue-900'
+                  ? 'bg-blue-100 text-blue-900'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -135,163 +182,106 @@ export default function AkuntabilitasPage() {
             </button>
             <button
               onClick={() => setActiveSubTab('sarana')}
-              className={`px-4 py-2 rounded-t-lg font-medium ${
+              className={`px-4 py-2 rounded-t-lg text-sm font-semibold ${
                 activeSubTab === 'sarana'
-                  ? 'bg-blue-100 text-blue-900 border-b-2 border-blue-900'
+                  ? 'bg-blue-100 text-blue-900'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              Sarana & Prasarana Pendidikan
+              Sarana & Prasarana
             </button>
           </div>
 
-          {/* === SISTEM TATA KELOLA === */}
-          {activeSubTab === 'tataKelola' && (
-            <div className="bg-white rounded-lg shadow p-6 overflow-x-auto">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">Sistem Tata Kelola</h2>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => openModal()}
-                    className="flex items-center gap-2 px-4 py-2 text-sm text-white bg-blue-700 rounded-lg hover:bg-blue-800"
-                  >
-                    <Plus size={16} /> Tambah Data
-                  </button>
-                  <form className="relative">
-                    <input type="file" accept=".xlsx, .xls" id="importExcel1" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleImport} />
-                    <label htmlFor="importExcel1" className="flex items-center gap-2 px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-100 cursor-pointer">
-                      <Upload size={16} /> Import Excel
-                    </label>
-                  </form>
-                </div>
+          {/* Table Section - tampilan disamakan seperti Budaya Mutu */}
+          <div className="bg-white rounded-lg shadow-md overflow-hidden">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center px-6 py-4 border-b bg-gray-50 gap-2 md:gap-0">
+              <h3 className="text-lg font-semibold text-gray-900 capitalize">
+                {activeSubTab === 'tataKelola' ? 'Sistem Tata Kelola' : 'Sarana & Prasarana'}
+              </h3>
+
+              <div className="flex gap-2 flex-wrap">
+                <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2 text-sm text-white bg-blue-700 rounded-lg hover:bg-blue-800">
+                  <Plus size={16} /> Tambah Data
+                </button>
+                <form onSubmit={(e) => e.preventDefault()} className="relative">
+                  <input type="file" accept=".xlsx, .xls" id="importExcel" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleImportExcel} />
+                  <label htmlFor="importExcel" className="flex items-center gap-2 px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-100 cursor-pointer">
+                    <Upload size={16} /> Import Excel
+                  </label>
+                </form>
               </div>
-              {/* table tata kelola... (tidak diubah) */}
-              <table className="w-full border-collapse border text-sm text-center">
-                <thead>
-                  <tr className="bg-gray-100">
-                    <th className="border p-2 w-12">No</th>
-                    <th className="border p-2">Jenis Tata Kelola</th>
-                    <th className="border p-2">Nama Sistem Informasi</th>
-                    <th className="border p-2">Akses</th>
-                    <th className="border p-2">Unit Kerja</th>
-                    <th className="border p-2">Link Bukti</th>
-                    <th className="border p-2 w-24">Aksi</th>
+            </div>
+
+            <div className="overflow-x-auto px-4 py-2">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    {fields.map((f) => (
+                      <th key={f.key} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        {f.label}
+                      </th>
+                    ))}
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {tataKelolaData.length === 0 ? (
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {tabData.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="border p-2 text-gray-500">Belum ada data</td>
-                    </tr>
-                  ) : tataKelolaData.map((row, i) => (
-                    <tr key={i}>
-                      <td className="border p-2">{i + 1}</td>
-                      <td className="border p-2">{row.jenis || ''}</td>
-                      <td className="border p-2">{row.nama || ''}</td>
-                      <td className="border p-2">{row.akses || ''}</td>
-                      <td className="border p-2">{row.unit || ''}</td>
-                      <td className="border p-2">{row.link || ''}</td>
-                      <td className="border p-2 flex justify-center gap-2">
-                        <button onClick={() => openModal(i)} className="text-blue-600 hover:text-blue-800"><Pencil size={16} /></button>
-                        <button onClick={() => handleDelete(i)} className="text-red-600 hover:text-red-800"><Trash2 size={16} /></button>
+                      <td colSpan={fields.length + 1} className="text-center py-6 text-gray-500">
+                        Belum ada data
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    tabData.map((item: any, i: number) => (
+                      <tr key={i} className="bg-white rounded-lg shadow-sm hover:bg-gray-50 border-b">
+                        {fields.map((f) => (
+                          <td key={f.key} className="px-6 py-4 text-gray-800">
+                            {item.data?.[f.key] || '-'}
+                          </td>
+                        ))}
+                        <td className="px-6 py-4 text-center">
+                          <div className="flex gap-2 justify-center">
+                            <button onClick={() => { setFormData(item.data); setEditIndex(i); setShowForm(true); }} className="text-blue-600 hover:text-blue-800 transition" title="Edit">
+                              <Edit size={16} />
+                            </button>
+                            <button onClick={() => handleDelete(item.id)} className="text-red-600 hover:text-red-800 transition" title="Hapus">
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
-          )}
+          </div>
 
-          {/* === SARANA === */}
-          {activeSubTab === 'sarana' && (
-            <div className="bg-white rounded-lg shadow p-6 overflow-x-auto">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">Sarana dan Prasarana Pendidikan</h2>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => openModal()}
-                    className="flex items-center gap-2 px-4 py-2 text-sm text-white bg-blue-700 rounded-lg hover:bg-blue-800"
-                  >
-                    <Plus size={16} /> Tambah Data
-                  </button>
-                  <form className="relative">
-                    <input type="file" accept=".xlsx, .xls" id="importExcel2" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleImport} />
-                    <label htmlFor="importExcel2" className="flex items-center gap-2 px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-100 cursor-pointer">
-                      <Upload size={16} /> Import Excel
-                    </label>
-                  </form>
-                </div>
-              </div>
-              {/* table sarana... (tidak diubah) */}
-              <table className="w-full border-collapse border text-sm text-center">
-                <thead>
-                  <tr className="bg-gray-100">
-                    <th className="border p-2">Nama Prasarana</th>
-                    <th className="border p-2">Daya Tampung</th>
-                    <th className="border p-2">Luas Ruang</th>
-                    <th className="border p-2">Status</th>
-                    <th className="border p-2">Lisensi</th>
-                    <th className="border p-2">Perangkat</th>
-                    <th className="border p-2">Link Bukti</th>
-                    <th className="border p-2 w-24">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {saranaData.length === 0 ? (
-                    <tr>
-                      <td colSpan={8} className="border p-2 text-gray-500">Belum ada data</td>
-                    </tr>
-                  ) : saranaData.map((row, i) => (
-                    <tr key={i}>
-                      <td className="border p-2">{row.nama || ''}</td>
-                      <td className="border p-2">{row.tampung || ''}</td>
-                      <td className="border p-2">{row.luas || ''}</td>
-                      <td className="border p-2">{row.status || ''}</td>
-                      <td className="border p-2">{row.lisensi || ''}</td>
-                      <td className="border p-2">{row.perangkat || ''}</td>
-                      <td className="border p-2">{row.link || ''}</td>
-                      <td className="border p-2 flex justify-center gap-2">
-                        <button onClick={() => openModal(i)} className="text-blue-600 hover:text-blue-800"><Pencil size={16} /></button>
-                        <button onClick={() => handleDelete(i)} className="text-red-600 hover:text-red-800"><Trash2 size={16} /></button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* Modal sama seperti sebelumnya */}
-          {showModal && (
+          {/* Modal Form */}
+          {showForm && (
             <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
               <div className="bg-white p-6 rounded-lg shadow w-full max-w-md">
-                <h3 className="text-lg font-semibold mb-4">
-                  {editIndex !== null ? 'Edit Data' : 'Tambah Data'}
-                </h3>
+                <div className="flex justify-between mb-4">
+                  <h3 className="font-semibold text-lg">{editIndex !== null ? 'Edit Data' : 'Tambah Data'}</h3>
+                  <button onClick={() => setShowForm(false)} className="text-gray-600 hover:text-gray-800">
+                    <X size={20} />
+                  </button>
+                </div>
                 <div className="space-y-2">
-                  {activeSubTab === 'tataKelola' ? (
-                    <>
-                      <input name="jenis" placeholder="Jenis Tata Kelola" className="w-full border p-2 rounded" value={formData.jenis || ''} onChange={handleChange} />
-                      <input name="nama" placeholder="Nama Sistem Informasi" className="w-full border p-2 rounded" value={formData.nama || ''} onChange={handleChange} />
-                      <input name="akses" placeholder="Akses" className="w-full border p-2 rounded" value={formData.akses || ''} onChange={handleChange} />
-                      <input name="unit" placeholder="Unit Kerja" className="w-full border p-2 rounded" value={formData.unit || ''} onChange={handleChange} />
-                      <input name="link" placeholder="Link Bukti" className="w-full border p-2 rounded" value={formData.link || ''} onChange={handleChange} />
-                    </>
-                  ) : (
-                    <>
-                      <input name="nama" placeholder="Nama Prasarana" className="w-full border p-2 rounded" value={formData.nama || ''} onChange={handleChange} />
-                      <input name="tampung" placeholder="Daya Tampung" className="w-full border p-2 rounded" value={formData.tampung || ''} onChange={handleChange} />
-                      <input name="luas" placeholder="Luas Ruang" className="w-full border p-2 rounded" value={formData.luas || ''} onChange={handleChange} />
-                      <input name="status" placeholder="Status" className="w-full border p-2 rounded" value={formData.status || ''} onChange={handleChange} />
-                      <input name="lisensi" placeholder="Lisensi" className="w-full border p-2 rounded" value={formData.lisensi || ''} onChange={handleChange} />
-                      <input name="perangkat" placeholder="Perangkat" className="w-full border p-2 rounded" value={formData.perangkat || ''} onChange={handleChange} />
-                      <input name="link" placeholder="Link Bukti" className="w-full border p-2 rounded" value={formData.link || ''} onChange={handleChange} />
-                    </>
-                  )}
+                  {fields.map((f) => (
+                    <input
+                      key={f.key}
+                      name={f.key}
+                      placeholder={f.label}
+                      value={formData[f.key] || ''}
+                      onChange={handleChange}
+                      className="w-full border p-2 rounded"
+                    />
+                  ))}
                 </div>
                 <div className="flex justify-end gap-2 mt-4">
-                  <button onClick={closeModal} className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">Batal</button>
-                  <button onClick={handleSave} className="px-4 py-2 bg-blue-700 text-white rounded hover:bg-blue-800">Simpan</button>
+                  <button onClick={() => setShowForm(false)} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100">Batal</button>
+                  <button onClick={handleSave} className="px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800">Simpan</button>
                 </div>
               </div>
             </div>
