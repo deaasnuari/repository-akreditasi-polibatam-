@@ -2,9 +2,33 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Poppins } from 'next/font/google';
-import { Home, FileText, BookOpen, BarChart3, Menu, X, LogOut } from 'lucide-react';
+import {
+  Home,
+  FileText,
+  BookOpen,
+  BarChart3,
+  Menu,
+  X,
+  LogOut,
+} from 'lucide-react';
+import { logout } from '@/services/auth';
+
+// 🔔 Import komponen modal dari shadcn/ui
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -14,7 +38,9 @@ const poppins = Poppins({
 
 export default function LayoutP4M({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
 
   // === MENU UNTUK ROLE P4M ===
   const menuItems = [
@@ -23,6 +49,18 @@ export default function LayoutP4M({ children }: { children: React.ReactNode }) {
     { name: 'Review LED', href: '/dashboard/p4m/reviewLED', icon: <BookOpen size={18} /> },
     { name: 'Matriks Penilaian', href: '/dashboard/p4m/matriks-penilaian', icon: <BarChart3 size={18} /> },
   ];
+
+  // === HANDLE LOGOUT ===
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (err) {
+      console.error('Logout gagal:', err);
+    } finally {
+      setOpen(false);
+      router.push('/auth');
+    }
+  };
 
   return (
     <div className={`flex w-full bg-gray-100 ${poppins.variable} font-sans`}>
@@ -78,12 +116,37 @@ export default function LayoutP4M({ children }: { children: React.ReactNode }) {
             </div>
           </div>
 
-          {/* Tombol Logout */}
+          {/* Tombol Logout dengan Modal Konfirmasi */}
           <div className="p-4 border-t border-[#FF7F00]/30">
-            <button className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-[#ADE7F7] text-[#183A64] rounded-lg font-semibold hover:bg-[#FF7F00] hover:text-white transition">
-              <LogOut size={18} />
-              Logout
-            </button>
+            <AlertDialog open={open} onOpenChange={setOpen}>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-[#ADE7F7] text-[#183A64] rounded-lg font-semibold hover:bg-[#FF7F00] hover:text-white transition"
+                >
+                  <LogOut size={18} />
+                  Logout
+                </Button>
+              </AlertDialogTrigger>
+
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Yakin ingin logout?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Anda akan keluar dari sistem dan harus login kembali untuk mengakses dashboard.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Batal</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleLogout}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    Ya, Logout
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
       </div>

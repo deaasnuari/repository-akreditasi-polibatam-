@@ -2,9 +2,8 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Poppins } from 'next/font/google';
-import { useRouter } from 'next/navigation';
 import {
   Home,
   FileText,
@@ -14,7 +13,21 @@ import {
   ChevronLeft,
   LogOut,
 } from 'lucide-react';
-import { logout } from '@/services/auth'; // ✅ pastikan path ini sesuai struktur project-mu
+import { logout } from '@/services/auth';
+
+// 🔔 Import komponen modal dari shadcn/ui
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -28,6 +41,7 @@ export default function LayoutTataUsaha({
   children: React.ReactNode;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
 
@@ -40,11 +54,12 @@ export default function LayoutTataUsaha({
 
   const handleLogout = async () => {
     try {
-      await logout(); // ✅ panggil fungsi logout dari services/auth.ts
+      await logout();
     } catch (err) {
       console.error('Logout gagal:', err);
     } finally {
-      router.push('/auth'); // ✅ arahkan user ke halaman login
+      setOpen(false);
+      router.push('/auth');
     }
   };
 
@@ -96,9 +111,10 @@ export default function LayoutTataUsaha({
                       <div
                         className={`
                           flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition
-                          ${isActive
-                            ? 'bg-[#ADE7F7] text-[#183A64]'
-                            : 'hover:bg-[#ADE7F7]/30 hover:text-[#ADE7F7]'
+                          ${
+                            isActive
+                              ? 'bg-[#ADE7F7] text-[#183A64]'
+                              : 'hover:bg-[#ADE7F7]/30 hover:text-[#ADE7F7]'
                           }
                         `}
                       >
@@ -112,18 +128,40 @@ export default function LayoutTataUsaha({
             </div>
           </div>
 
-          {/* Logout */}
+          {/* Logout dengan konfirmasi modal */}
           <div className="p-3 border-t border-[#ADE7F7]/20">
-            <button
-              onClick={handleLogout}
-              className={`
-                w-full flex items-center gap-2 justify-center px-3 py-2 bg-[#ADE7F7] text-[#183A64]
-                rounded-lg font-semibold hover:bg-[#FF7F00] hover:text-white transition
-              `}
-            >
-              <LogOut size={18} />
-              {sidebarOpen && 'Logout'}
-            </button>
+            <AlertDialog open={open} onOpenChange={setOpen}>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className={`
+                    w-full flex items-center gap-2 justify-center px-3 py-2 bg-[#ADE7F7] text-[#183A64]
+                    rounded-lg font-semibold hover:bg-[#FF7F00] hover:text-white transition
+                  `}
+                >
+                  <LogOut size={18} />
+                  {sidebarOpen && 'Logout'}
+                </Button>
+              </AlertDialogTrigger>
+
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Yakin ingin logout?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Anda akan keluar dari sistem dan harus login kembali untuk mengakses dashboard.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Batal</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleLogout}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    Ya, Logout
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
       </div>

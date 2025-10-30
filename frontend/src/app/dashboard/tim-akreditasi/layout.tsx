@@ -15,6 +15,18 @@ import {
   ChevronLeft,
   LogOut,
 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -28,6 +40,7 @@ export default function LayoutTimAkreditasi({
   children: React.ReactNode;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
 
@@ -40,16 +53,15 @@ export default function LayoutTimAkreditasi({
     { name: 'Export', href: '/dashboard/tim-akreditasi/export', icon: <Download size={18} /> },
   ];
 
-  // === Fungsi Logout ===
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    router.push('/auth'); // arahkan ke halaman login
+    setOpen(false);
+    router.push('/auth');
   };
 
   return (
     <div className={`flex w-full bg-gray-100 ${poppins.variable} font-sans`}>
-      
       {/* === SIDEBAR === */}
       <div
         className={`
@@ -58,10 +70,8 @@ export default function LayoutTimAkreditasi({
           sticky top-0 h-screen flex flex-col
         `}
       >
-
         {/* Sidebar Header */}
         <div className="p-4 border-b border-[#ADE7F7]/30 flex items-center gap-3">
-          {/* Logo */}
           <div className="w-12 h-12 bg-[#ADE7F7] rounded-full flex items-center justify-center text-[#183A64] font-bold shadow-md flex-shrink-0">
             R
           </div>
@@ -88,17 +98,21 @@ export default function LayoutTimAkreditasi({
 
               <nav className="space-y-1">
                 {menuItems.map((item) => {
-                  const isActive = 
+                  const isActive =
                     item.href === '/dashboard/tim-akreditasi'
                       ? pathname === item.href
                       : pathname.startsWith(item.href);
-                  
+
                   return (
                     <Link key={item.name} href={item.href}>
                       <div
                         className={`
                           flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition
-                          ${isActive ? 'bg-[#ADE7F7] text-[#183A64]' : 'hover:bg-[#ADE7F7]/30 hover:text-[#ADE7F7]'}
+                          ${
+                            isActive
+                              ? 'bg-[#ADE7F7] text-[#183A64]'
+                              : 'hover:bg-[#ADE7F7]/30 hover:text-[#ADE7F7]'
+                          }
                         `}
                       >
                         {item.icon}
@@ -111,40 +125,59 @@ export default function LayoutTimAkreditasi({
             </div>
           </div>
 
-          {/* Logout */}
+          {/* Logout dengan konfirmasi modal */}
           <div className="p-3 border-t border-[#ADE7F7]/20">
-            <button 
-              onClick={handleLogout}
-              className={`
-                w-full flex items-center gap-2 justify-center px-3 py-2 bg-[#ADE7F7] text-[#183A64]
-                rounded-lg font-semibold hover:bg-[#FF7F00] hover:text-white transition
-              `}
-            >
-              <LogOut size={18} />
-              {sidebarOpen && 'Logout'}
-            </button>
+            <AlertDialog open={open} onOpenChange={setOpen}>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className={`
+                    w-full flex items-center gap-2 justify-center px-3 py-2 bg-[#ADE7F7] text-[#183A64]
+                    rounded-lg font-semibold hover:bg-[#FF7F00] hover:text-white transition
+                  `}
+                >
+                  <LogOut size={18} />
+                  {sidebarOpen && 'Logout'}
+                </Button>
+              </AlertDialogTrigger>
+
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Yakin ingin logout?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Anda akan keluar dari sistem dan perlu login kembali untuk mengakses dashboard.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Batal</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleLogout}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    Ya, Logout
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
       </div>
 
       {/* === MAIN CONTENT === */}
       <div className="flex-1 relative">
-        
         {/* Toggle Button */}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
           className="fixed top-8 z-50 p-2 bg-[#183A64] text-white rounded-lg hover:bg-[#2A4F85] transition shadow-lg"
           style={{
-            left: sidebarOpen ? 'calc(16rem + 1rem)' : 'calc(5rem + 1rem)'
+            left: sidebarOpen ? 'calc(16rem + 1rem)' : 'calc(5rem + 1rem)',
           }}
         >
           {sidebarOpen ? <ChevronLeft size={20} /> : <Menu size={20} />}
         </button>
 
         {/* Page Content */}
-        <main className="p-6">
-          {children}
-        </main>
+        <main className="p-6">{children}</main>
       </div>
     </div>
   );
