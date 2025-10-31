@@ -12,7 +12,7 @@ import ledRoutes from './routes/ledRoutes.js';
 import uploadRoutes from "./routes/uploadRoutes.js";
 import reviewLEDP4MRoutes from "./routes/reviewLEDP4M.js";
 import akuntabilitasRoutes from "./routes/akuntabilitas.js";
-
+import matriksPenilaianRoutes from "./routes/matriksPenilaianAkreditasi.js";
 
 // 🆕 Tambahan untuk Relevansi PKM
 import relevansiPkmRoutes from "./routes/relevansiPkm.js";
@@ -44,6 +44,7 @@ app.use('/api/led', ledRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/p4m/reviewLED", reviewLEDP4MRoutes);
 app.use("/api/akuntabilitas", akuntabilitasRoutes);
+app.use("/api/matriks-penilaian", matriksPenilaianAkreditasiRoutes);
 
 const PORT = 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
