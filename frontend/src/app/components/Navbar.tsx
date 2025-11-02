@@ -27,7 +27,7 @@ export default function Navbar() {
 
   return (
     <nav
-      className={`fixed top-0 left-0 right-0 z-50 bg-[#0A2F56] text-white px-8 h-16 flex items-center justify-between shadow-md ${poppins.className}`}
+      className={`fixed top-0 left-0 right-0 z-50 bg-[#183A64] text-white px-8 h-16 flex items-center justify-between shadow-md ${poppins.className}`}
     >
       {/* === LOGO KIRI === */}
       <div className="flex items-center gap-5 cursor-pointer" onClick={handleHomeClick}>

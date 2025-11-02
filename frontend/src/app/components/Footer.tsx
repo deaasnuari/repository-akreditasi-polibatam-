@@ -11,11 +11,11 @@ export default function Footer() {
   return (
     <footer className={`mt-10 w-full ${poppins.className}`}>
       {/* Bagian Atas */}
-      <div className="bg-[#0A2F56] text-white w-full">
+      <div className="bg-[#183A64] text-white w-full">
         <div className="max-w-[1600px] mx-auto flex justify-between items-start px-6 py-6">
           
           {/* Kiri */}
-         <div className="bg-[#0A2F56] text-white flex items-center gap-6 px-8 py-4">
+         <div className="bg-[#183A64] text-white flex items-center gap-6 px-8 py-4">
             <img
               src="/polibatam.png"
               alt="Logo Polibatam"
@@ -45,7 +45,7 @@ export default function Footer() {
       </div>
 
       {/* Bagian Bawah */}
-      <div className="bg-[#F97316] text-white text-center py-2 text-sm font-medium">
+      <div className="bg-[#FF7F00] text-white text-center py-2 text-sm font-medium">
         © 2025 Politeknik Negeri Batam
       </div>
     </footer>

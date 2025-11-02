@@ -1,27 +1,17 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
-// ===== LOGIN =====
-export const loginUser = async (email: string, password: string, role: string) => {
-  try {
-    const response = await fetch(`${API_URL}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, role }),
-    });
-
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.msg || 'Login gagal');
-
-    // Simpan token & user ke localStorage
-    if (data.success && data.token) {
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-    }
-
-    return data;
-  } catch (error: any) {
-    throw new Error(error.message || 'Terjadi kesalahan saat login');
-  }
+export interface User {
+  username: string;
+  role: string;
+}
+// ===== Helper function =====
+export const getRoleDisplayName = (role: string): string => {
+  const roleMap: Record<string, string> = {
+    'tim-akreditasi': 'Tim Akreditasi',
+    'p4m': 'P4M',
+    'tu': 'Tata Usaha',
+  };
+  return roleMap[role] || role;
 };
 
 // ===== REGISTER =====
@@ -32,59 +22,73 @@ export const registerUser = async (
   role: string
 ) => {
   try {
-    const response = await fetch(`${API_URL}/auth/register`, {
+    const res = await fetch(`${API_URL}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include', // supaya cookie tersimpan
       body: JSON.stringify({ username, email, password, role }),
     });
 
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.msg || 'Registrasi gagal');
-
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.msg || 'Registrasi gagal.');
     return data;
-  } catch (error: any) {
-    throw new Error(error.message || 'Terjadi kesalahan saat registrasi');
+  } catch (err: any) {
+    throw new Error(err.message || 'Registrasi gagal.');
   }
 };
 
-// ===== CEK AUTH =====
-export const isAuthenticated = () => {
-  if (typeof window === 'undefined') return false;
-  const token = localStorage.getItem('token');
-  const user = localStorage.getItem('user');
-  return !!(token && user);
+// ===== LOGIN =====
+export const loginUser = async (
+  email: string,
+  password: string,
+  role: string
+) => {
+  try {
+    const res = await fetch(`${API_URL}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include', // supaya cookie tersimpan
+      body: JSON.stringify({ email, password, role }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.msg || 'Login gagal.');
+    return data;
+  } catch (err: any) {
+    throw new Error(err.message || 'Login gagal.');
+  }
 };
 
-// ===== GET USER =====
-export const getCurrentUser = () => {
-  if (typeof window === 'undefined') return null;
-  const userStr = localStorage.getItem('user');
-  if (!userStr) return null;
+// ===== GET CURRENT USER =====
+export const getCurrentUser = async () => {
   try {
-    return JSON.parse(userStr);
+    const res = await fetch(`${API_URL}/auth/me`, {
+      method: 'GET',
+      credentials: 'include',
+    });
+
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    if (!data.success) return null;
+
+    return {
+      username: data.data.username,
+      role: getRoleDisplayName(data.data.role),
+    };
   } catch {
     return null;
   }
 };
 
+
 // ===== LOGOUT =====
-export const logout = async () => {
+export const logout = async (redirectTo: string = '/') => {
   try {
-    // Panggil endpoint logout backend
     await fetch(`${API_URL}/auth/logout`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
-      },
+      credentials: 'include',
     });
-  } catch (error) {
-    console.warn('Logout API gagal, lanjut hapus token di sisi klien.');
-  } finally {
-    // Hapus data lokal
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-
-    // Redirect ke halaman login
-    window.location.href = '/login';
-  }
+  } catch {}
+  window.location.href = redirectTo;
 };

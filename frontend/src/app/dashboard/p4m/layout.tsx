@@ -10,12 +10,10 @@ import {
   BookOpen,
   BarChart3,
   Menu,
-  X,
+  ChevronLeft,
   LogOut,
 } from 'lucide-react';
 import { logout } from '@/services/auth';
-
-// 🔔 Import komponen modal dari shadcn/ui
 import {
   AlertDialog,
   AlertDialogTrigger,
@@ -29,7 +27,6 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 
-
 const poppins = Poppins({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
@@ -37,7 +34,7 @@ const poppins = Poppins({
 });
 
 export default function LayoutP4M({ children }: { children: React.ReactNode }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
@@ -67,47 +64,52 @@ export default function LayoutP4M({ children }: { children: React.ReactNode }) {
       {/* === SIDEBAR === */}
       <div
         className={`${
-          sidebarOpen ? 'w-64' : 'w-0'
+          sidebarOpen ? 'w-64' : 'w-20'
         } bg-[#183A64] text-white transition-all duration-300 overflow-hidden flex-shrink-0 sticky top-0 h-screen flex flex-col`}
       >
         {/* Header Sidebar */}
-        <div className="p-6 border-b border-[#ADE7F7]/30 flex items-center gap-3">
-          <div className="w-24 aspect-square bg-[#ADE7F7] rounded-full flex items-center justify-center text-[#183A64] font-bold text-xl shadow-md">
-            ReDDA
+        <div className="p-4 border-b border-[#ADE7F7]/30 flex items-center gap-3">
+          <div className="w-12 h-12 bg-[#ADE7F7] rounded-full flex items-center justify-center text-[#183A64] font-bold shadow-md flex-shrink-0">
+            R
           </div>
 
-          <div>
-            <h2 className="text-[#ADE7F7] text-lg font-bold leading-tight">
-              Repository Akreditasi
-            </h2>
-            <p className="text-[#ADE7F7]/80 text-sm font-bold">POLIBATAM</p>
-          </div>
+          {sidebarOpen && (
+            <div>
+              <h2 className="text-[#ADE7F7] text-base font-bold leading-tight">
+                Repository Akreditasi
+              </h2>
+              <p className="text-[#ADE7F7]/80 text-xs font-bold">POLIBATAM</p>
+            </div>
+          )}
         </div>
 
         {/* Menu */}
         <div className="flex-1 flex flex-col justify-between font-medium">
           <div className="flex flex-col h-full">
-            <div className="p-4 flex-1 overflow-y-auto">
-              <h3 className="text-xs font-bold text-[#ADE7F7] mb-3 tracking-wider">
-                MENU UTAMA
-              </h3>
+            <div className="p-3 flex-1 overflow-y-auto">
+              {sidebarOpen && (
+                <h3 className="text-xs font-bold text-[#ADE7F7] mb-3 tracking-wider">
+                  MENU UTAMA
+                </h3>
+              )}
               <nav className="space-y-1">
                 {menuItems.map((item) => {
                   const isActive =
                     pathname === item.href ||
-                    (item.name !== 'Dashboard' && pathname.startsWith(item.href + '/'));
+                    (item.name !== 'Dashboard' &&
+                      pathname.startsWith(item.href + '/'));
 
                   return (
                     <Link key={item.name} href={item.href} className="block">
                       <div
-                        className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors duration-200 ${
+                        className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
                           isActive
                             ? 'bg-[#ADE7F7] text-[#183A64] font-semibold'
                             : 'hover:bg-[#ADE7F7]/30 hover:text-[#ADE7F7]'
                         }`}
                       >
                         {item.icon}
-                        <span>{item.name}</span>
+                        {sidebarOpen && <span>{item.name}</span>}
                       </div>
                     </Link>
                   );
@@ -117,15 +119,15 @@ export default function LayoutP4M({ children }: { children: React.ReactNode }) {
           </div>
 
           {/* Tombol Logout dengan Modal Konfirmasi */}
-          <div className="p-4 border-t border-[#FF7F00]/30">
+          <div className="p-3 border-t border-[#ADE7F7]/20">
             <AlertDialog open={open} onOpenChange={setOpen}>
               <AlertDialogTrigger asChild>
                 <Button
                   variant="ghost"
-                  className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-[#ADE7F7] text-[#183A64] rounded-lg font-semibold hover:bg-[#FF7F00] hover:text-white transition"
+                  className={`w-full flex items-center justify-center gap-2 px-3 py-2 bg-[#ADE7F7] text-[#183A64] rounded-lg font-semibold hover:bg-[#FF7F00] hover:text-white transition`}
                 >
                   <LogOut size={18} />
-                  Logout
+                  {sidebarOpen && 'Logout'}
                 </Button>
               </AlertDialogTrigger>
 
@@ -156,9 +158,12 @@ export default function LayoutP4M({ children }: { children: React.ReactNode }) {
         {/* Sidebar Toggle Button */}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="fixed top-20 left-4 z-50 p-2 bg-[#183A64] text-white rounded-lg shadow-lg hover:bg-[#2A4F85] transition-colors"
+          className="fixed top-8 z-50 p-2 bg-[#183A64] text-white rounded-lg shadow-lg hover:bg-[#2A4F85] transition-colors"
+          style={{
+            left: sidebarOpen ? 'calc(16rem + 1rem)' : 'calc(5rem + 1rem)',
+          }}
         >
-          {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+          {sidebarOpen ? <ChevronLeft size={20} /> : <Menu size={20} />}
         </button>
 
         {/* Child Page Content */}

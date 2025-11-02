@@ -51,15 +51,16 @@ export default function Sidebar({ role, onToggle }: SidebarProps) {
 
   return (
     <aside
-      className={`fixed left-0 top-0 h-screen bg-white border-r border-gray-200 shadow-lg flex flex-col
-      transition-all duration-300 font-sans
-      ${isCollapsed ? "w-20" : "w-64"}
-    `}
-    >
+  className={`fixed left-0 top-20 h-[calc(100vh-80px)] bg-white border-r border-gray-200 shadow-lg flex flex-col
+    transition-all duration-300 font-sans
+    ${isCollapsed ? "w-20" : "w-64"}
+  `}
+>
+
       {/* Header + toggle */}
       <div className="flex items-center justify-between px-3 py-4">
         {!isCollapsed && (
-          <h2 className="text-lg font-bold text-[#163A70] truncate">Menu {role?.replace("_", " ")}</h2>
+          <h2 className="text-lg font-bold text-[#183A64] truncate">Menu {role?.replace("_", " ")}</h2>
         )}
 
         <button
@@ -82,7 +83,7 @@ export default function Sidebar({ role, onToggle }: SidebarProps) {
               <Link
                 href={item.href}
                 className={`flex items-center gap-3 px-4 py-2 text-sm font-medium rounded-md transition
-                ${isActive ? "bg-[#163A70] text-white" : "text-gray-700 hover:bg-[#E6F3FF]"}
+                ${isActive ? "bg-[#183A64] text-white" : "text-gray-700 hover:bg-[#E6F3FF]"}
                 `}
               >
                 {item.icon}

@@ -30,6 +30,7 @@ export default function AuthPage() {
   useEffect(() => setMounted(true), []);
   if (!mounted) return null;
 
+  // ==== LOGIN HANDLER ====
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -38,27 +39,25 @@ export default function AuthPage() {
     try {
       const data = await loginUser(loginEmail, loginPassword, loginRole);
 
-      if (data.success) {
-        // Tunggu sedikit untuk memastikan localStorage sudah tersimpan
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // Redirect berdasarkan role
-        if (loginRole === 'tim-akreditasi') {
-          router.push('/dashboard/tim-akreditasi');
-        } else if (loginRole === 'p4m') {
-          router.push('/dashboard/p4m');
-        } else if (loginRole === 'tu') {
-          router.push('/dashboard/tata-usaha');
-        }
-      }
+      if (data.success && data.user) {
+        // Redirect otomatis berdasarkan role
+        const role = data.user.role;
 
+        if (role === 'tim-akreditasi') router.push('/dashboard/tim-akreditasi');
+        else if (role === 'p4m') router.push('/dashboard/p4m');
+        else if (role === 'tu') router.push('/dashboard/tata-usaha');
+        else router.push('/dashboard');
+      } else {
+        setError(data.msg || 'Login gagal, periksa kembali data Anda.');
+      }
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'Terjadi kesalahan saat login.');
     } finally {
       setLoading(false);
     }
   };
 
+  // ==== REGISTER HANDLER ====
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -74,7 +73,7 @@ export default function AuthPage() {
       setRegPassword('');
       setRegRole('tim-akreditasi');
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'Registrasi gagal.');
     } finally {
       setLoading(false);
     }
@@ -83,7 +82,6 @@ export default function AuthPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100 px-4 py-8">
       <div className="w-full max-w-md bg-white rounded-[2rem] shadow-[0_0_40px_rgba(0,0,0,0.15)] p-8">
-
         {/* === Tabs === */}
         <div className="flex justify-center mb-6">
           {(['login', 'register'] as Tab[]).map((tab) => (
@@ -113,14 +111,13 @@ export default function AuthPage() {
           </div>
         )}
 
-        {/* === Login Form === */}
+        {/* === LOGIN FORM === */}
         {activeTab === 'login' && (
           <form onSubmit={handleLogin} className="space-y-5">
             <input
               type="email"
               placeholder="Email"
-              className="w-full border-2 border-[#183A64] bg-white rounded-xl px-4 py-3 text-base 
-                         focus:outline-none focus:ring-2 focus:ring-[#183A64] focus:border-[#183A64]"
+              className="w-full border-2 border-[#183A64] rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#183A64]"
               value={loginEmail}
               onChange={(e) => setLoginEmail(e.target.value)}
               required
@@ -128,53 +125,37 @@ export default function AuthPage() {
             <input
               type="password"
               placeholder="Password"
-              className="w-full border-2 border-[#183A64] bg-white rounded-xl px-4 py-3 text-base 
-                         focus:outline-none focus:ring-2 focus:ring-[#183A64] focus:border-[#183A64]"
+              className="w-full border-2 border-[#183A64] rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#183A64]"
               value={loginPassword}
               onChange={(e) => setLoginPassword(e.target.value)}
               required
             />
-
-            <div className="text-right mt-1">
-              <Link
-                href="/forgot-password"
-                className="text-sm text-[#183A64] hover:text-[#ADE7F7] font-medium transition-colors duration-200"
-              >
-                Lupa Password?
-              </Link>
-            </div>
-
             <select
               value={loginRole}
               onChange={(e) => setLoginRole(e.target.value)}
-              className="w-full border-2 border-[#183A64] bg-white rounded-xl px-4 py-3 text-base 
-                         focus:outline-none focus:ring-2 focus:ring-[#183A64] focus:border-[#183A64]"
+              className="w-full border-2 border-[#183A64] rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#183A64]"
             >
               <option value="tim-akreditasi">Tim Akreditasi</option>
               <option value="p4m">P4M</option>
               <option value="tu">Tata Usaha</option>
             </select>
-
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#183A64] text-white font-semibold py-3 text-base rounded-xl 
-                         hover:bg-[#ADE7F7] hover:text-[#183A64] transition-colors duration-300 
-                         disabled:opacity-60 disabled:cursor-not-allowed shadow-md"
+              className="w-full bg-[#183A64] text-white font-semibold py-3 rounded-xl hover:bg-[#ADE7F7] hover:text-[#183A64] transition-colors duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loading ? 'Loading...' : 'Masuk'}
             </button>
           </form>
         )}
 
-        {/* === Register Form === */}
+        {/* === REGISTER FORM === */}
         {activeTab === 'register' && (
           <form onSubmit={handleRegister} className="space-y-5">
             <input
               type="text"
               placeholder="Nama Lengkap"
-              className="w-full border-2 border-[#183A64] bg-white rounded-xl px-4 py-3 text-base 
-                         focus:outline-none focus:ring-2 focus:ring-[#183A64] focus:border-[#183A64]"
+              className="w-full border-2 border-[#183A64] rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#183A64]"
               value={regName}
               onChange={(e) => setRegName(e.target.value)}
               required
@@ -182,8 +163,7 @@ export default function AuthPage() {
             <input
               type="email"
               placeholder="Email"
-              className="w-full border-2 border-[#183A64] bg-white rounded-xl px-4 py-3 text-base 
-                         focus:outline-none focus:ring-2 focus:ring-[#183A64] focus:border-[#183A64]"
+              className="w-full border-2 border-[#183A64] rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#183A64]"
               value={regEmail}
               onChange={(e) => setRegEmail(e.target.value)}
               required
@@ -191,8 +171,7 @@ export default function AuthPage() {
             <input
               type="password"
               placeholder="Password"
-              className="w-full border-2 border-[#183A64] bg-white rounded-xl px-4 py-3 text-base 
-                         focus:outline-none focus:ring-2 focus:ring-[#183A64] focus:border-[#183A64]"
+              className="w-full border-2 border-[#183A64] rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#183A64]"
               value={regPassword}
               onChange={(e) => setRegPassword(e.target.value)}
               required
@@ -200,20 +179,16 @@ export default function AuthPage() {
             <select
               value={regRole}
               onChange={(e) => setRegRole(e.target.value)}
-              className="w-full border-2 border-[#183A64] bg-white rounded-xl px-4 py-3 text-base 
-                         focus:outline-none focus:ring-2 focus:ring-[#183A64] focus:border-[#183A64]"
+              className="w-full border-2 border-[#183A64] rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#183A64]"
             >
               <option value="tim-akreditasi">Tim Akreditasi</option>
               <option value="p4m">P4M</option>
               <option value="tu">Tata Usaha</option>
             </select>
-
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#183A64] text-white font-semibold py-3 text-base rounded-xl 
-                         hover:bg-[#ADE7F7] hover:text-[#183A64] transition-colors duration-300 
-                         disabled:opacity-60 disabled:cursor-not-allowed shadow-md"
+              className="w-full bg-[#183A64] text-white font-semibold py-3 rounded-xl hover:bg-[#ADE7F7] hover:text-[#183A64] transition-colors duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loading ? 'Loading...' : 'Daftar'}
             </button>
