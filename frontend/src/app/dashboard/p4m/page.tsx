@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { FileText, CheckCircle, AlertCircle, Activity, Bell } from "lucide-react";
+import Link from "next/link";
 
 export default function DashboardP4MPage() {
   const [progressLKPS] = useState(75);
@@ -23,12 +24,14 @@ export default function DashboardP4MPage() {
           value={`${progressLKPS}%`}
           color="bg-[#6C63FF]"
           icon={<FileText size={20} />}
+          href="/dashboard/p4m/reviewLKPS"
         />
         <CardStat
           title="Progress LED"
           value={`${progressLED}%`}
           color="bg-green-500"
           icon={<FileText size={20} />}
+          href="/dashboard/p4m/reviewLED"
         />
         <CardStat
           title="Pending Reviews"
@@ -36,6 +39,7 @@ export default function DashboardP4MPage() {
           subtitle="Dokumen menunggu review"
           color="bg-orange-500"
           icon={<AlertCircle size={20} />}
+          href="/dashboard/p4m/reviewLKPS"
         />
         <CardStat
           title="Status Akreditasi"
@@ -43,6 +47,7 @@ export default function DashboardP4MPage() {
           subtitle="Simulasi terakhir"
           color="bg-green-600"
           icon={<CheckCircle size={20} />}
+          href="/dashboard/p4m/matriks-penilaian"
         />
       </div>
 
@@ -103,9 +108,9 @@ export default function DashboardP4MPage() {
 }
 
 /* === Komponen === */
-function CardStat({ title, value, subtitle, color, icon }: any) {
-  return (
-    <div className="bg-white rounded-xl shadow p-4">
+function CardStat({ title, value, subtitle, color, icon, href }: any) {
+  const CardContent = () => (
+    <>
       <div className="flex justify-between items-center mb-2">
         <p className="text-sm font-medium text-gray-600">{title}</p>
         <div className={`p-2 rounded-full text-white ${color}`}>{icon}</div>
@@ -122,6 +127,22 @@ function CardStat({ title, value, subtitle, color, icon }: any) {
           ></div>
         </div>
       )}
+    </>
+  );
+
+  if (href) {
+    return (
+      <Link href={href} className="block">
+        <div className="bg-white rounded-xl shadow p-4 transition-all duration-200 hover:shadow-lg hover:scale-[1.02]">
+          <CardContent />
+        </div>
+      </Link>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-xl shadow p-4">
+      <CardContent />
     </div>
   );
 }
