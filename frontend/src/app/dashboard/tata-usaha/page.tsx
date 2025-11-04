@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { getCurrentUser } from '@/services/auth';
 import { Database, CheckCircle, Clock, AlertTriangle, RefreshCw, FileText, Upload, BookOpen, Download, UserPlus, ExternalLink } from 'lucide-react';
 
 export default function TataUsahaPage() {
@@ -10,23 +11,22 @@ export default function TataUsahaPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const userData = localStorage.getItem('user');
-
-    if (!token || !userData) {
-      router.push('/auth');
-      return;
-    }
-
-    const parsedUser = JSON.parse(userData);
-    
-    if (parsedUser.role !== 'tu') {
-      router.push('/auth');
-      return;
-    }
-
-    setUser(parsedUser);
-    setLoading(false);
+    let mounted = true;
+    (async () => {
+      const user = await getCurrentUser();
+      if (!mounted) return;
+      if (!user) {
+        router.push('/auth');
+        return;
+      }
+      if (user.role !== 'tu') {
+        router.push('/auth');
+        return;
+      }
+      setUser(user);
+      setLoading(false);
+    })();
+    return () => { mounted = false; };
   }, [router]);
 
   // Data sources

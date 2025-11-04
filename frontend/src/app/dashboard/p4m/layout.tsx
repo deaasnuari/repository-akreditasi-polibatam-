@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Poppins } from 'next/font/google';
@@ -36,8 +36,64 @@ const poppins = Poppins({
 export default function LayoutP4M({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [open, setOpen] = useState(false);
+  const [user, setUser] = useState<{ username: string; role: string } | null>(null);
   const pathname = usePathname();
   const router = useRouter();
+  const [checking, setChecking] = useState(true);
+
+  // Persist sidebar state across tabs/pages using localStorage so it's consistent
+  useEffect(() => {
+    try {
+      const stored = typeof window !== 'undefined' ? localStorage.getItem('sidebarOpen') : null;
+      if (stored !== null) setSidebarOpen(stored === 'true');
+    } catch (err) {}
+  }, []);
+
+  const toggleSidebar = () => {
+    const next = !sidebarOpen;
+    setSidebarOpen(next);
+    try {
+      localStorage.setItem('sidebarOpen', String(next));
+    } catch {}
+  };
+
+  // Sync sidebar state across tabs in real-time
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'sidebarOpen') {
+        setSidebarOpen(e.newValue === 'true');
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const { getCurrentUser } = await import('@/services/auth');
+        const current = await getCurrentUser();
+        if (!mounted) return;
+        if (!current) {
+          router.push('/auth');
+          return;
+        }
+        if (current.role !== 'p4m') {
+          const route = current.role === 'tu' ? '/dashboard/tata-usaha' : `/dashboard/${current.role}`;
+          router.push(route);
+          return;
+        }
+        setUser(current);
+      } catch (err) {
+        router.push('/auth');
+        return;
+      } finally {
+        if (mounted) setChecking(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [router]);
 
   // === MENU UNTUK ROLE P4M ===
   const menuItems = [
@@ -55,9 +111,17 @@ export default function LayoutP4M({ children }: { children: React.ReactNode }) {
       console.error('Logout gagal:', err);
     } finally {
       setOpen(false);
-      router.push('/auth');
+      router.push('/');
     }
   };
+
+  if (checking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#183A64]"></div>
+      </div>
+    );
+  }
 
   return (
     <div className={`flex w-full bg-gray-100 ${poppins.variable} font-sans`}>
@@ -79,6 +143,9 @@ export default function LayoutP4M({ children }: { children: React.ReactNode }) {
                 Repository Akreditasi
               </h2>
               <p className="text-[#ADE7F7]/80 text-xs font-bold">POLIBATAM</p>
+              {user && (
+                <p className="text-sm text-[#ADE7F7]/90 mt-2 font-medium">Halo, {user.username}</p>
+              )}
             </div>
           )}
         </div>
@@ -157,7 +224,7 @@ export default function LayoutP4M({ children }: { children: React.ReactNode }) {
       <div className="flex-1 relative">
         {/* Sidebar Toggle Button */}
         <button
-          onClick={() => setSidebarOpen(!sidebarOpen)}
+          onClick={toggleSidebar}
           className="fixed top-8 z-50 p-2 bg-[#183A64] text-white rounded-lg shadow-lg hover:bg-[#2A4F85] transition-colors"
           style={{
             left: sidebarOpen ? 'calc(16rem + 1rem)' : 'calc(5rem + 1rem)',

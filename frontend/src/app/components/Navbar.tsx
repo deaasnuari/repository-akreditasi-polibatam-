@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Poppins } from 'next/font/google';
+import { useEffect, useState } from 'react';
 
 // === Import font Poppins ===
 const poppins = Poppins({
@@ -13,6 +14,7 @@ const poppins = Poppins({
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
+  // username is shown in Sidebar per request
 
   const hideMenu =
     pathname.startsWith('/dashboard') || pathname === '/login' || pathname === '/register';
@@ -56,6 +58,7 @@ export default function Navbar() {
           >
             Login
           </Link>
+          {/* username moved to Sidebar */}
         </div>
       )}
     </nav>

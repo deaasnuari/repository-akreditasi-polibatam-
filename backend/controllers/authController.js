@@ -23,7 +23,9 @@ export const register = async (req, res) => {
     );
 
     const token = jwt.sign({ id: newUser.rows[0].id, username, role }, JWT_SECRET, { expiresIn: '24h' });
-    res.cookie('token', token, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV==='production' });
+  // Set token and role cookies. role cookie is readable so middleware can enforce role-based redirects.
+  res.cookie('token', token, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV==='production' });
+  res.cookie('role', role, { httpOnly: false, sameSite: 'lax', secure: process.env.NODE_ENV==='production' });
 
     res.status(201).json({ success: true, msg: 'Registrasi berhasil.', user: newUser.rows[0] });
   } catch (err) {
@@ -45,7 +47,9 @@ export const login = async (req, res) => {
     if (!validPassword) return res.status(401).json({ success: false, msg: 'Password salah.' });
 
     const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
-    res.cookie('token', token, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV==='production' });
+  // Store token and role in cookies so frontend middleware can read role for routing
+  res.cookie('token', token, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV==='production' });
+  res.cookie('role', user.role, { httpOnly: false, sameSite: 'lax', secure: process.env.NODE_ENV==='production' });
 
     res.json({ success: true, msg: 'Login berhasil.', user });
   } catch (err) {
@@ -56,6 +60,8 @@ export const login = async (req, res) => {
 
 // LOGOUT
 export const logout = async (req, res) => {
+  // Clear token and role cookies on logout
   res.clearCookie('token', { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV==='production' });
+  res.clearCookie('role', { httpOnly: false, sameSite: 'lax', secure: process.env.NODE_ENV==='production' });
   res.json({ success: true, msg: 'Logout berhasil.' });
 };

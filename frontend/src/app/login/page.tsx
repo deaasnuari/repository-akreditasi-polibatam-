@@ -40,6 +40,8 @@ export default function AuthPage() {
       const data = await loginUser(loginEmail, loginPassword, loginRole);
 
       if (data.success && data.user) {
+        // Set per-tab auth flag so only this tab reflects the login
+        if (typeof window !== 'undefined') sessionStorage.setItem('tabAuth', 'true');
         // Redirect otomatis berdasarkan role
         const role = data.user.role;
 
