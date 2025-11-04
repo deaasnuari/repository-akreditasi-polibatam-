@@ -39,10 +39,23 @@ export const createData = async (req, res) => {
 // PUT — update data
 export const updateData = async (req, res) => {
   try {
-    const id = req.params.id;
-    const data = req.body;
-    const setClause = Object.keys(data).map((key, i) => `${key} = $${i + 1}`).join(', ');
-    const values = Object.values(data);
+    const idRaw = req.params.id;
+    console.log(`[relevansi-penelitian] UPDATE called with idRaw=${idRaw}, body=`, req.body);
+    const id = Number(idRaw);
+    if (!Number.isFinite(id) || id <= 0) {
+      console.warn(`[relevansi-penelitian] invalid id for update: ${idRaw}`);
+      return res.status(400).json({ success: false, message: 'ID tidak valid' });
+    }
+
+    const data = req.body || {};
+    const keys = Object.keys(data);
+    if (keys.length === 0) {
+      return res.status(400).json({ success: false, message: 'Tidak ada data yang diberikan untuk diupdate' });
+    }
+
+    // Build SET clause safely
+    const setClause = keys.map((key, i) => `${key} = $${i + 1}`).join(', ');
+    const values = keys.map(k => data[k]);
 
     const query = `UPDATE relevansi_penelitian SET ${setClause} WHERE id = $${values.length + 1} RETURNING *`;
     const result = await pool.query(query, [...values, id]);
@@ -60,7 +73,16 @@ export const updateData = async (req, res) => {
 // DELETE — hapus data
 export const deleteData = async (req, res) => {
   try {
-    const id = req.params.id;
+    const idRaw = req.params.id;
+    // log incoming id for debugging
+    console.log(`[relevansi-penelitian] DELETE called with idRaw=${idRaw}`);
+    const id = Number(idRaw);
+    console.log(`[relevansi-penelitian] parsed id=${id} (type=${typeof id})`);
+    if (!Number.isFinite(id) || id <= 0) {
+      console.warn(`[relevansi-penelitian] invalid id: ${idRaw}`);
+      return res.status(400).json({ success: false, message: 'ID tidak valid' });
+    }
+
     const result = await pool.query('DELETE FROM relevansi_penelitian WHERE id = $1 RETURNING *', [id]);
 
     if (result.rows.length === 0)
@@ -69,6 +91,8 @@ export const deleteData = async (req, res) => {
     res.json({ success: true, message: '🗑️ Data berhasil dihapus', data: result.rows[0] });
   } catch (err) {
     console.error('DELETE error:', err);
+    // print stack if available to help debugging
+    if (err && err.stack) console.error(err.stack);
     res.status(500).json({ success: false, message: 'Gagal menghapus data', error: err.message });
   }
 };

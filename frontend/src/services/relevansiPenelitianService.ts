@@ -20,20 +20,40 @@ export async function saveRelevansiPenelitian(subtab: string, payload: any) {
 }
 
 // PUT — update data by ID
-export async function updateRelevansiPenelitian(id: number | string, payload: any) {
+// updateRelevansiPenelitian expects (subtab, id, payload) because page passes subtab first.
+export async function updateRelevansiPenelitian(subtab: string, id: number | string, payload: any) {
+  if (!id || Number.isNaN(Number(id))) throw new Error('ID tidak valid');
   const res = await fetch(`${API_BASE}/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
-  if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+  if (!res.ok) {
+    let bodyText = '';
+    try { const json = await res.json(); bodyText = json.message || JSON.stringify(json); } catch { try { bodyText = await res.text(); } catch {} }
+    throw new Error(`HTTP ${res.status} ${res.statusText} - ${bodyText}`);
+  }
   return await res.json();
 }
 
 // DELETE — hapus data by ID
-export async function deleteRelevansiPenelitian(id: number | string) {
+// deleteRelevansiPenelitian expects (subtab, id) because pages pass subtab first.
+export async function deleteRelevansiPenelitian(subtab: string, id: number | string) {
+  if (!id || Number.isNaN(Number(id))) throw new Error('ID tidak valid');
   const res = await fetch(`${API_BASE}/${id}`, { method: 'DELETE' });
-  if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+  if (!res.ok) {
+    // Try to read JSON error body for more helpful message
+    let bodyText = '';
+    try {
+      const json = await res.json();
+      bodyText = json.message || JSON.stringify(json);
+    } catch (err) {
+      try {
+        bodyText = await res.text();
+      } catch {}
+    }
+    throw new Error(`HTTP ${res.status} ${res.statusText} - ${bodyText}`);
+  }
   return await res.json();
 }
 
