@@ -4,32 +4,7 @@ import React, { useEffect, useState, ChangeEvent } from 'react';
 import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-
-// --- SubTab type ---
-type SubTab = 'mahasiswa' | 'keragaman-asal' | 'kondisi-jumlah-mahasiswa' | 'tabel-pembelajaran' | 'pemetaan-CPL-PL' | 'peta-pemenuhan-CPL' | 'rata-rata-masa-tunggu-lulusan' | 'kesesuaian-bidang' | 'kepuasan-pengguna' | 'fleksibilitas' | 'rekognisi-apresiasi';
-
-// --- Data item ---
-interface DataItem {
-  id?: number;
-  tahun?: string;
-  daya_tampung?: number;
-  asalMahasiswa?: string;
-  ts2?: number;
-  ts1?: number;
-  ts?: number;
-  linkBukti?: string;
-  pendaftar?: number;
-  diterima?: number;
-  aktif?: number;
-  asal_daerah?: string;
-  jumlah?: number;
-  mata_kuliah?: string;
-  sks?: number;
-  semester?: number;
-  profil_lulusan?: string;
-  alasan?: string;
-  jumlah_lulusan?: number;
-}
+import { relevansiPendidikanService, SubTab, DataItem, API_BASE } from '@/services/relevansiPendidikanService';
 
 // --- Table titles ---
 const tableTitles: Record<SubTab, string> = {
@@ -54,7 +29,6 @@ export default function RelevansiPendidikanPage() {
   const [showForm, setShowForm] = useState(false);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [formData, setFormData] = useState<DataItem>({});
-  const API_BASE = 'http://localhost:5000/api/relevansi-pendidikan';
 
   const tabs = [
     { label: 'Budaya Mutu', href: '/dashboard/tim-akreditasi/lkps' },
@@ -68,10 +42,8 @@ export default function RelevansiPendidikanPage() {
   // --- Fetch Data ---
   const fetchData = async () => {
     try {
-      const res = await fetch(`${API_BASE}?type=${activeSubTab}`);
-      if (!res.ok) throw new Error('Gagal fetch data');
-      const json = await res.json();
-      setData(json.data || []);
+      const result = await relevansiPendidikanService.fetchData(activeSubTab);
+      setData(result);
     } catch (err) {
       console.error('Fetch error:', err);
       setData([]);
@@ -91,24 +63,20 @@ export default function RelevansiPendidikanPage() {
 
   const handleSave = async () => {
     try {
-      const method = formData.id ? 'PUT' : 'POST';
-      const url = method === 'PUT' ? `${API_BASE}/${formData.id}` : API_BASE;
+      const result = formData.id
+        ? await relevansiPendidikanService.updateData(formData.id, formData, activeSubTab)
+        : await relevansiPendidikanService.createData(formData, activeSubTab);
 
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, type: activeSubTab }),
-      });
-      const json = await res.json();
-      if (res.ok) {
+      if (result.success) {
         alert('✅ Data berhasil disimpan');
         setShowForm(false);
         fetchData();
       } else {
-        alert(json.message || 'Gagal menyimpan data');
+        alert(result.message || 'Gagal menyimpan data');
       }
     } catch (err) {
       console.error('Save error:', err);
+      alert('Terjadi kesalahan saat menyimpan data');
     }
   };
 
@@ -122,16 +90,16 @@ export default function RelevansiPendidikanPage() {
   const handleDelete = async (id?: number) => {
     if (!id || !confirm('Yakin hapus data ini?')) return;
     try {
-      const res = await fetch(`${API_BASE}/${id}`, { method: 'DELETE' });
-      const json = await res.json();
-      if (res.ok) {
+      const result = await relevansiPendidikanService.deleteData(id);
+      if (result.success) {
         alert('🗑️ Data dihapus');
         setData(prev => prev.filter(d => d.id !== id));
       } else {
-        alert(json.message || 'Gagal menghapus');
+        alert(result.message || 'Gagal menghapus');
       }
     } catch (err) {
       console.error('Delete error:', err);
+      alert('Terjadi kesalahan saat menghapus data');
     }
   };
 

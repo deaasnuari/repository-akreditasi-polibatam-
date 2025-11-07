@@ -508,40 +508,57 @@ export default function LKPSPage() {
 
               {/* Form Input */}
               {showForm && (
-                <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-start md:items-center overflow-auto z-50 p-4">
-                  <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-                    <div className="flex justify-between items-center mb-6">
-                      <h2 className="text-lg font-semibold text-gray-800">{editIndex !== null ? 'Edit Data' : 'Tambah Data Baru'}</h2>
-                      <button onClick={() => setShowForm(false)} className="text-gray-500 hover:text-gray-700"><X size={24} /></button>
-                    </div>
+  <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-start md:items-center overflow-auto z-50 p-4">
+    <div className="bg-white p-5 md:p-6 rounded-xl shadow-lg w-full max-w-xl md:max-w-lg max-h-[85vh] overflow-y-auto transition-transform">
+      <div className="flex justify-between items-center mb-5">
+        <h2 className="text-lg font-semibold text-gray-800">
+          {editIndex !== null ? 'Edit Data' : 'Tambah Data Baru'}
+        </h2>
+        <button onClick={() => setShowForm(false)} className="text-gray-500 hover:text-gray-700">
+          <X size={24} />
+        </button>
+      </div>
 
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {getFormFields(activeSubTab).map(field => (
-                        <div key={field.key} className={field.key === 'tugasPokokDanFungsi' || field.key === 'dokumenSPMI' ? 'md:col-span-2' : ''}>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            {field.label}
-                          </label>
-                          <input 
-                            type="text"
-                            name={field.key} 
-                            value={formData[field.key] || ''} 
-                            onChange={handleChange} 
-                            placeholder={`Masukkan ${field.label}`}
-                            className="border border-gray-300 p-3 rounded-lg w-full text-gray-800 focus:ring-2 focus:ring-blue-300 focus:border-blue-300" 
-                          />
-                        </div>
-                      ))}
-                    </div>
+      {/* Form Fields */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {getFormFields(activeSubTab).map(field => (
+          <div
+            key={field.key}
+            className={field.key === 'tugasPokokDanFungsi' || field.key === 'dokumenSPMI' ? 'md:col-span-2' : ''}
+          >
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {field.label}
+            </label>
+            <input
+              type="text"
+              name={field.key}
+              value={formData[field.key] || ''}
+              onChange={handleChange}
+              placeholder={`Masukkan ${field.label}`}
+              className="border border-gray-300 p-2.5 rounded-lg w-full text-gray-800 focus:ring-2 focus:ring-blue-300 focus:border-blue-300"
+            />
+          </div>
+        ))}
+      </div>
 
+      <div className="flex justify-end mt-6 gap-2">
+        <button
+          onClick={() => setShowForm(false)}
+          className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100"
+        >
+          Batal
+        </button>
+        <button
+          onClick={handleSave}
+          className="px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800"
+        >
+          Simpan
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
-                    <div className="flex justify-end mt-6 gap-2">
-                      <button onClick={() => setShowForm(false)} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100">Batal</button>
-                      <button onClick={handleSave} className="px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800">Simpan</button>
-                    </div>
-                  </div>
-                </div>
-              )}
 
             </div>
           )}
