@@ -707,8 +707,15 @@ export default function LKPSPage() {
               </div>
             </div>
             <div className="flex gap-2">
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"><Save size={16} /> Save Draft</button>
-              <button className="flex items-center gap-2 px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800"><FileText size={16} /> Submit</button>
+              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+                <Download size={16} /> Export PDF
+              </button>
+              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+                <Save size={16} /> Save Draft
+              </button>
+              <button className="flex items-center gap-2 px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800">
+                <FileText size={16} /> Submit
+              </button>
             </div>
           </div>
 
@@ -889,4 +896,4 @@ export default function LKPSPage() {
       </div>
     </div>
   );
-}
+};
