@@ -1,15 +1,9 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X } from 'lucide-react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { loadDraftBudayaMutu, saveDraftBudayaMutu, fetchBudayaMutuData } from '@/services/budayaMutuService';
-
+import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Info } from 'lucide-react';
 
 export default function LKPSPage() {
-  const pathname = usePathname();
-
   type SubTab = 'tupoksi' | 'pendanaan' | 'penggunaan-dana' | 'ewmp' | 'ktk' | 'spmi';
 
   const tableTitles: Record<SubTab, string> = {
@@ -34,6 +28,35 @@ export default function LKPSPage() {
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [formData, setFormData] = useState<any>({});
 
+  // State untuk popup notifikasi
+  const [popup, setPopup] = useState<{ 
+    show: boolean; 
+    message: string; 
+    type: 'success' | 'error' | 'info' 
+  }>({
+    show: false,
+    message: '',
+    type: 'success',
+  });
+
+  // State untuk modal konfirmasi
+  const [modal, setModal] = useState<{
+    show: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    show: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
+
+  // State untuk struktur organisasi
+  const [strukturFileName, setStrukturFileName] = useState('');
+  const [strukturFileId, setStrukturFileId] = useState<string | null>(null);
+  const [strukturFileUrl, setStrukturFileUrl] = useState('');
+
   const API_BASE = 'http://localhost:5000/api/budaya-mutu';
 
   const tabs = [
@@ -45,38 +68,136 @@ export default function LKPSPage() {
     { label: 'Diferensiasi Misi', href: '/dashboard/tim-akreditasi/lkps/diferensiasi-misi' },
   ];
 
-  // =========================
-  // Fetch Data per Sub-Tab
-  // =========================
+  // Fungsi untuk menampilkan popup
+  const showPopup = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    setPopup({ show: true, message, type });
+    setTimeout(() => setPopup({ show: false, message: '', type: 'success' }), 3000);
+  };
+
+  // Fungsi untuk menampilkan modal konfirmasi
+  const showModal = (title: string, message: string, onConfirm: () => void) => {
+    setModal({ show: true, title, message, onConfirm });
+  };
+
+  const closeModal = () => {
+    setModal({ show: false, title: '', message: '', onConfirm: () => {} });
+  };
+
+  const handleModalConfirm = () => {
+    modal.onConfirm();
+    closeModal();
+  };
+
+  // Komponen Popup
+  const PopupNotification = () => {
+    if (!popup.show) return null;
+
+    const bgColor = popup.type === 'success' ? 'bg-green-50 border-green-500' : 
+                    popup.type === 'error' ? 'bg-red-50 border-red-500' : 
+                    'bg-blue-50 border-blue-500';
+    const textColor = popup.type === 'success' ? 'text-green-800' : 
+                      popup.type === 'error' ? 'text-red-800' : 
+                      'text-blue-800';
+    const Icon = popup.type === 'success' ? CheckCircle : 
+                 popup.type === 'error' ? AlertCircle : 
+                 Info;
+
+    return (
+      <div className="fixed top-0 left-0 right-0 flex justify-center z-[60] pt-4">
+        <div className={`${bgColor} ${textColor} border-l-4 rounded-lg shadow-2xl p-5 flex items-center gap-4 min-w-[350px] max-w-md animate-slideDown`}>
+          <Icon size={28} className={popup.type === 'success' ? 'text-green-500' : 
+                                     popup.type === 'error' ? 'text-red-500' : 
+                                     'text-blue-500'} />
+          <div className="flex-1">
+            <p className="font-bold text-base mb-1">
+              {popup.type === 'success' ? 'Berhasil!' : 
+               popup.type === 'error' ? 'Error!' : 
+               'Info'}
+            </p>
+            <p className="text-sm">{popup.message}</p>
+          </div>
+          <button 
+            onClick={() => setPopup({ show: false, message: '', type: 'success' })}
+            className="hover:opacity-70 transition-opacity"
+          >
+            <X size={20} />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // Komponen Modal Konfirmasi
+  const ConfirmModal = () => {
+    if (!modal.show) return null;
+
+    const isDeleteAction = modal.title.includes('Hapus');
+    const isImportAction = modal.title.includes('Import');
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[70] animate-fadeIn">
+        <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4 animate-scaleIn">
+          <div className="flex items-start gap-4 mb-4">
+            <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${
+              isDeleteAction ? 'bg-red-100' : isImportAction ? 'bg-blue-100' : 'bg-yellow-100'
+            }`}>
+              <AlertCircle className={`${
+                isDeleteAction ? 'text-red-600' : isImportAction ? 'text-blue-600' : 'text-yellow-600'
+              }`} size={24} />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                {modal.title}
+              </h3>
+              <p className="text-gray-600 text-sm">
+                {modal.message}
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-3 justify-end mt-6">
+            <button
+              onClick={closeModal}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
+            >
+              Batal
+            </button>
+            <button
+              onClick={handleModalConfirm}
+              className={`px-4 py-2 text-white rounded-lg transition ${
+                isDeleteAction 
+                  ? 'bg-red-600 hover:bg-red-700' 
+                  : isImportAction 
+                  ? 'bg-blue-600 hover:bg-blue-700'
+                  : 'bg-yellow-600 hover:bg-yellow-700'
+              }`}
+            >
+              {isDeleteAction ? 'Hapus' : isImportAction ? 'Import' : 'Ya, Lanjutkan'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   useEffect(() => {
-    const draft = loadDraftBudayaMutu(activeSubTab);
-    if (draft.length) {
-      setTabData(prev => ({ ...prev, [activeSubTab]: draft }));
-    } else {
-      fetchBudayaMutuData(activeSubTab)
-        .then(data => {
-          setTabData(prev => ({ ...prev, [activeSubTab]: data }));
-        })
-        .catch(err => {
-          console.error('Error loading data:', err);
-          setTabData(prev => ({ ...prev, [activeSubTab]: [] }));
-        });
-    }
+    fetchData();
   }, [activeSubTab]);
 
+  // Fetch struktur organisasi saat component mount
+  useEffect(() => {
+    fetchStrukturOrganisasi();
+  }, []);
 
   const fetchData = async () => {
     try {
       const res = await fetch(`${API_BASE}?type=${activeSubTab}`);
       
-      // Cek apakah response OK
       if (!res.ok) {
         console.error(`HTTP error! status: ${res.status}`);
         setTabData(prev => ({ ...prev, [activeSubTab]: [] }));
         return;
       }
 
-      // Cek apakah response adalah JSON
       const contentType = res.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
         console.error('Response bukan JSON:', await res.text());
@@ -103,51 +224,170 @@ export default function LKPSPage() {
     }
   };
 
-  // =========================
-  // Import Excel
-  // =========================
+  // Fetch struktur organisasi dari backend
+  const fetchStrukturOrganisasi = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/struktur`);
+      const json = await res.json();
+
+      if (json.success && json.file) {
+        setStrukturFileName(json.file.fileName);
+        setStrukturFileUrl(`http://localhost:5000${json.file.fileUrl}`);
+        setStrukturFileId(json.file.id);
+      }
+    } catch (err) {
+      console.error('Fetch struktur error:', err);
+    }
+  };
+
   const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    showModal(
+      'Konfirmasi Import Excel',
+      `Apakah Anda yakin ingin mengimport file "${file.name}"? Data yang ada akan diganti dengan data dari file Excel.`,
+      async () => {
+        const fd = new FormData();
+        fd.append('file', file);
+
+        try {
+          const res = await fetch(`${API_BASE}/import/${activeSubTab}`, { method: 'POST', body: fd });
+          
+          const contentType = res.headers.get('content-type');
+          if (!contentType || !contentType.includes('application/json')) {
+            showPopup('Server error - bukan JSON response', 'error');
+            console.error('Response:', await res.text());
+            return;
+          }
+
+          const json = await res.json();
+
+          if (res.ok && json.success) {
+            showPopup(`Import ${activeSubTab} berhasil`, 'success');
+            fetchData();
+            if (Array.isArray(json.data)) {
+              setTabData(prev => ({
+                ...prev,
+                [activeSubTab]: json.data.map((d: any) => ({ id: d.id, data: d.data }))
+              }));
+            }
+          } else {
+            showPopup(json.message || 'Gagal import file', 'error');
+          }
+        } catch (err) {
+          showPopup('Gagal upload file', 'error');
+          console.error(err);
+        }
+      }
+    );
+
+    e.target.value = '';
+  };
+
+  // Handle upload struktur organisasi
+  const handleUploadStruktur = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validasi ukuran file (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      showPopup('Ukuran file maksimal 10MB', 'error');
+      e.target.value = '';
+      return;
+    }
+
+    // Validasi tipe file
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+    if (!allowedTypes.includes(file.type)) {
+      showPopup('Format file harus JPG, PNG, atau PDF', 'error');
+      e.target.value = '';
+      return;
+    }
 
     const fd = new FormData();
     fd.append('file', file);
 
     try {
-      const res = await fetch(`${API_BASE}/import/${activeSubTab}`, { method: 'POST', body: fd });
+      showPopup('Sedang mengupload struktur organisasi...', 'info');
+
+      // Jika sudah ada file, update. Jika belum, upload baru
+      const url = strukturFileId 
+        ? `${API_BASE}/struktur/${strukturFileId}` 
+        : `${API_BASE}/upload-struktur`;
       
-      // Cek content type
+      const method = strukturFileId ? 'PUT' : 'POST';
+
+      console.log('Uploading to:', url);
+      console.log('Method:', method);
+      console.log('File:', file.name, file.type, file.size);
+
+      const res = await fetch(url, { method, body: fd });
+
+      console.log('Response status:', res.status);
+      console.log('Response headers:', res.headers.get('content-type'));
+
       const contentType = res.headers.get('content-type');
+      
       if (!contentType || !contentType.includes('application/json')) {
-        alert('❌ Server error - bukan JSON response');
-        console.error('Response:', await res.text());
+        const text = await res.text();
+        console.error("Response bukan JSON:", text);
+        showPopup("Server tidak mengembalikan JSON. Cek console untuk detail.", "error");
         return;
       }
 
       const json = await res.json();
+      console.log('Response JSON:', json);
 
       if (res.ok && json.success) {
-        alert(`✅ Import ${activeSubTab} berhasil`);
-        if (Array.isArray(json.data)) {
-          setTabData(prev => ({
-            ...prev,
-            [activeSubTab]: json.data.map((d: any) => ({ id: d.id, data: d.data }))
-          }));
-        }
+        setStrukturFileName(json.fileName || file.name);
+        setStrukturFileUrl(`http://localhost:5000${json.fileUrl}`);
+        setStrukturFileId(json.fileId);
+        showPopup(strukturFileId ? 'Struktur organisasi berhasil diupdate!' : 'Upload struktur organisasi berhasil!', 'success');
       } else {
-        alert(json.message || 'Gagal import file');
+        showPopup(json.message || 'Upload gagal', 'error');
       }
     } catch (err) {
-      alert('❌ Gagal upload file');
-      console.error(err);
+      console.error('Upload error:', err);
+      showPopup(`Terjadi kesalahan: ${err.message}`, 'error');
     } finally {
       e.target.value = '';
     }
   };
 
-  // =========================
-  // Tambah / Edit / Hapus
-  // =========================
+  // Handle delete struktur organisasi
+  const handleDeleteStruktur = async () => {
+    if (!strukturFileId) {
+      showPopup("ID file tidak ditemukan", "error");
+      return;
+    }
+
+    showModal(
+      "Konfirmasi Hapus",
+      "Apakah Anda yakin ingin menghapus file struktur organisasi ini?",
+      async () => {
+        try {
+          const res = await fetch(`${API_BASE}/struktur/${strukturFileId}`, {
+            method: "DELETE",
+          });
+          const json = await res.json();
+
+          if (res.ok && json.success) {
+            setStrukturFileUrl("");
+            setStrukturFileName("");
+            setStrukturFileId(null);
+            showPopup("File berhasil dihapus", "success");
+          } else {
+            showPopup(json.message || "Gagal menghapus file", "error");
+          }
+        } catch (err) {
+          console.error(err);
+          showPopup("Terjadi kesalahan saat menghapus", "error");
+        }
+      }
+    );
+  };
+
   const openAdd = () => {
     setFormData(getEmptyFormData(activeSubTab));
     setEditIndex(null);
@@ -160,10 +400,8 @@ export default function LKPSPage() {
     setFormData({});
   };
 
-  // Handle Save
   const handleSave = async () => {
     try {
-      // Pisahkan ID dari formData untuk body request
       const { id: itemId, ...dataToSave } = formData;
       
       const method = editIndex !== null && itemId ? 'PUT' : 'POST';
@@ -171,15 +409,14 @@ export default function LKPSPage() {
 
       const body = JSON.stringify({ type: activeSubTab, data: dataToSave });
       
-      console.log('Saving data:', { method, url, body }); // Debug log
+      console.log('Saving data:', { method, url, body });
       
       const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body });
       
-      // Cek content type
       const contentType = res.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
         const responseText = await res.text();
-        alert('❌ Server error - response bukan JSON');
+        showPopup('Server error - response bukan JSON', 'error');
         console.error('Response:', responseText);
         console.error('Status:', res.status);
         console.error('URL:', url);
@@ -189,49 +426,36 @@ export default function LKPSPage() {
       const json = await res.json();
 
       if (!res.ok || !json.success) {
-        alert(json.message || 'Gagal menyimpan data');
+        showPopup(json.message || 'Gagal menyimpan data', 'error');
         return;
       }
 
-      // Update state
       setTabData(prev => {
         const prevData = prev[activeSubTab] || [];
         let newData;
         
         if (editIndex !== null) {
-          // Mode edit - update data yang ada
           newData = prevData.map((d, i) => 
             i === editIndex ? { ...d, id: itemId, data: dataToSave } : d
           );
         } else {
-          // Mode tambah - tambah data baru
           newData = [...prevData, { id: json.data.id, data: dataToSave }];
         }
         
         return { ...prev, [activeSubTab]: newData };
       });
 
-      // Save draft
-      const updatedData = editIndex !== null 
-        ? tabData[activeSubTab].map((d, i) => 
-            i === editIndex ? { id: itemId, data: dataToSave } : d
-          )
-        : [...tabData[activeSubTab], { id: json.data.id, data: dataToSave }];
-      
-      saveDraftBudayaMutu(activeSubTab, updatedData);
-      
-      alert('✅ Data berhasil disimpan');
+      showPopup('Data berhasil disimpan', 'success');
       setShowForm(false);
       setEditIndex(null);
       setFormData({});
     } catch (err) {
       console.error('Save error:', err);
-      alert('❌ Gagal menyimpan data');
+      showPopup('Gagal menyimpan data', 'error');
     }
   };
 
   const handleEdit = (item: any) => {
-    // Simpan data item lengkap termasuk ID
     setFormData({ ...item.data, id: item.id });
     const idx = tabData[activeSubTab].findIndex(d => d.id === item.id);
     setEditIndex(idx !== -1 ? idx : null);
@@ -239,34 +463,37 @@ export default function LKPSPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Yakin hapus data ini?')) return;
+    showModal(
+      'Konfirmasi Hapus',
+      'Apakah Anda yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.',
+      async () => {
+        try {
+          const res = await fetch(`${API_BASE}/${id}`, { method: 'DELETE' });
+          
+          const contentType = res.headers.get('content-type');
+          if (!contentType || !contentType.includes('application/json')) {
+            showPopup('Server error - response bukan JSON', 'error');
+            console.error('Response:', await res.text());
+            return;
+          }
 
-    try {
-      const res = await fetch(`${API_BASE}/${id}`, { method: 'DELETE' });
-      
-      // Cek content type
-      const contentType = res.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        alert('❌ Server error - response bukan JSON');
-        console.error('Response:', await res.text());
-        return;
+          const json = await res.json();
+
+          if (res.ok) {
+            setTabData(prev => {
+              const prevData = prev[activeSubTab] || [];
+              return { ...prev, [activeSubTab]: prevData.filter(d => d.id !== id) };
+            });
+            showPopup('Data berhasil dihapus', 'success');
+          } else {
+            showPopup(json.message || 'Gagal menghapus', 'error');
+          }
+        } catch (err) {
+          console.error('Delete error:', err);
+          showPopup('Gagal menghapus data', 'error');
+        }
       }
-
-      const json = await res.json();
-
-      if (res.ok) {
-        setTabData(prev => {
-          const prevData = prev[activeSubTab] || [];
-          return { ...prev, [activeSubTab]: prevData.filter(d => d.id !== id) };
-        });
-        alert('🗑️ Data dihapus');
-      } else {
-        alert(json.message || 'Gagal menghapus');
-      }
-    } catch (err) {
-      console.error('Delete error:', err);
-      alert('❌ Gagal menghapus data');
-    }
+    );
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -351,7 +578,6 @@ export default function LKPSPage() {
     ],
   };
 
-  // Get form fields (exclude 'no' for ewmp and ktk)
   const getFormFields = (subTab: SubTab) => {
     return subTabFields[subTab].filter(field => field.key !== 'no');
   };
@@ -420,11 +646,54 @@ export default function LKPSPage() {
     ));
   };
 
-  // =========================
-  // Render Page
-  // =========================
   return (
     <div className="flex w-full bg-gray-100">
+      {/* Popup Notification */}
+      <PopupNotification />
+      
+      {/* Modal Konfirmasi */}
+      <ConfirmModal />
+
+      <style>{`
+        @keyframes slideDown {
+          from {
+            transform: translateY(-100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+        .animate-slideDown {
+          animation: slideDown 0.3s ease-out;
+        }
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+        .animate-fadeIn {
+          animation: fadeIn 0.2s ease-out;
+        }
+        @keyframes scaleIn {
+          from {
+            transform: scale(0.9);
+            opacity: 0;
+          }
+          to {
+            transform: scale(1);
+            opacity: 1;
+          }
+        }
+        .animate-scaleIn {
+          animation: scaleIn 0.25s ease-out;
+        }
+      `}</style>
+
       <div className="flex-1 w-full">
         <main className="w-full p-4 md:p-6 max-w-full overflow-x-hidden">
 
@@ -438,7 +707,6 @@ export default function LKPSPage() {
               </div>
             </div>
             <div className="flex gap-2">
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"><Download size={16} /> Export PDF</button>
               <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"><Save size={16} /> Save Draft</button>
               <button className="flex items-center gap-2 px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800"><FileText size={16} /> Submit</button>
             </div>
@@ -447,123 +715,176 @@ export default function LKPSPage() {
           {/* Tabs utama */}
           <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
             {tabs.map(tab => (
-              <Link key={tab.href} href={tab.href} className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap ${pathname === tab.href ? 'bg-[#183A64] text-[#ADE7F7]' : 'bg-gray-100 text-gray-700 hover:bg-[#ADE7F7] hover:text-[#183A64]'}`}>{tab.label}</Link>
+              <a key={tab.href} href={tab.href} className="px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-gray-100 text-gray-700 hover:bg-[#ADE7F7] hover:text-[#183A64]">{tab.label}</a>
             ))}
           </div>
 
           {/* Budaya Mutu Tab */}
-          {pathname === '/dashboard/tim-akreditasi/lkps' && (
-            <div className="bg-white rounded-lg shadow-md p-6 space-y-6">
-              
-              {/* Struktur Organisasi */}
-              <div className="bg-white rounded-lg shadow p-4">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-bold text-gray-800">Struktur Organisasi</h3>
-                  <button className="px-3 py-1 bg-blue-900 text-white text-sm rounded hover:bg-blue-800">Upload Struktur Organisasi</button>
-                </div>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
-                  <Upload className="mx-auto text-gray-400 mb-2" size={48} />
-                  <p className="text-gray-500">Klik untuk upload atau drag & drop file struktur organisasi</p>
-                </div>
+          <div className="bg-white rounded-lg shadow-md p-6 space-y-6">
+            
+            {/* Struktur Organisasi */}
+            <div className="bg-white rounded-lg shadow p-4">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="font-bold text-gray-800">Struktur Organisasi</h3>
+
+                <label
+                  htmlFor="strukturFile"
+                  className="px-3 py-1 bg-blue-900 text-white text-sm rounded hover:bg-blue-800 cursor-pointer flex items-center gap-2"
+                >
+                  <Upload size={16} />
+                  {strukturFileUrl ? "Ganti File" : "Upload Struktur Organisasi"}
+                </label>
+                <input
+                  id="strukturFile"
+                  type="file"
+                  accept=".jpg,.jpeg,.png,.pdf"
+                  className="hidden"
+                  onChange={handleUploadStruktur}
+                />
               </div>
 
-              {/* Sub-tabs */}
-              <div className="flex gap-2 border-b pb-2 mb-4 overflow-x-auto">
-                {['tupoksi','pendanaan','penggunaan-dana','ewmp','ktk','spmi'].map(sub => (
-                  <button key={sub} onClick={() => setActiveSubTab(sub as SubTab)}
-                    className={`px-4 py-2 text-sm rounded-t-lg whitespace-nowrap ${activeSubTab === sub ? 'bg-blue-100 text-blue-900 font-semibold' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
-                    {sub.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase())}
-                  </button>
-                ))}
-              </div>
-
-              {/* Table Section */}
-              <div className="bg-white rounded-lg shadow-md overflow-hidden">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center px-6 py-4 border-b bg-gray-50 gap-2 md:gap-0">
-                  <h3 className="text-lg font-semibold text-gray-900 capitalize">Data {activeSubTab}</h3>
-                  <h2 className="text-sm text-gray-600">{tableTitles[activeSubTab]}</h2>
-
-                  <div className="flex gap-2 flex-wrap">
-                    <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2 text-sm text-white bg-blue-700 rounded-lg hover:bg-blue-800"><Plus size={16} /> Tambah Data</button>
-                    <form onSubmit={e => e.preventDefault()} className="relative">
-                      <input type="file" accept=".xlsx, .xls" id="importExcel" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleImportExcel} />
-                      <label htmlFor="importExcel" className="flex items-center gap-2 px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-100 cursor-pointer">
-                        <Upload size={16} /> Import Excel
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center relative">
+                {strukturFileUrl ? (
+                  <>
+                    {/* Tombol aksi (edit & hapus) */}
+                    <div className="absolute top-3 right-3 flex gap-2">
+                      <label
+                        htmlFor="strukturFile"
+                        className="p-2 bg-blue-100 rounded-full hover:bg-blue-200 cursor-pointer"
+                        title="Ganti File"
+                      >
+                        <Edit size={16} className="text-blue-700" />
                       </label>
-                    </form>
+
+                      <button
+                        onClick={handleDeleteStruktur}
+                        className="p-2 bg-red-100 rounded-full hover:bg-red-200"
+                        title="Hapus File"
+                      >
+                        <Trash2 size={16} className="text-red-700" />
+                      </button>
+                    </div>
+
+                    {/* Pratinjau file */}
+                    <div className="mt-4">
+                      {strukturFileUrl.endsWith('.pdf') ? (
+                        <iframe
+                          src={strukturFileUrl}
+                          className="w-full h-96 border rounded-lg"
+                          title="Struktur Organisasi PDF"
+                        />
+                      ) : (
+                        <img
+                          src={strukturFileUrl}
+                          alt="Struktur Organisasi"
+                          className="mx-auto max-h-96 object-contain rounded-lg shadow"
+                        />
+                      )}
+                    </div>
+
+                    {/* Nama file di bawahnya */}
+                    <p className="mt-2 text-sm text-gray-600 italic">
+                      {strukturFileName}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-gray-500">Belum ada file struktur organisasi yang diupload.</p>
+                )}
+              </div>
+            </div>
+
+            {/* Sub-tabs */}
+            <div className="flex gap-2 border-b pb-2 mb-4 overflow-x-auto">
+              {['tupoksi','pendanaan','penggunaan-dana','ewmp','ktk','spmi'].map(sub => (
+                <button key={sub} onClick={() => setActiveSubTab(sub as SubTab)}
+                  className={`px-4 py-2 text-sm rounded-t-lg whitespace-nowrap ${activeSubTab === sub ? 'bg-blue-100 text-blue-900 font-semibold' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
+                  {sub.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                </button>
+              ))}
+            </div>
+
+            {/* Table Section */}
+            <div className="bg-white rounded-lg shadow-md overflow-hidden">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center px-6 py-4 border-b bg-gray-50 gap-2 md:gap-0">
+                <h3 className="text-lg font-semibold text-gray-900 capitalize">Data {activeSubTab}</h3>
+                <h2 className="text-sm text-gray-600">{tableTitles[activeSubTab]}</h2>
+
+                <div className="flex gap-2 flex-wrap">
+                  <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2 text-sm text-white bg-blue-700 rounded-lg hover:bg-blue-800"><Plus size={16} /> Tambah Data</button>
+                  <div className="relative">
+                    <input type="file" accept=".xlsx, .xls" id="importExcel" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleImportExcel} />
+                    <label htmlFor="importExcel" className="flex items-center gap-2 px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-100 cursor-pointer">
+                      <Upload size={16} /> Import Excel
+                    </label>
                   </div>
                 </div>
-
-                <div className="overflow-x-auto px-4 py-2">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      {renderColumns()}
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {renderRows()}
-                    </tbody>
-                  </table>
-                </div>
               </div>
 
-              {/* Form Input */}
-              {showForm && (
-  <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-start md:items-center overflow-auto z-50 p-4">
-    <div className="bg-white p-5 md:p-6 rounded-xl shadow-lg w-full max-w-xl md:max-w-lg max-h-[85vh] overflow-y-auto transition-transform">
-      <div className="flex justify-between items-center mb-5">
-        <h2 className="text-lg font-semibold text-gray-800">
-          {editIndex !== null ? 'Edit Data' : 'Tambah Data Baru'}
-        </h2>
-        <button onClick={() => setShowForm(false)} className="text-gray-500 hover:text-gray-700">
-          <X size={24} />
-        </button>
-      </div>
-
-      {/* Form Fields */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {getFormFields(activeSubTab).map(field => (
-          <div
-            key={field.key}
-            className={field.key === 'tugasPokokDanFungsi' || field.key === 'dokumenSPMI' ? 'md:col-span-2' : ''}
-          >
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {field.label}
-            </label>
-            <input
-              type="text"
-              name={field.key}
-              value={formData[field.key] || ''}
-              onChange={handleChange}
-              placeholder={`Masukkan ${field.label}`}
-              className="border border-gray-300 p-2.5 rounded-lg w-full text-gray-800 focus:ring-2 focus:ring-blue-300 focus:border-blue-300"
-            />
-          </div>
-        ))}
-      </div>
-
-      <div className="flex justify-end mt-6 gap-2">
-        <button
-          onClick={() => setShowForm(false)}
-          className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100"
-        >
-          Batal
-        </button>
-        <button
-          onClick={handleSave}
-          className="px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800"
-        >
-          Simpan
-        </button>
-      </div>
-    </div>
-  </div>
-)}
-
-
+              <div className="overflow-x-auto px-4 py-2">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    {renderColumns()}
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {renderRows()}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          )}
 
+            {/* Form Input */}
+            {showForm && (
+              <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-start md:items-center overflow-auto z-50 p-4">
+                <div className="bg-white p-5 md:p-6 rounded-xl shadow-lg w-full max-w-xl md:max-w-lg max-h-[85vh] overflow-y-auto transition-transform">
+                  <div className="flex justify-between items-center mb-5">
+                    <h2 className="text-lg font-semibold text-gray-800">
+                      {editIndex !== null ? 'Edit Data' : 'Tambah Data Baru'}
+                    </h2>
+                    <button onClick={() => setShowForm(false)} className="text-gray-500 hover:text-gray-700">
+                      <X size={24} />
+                    </button>
+                  </div>
 
+                  {/* Form Fields */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {getFormFields(activeSubTab).map(field => (
+                      <div
+                        key={field.key}
+                        className={field.key === 'tugasPokokDanFungsi' || field.key === 'dokumenSPMI' ? 'md:col-span-2' : ''}
+                      >
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          {field.label}
+                        </label>
+                        <input
+                          type="text"
+                          name={field.key}
+                          value={formData[field.key] || ''}
+                          onChange={handleChange}
+                          placeholder={`Masukkan ${field.label}`}
+                          className="border border-gray-300 p-2.5 rounded-lg w-full text-gray-800 focus:ring-2 focus:ring-blue-300 focus:border-blue-300"
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex justify-end mt-6 gap-2">
+                    <button
+                      onClick={() => setShowForm(false)}
+                      className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      onClick={handleSave}
+                      className="px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800"
+                    >
+                      Simpan
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </main>
       </div>
     </div>

@@ -239,9 +239,9 @@ export default function BudayaMutuLEDPage() {
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="bg-gradient-to-r from-[#183A64] to-[#2C5F8D] text-white p-6 rounded-lg shadow-lg">
-          <h1 className="text-3xl font-bold">Budaya Mutu LED</h1>
+          <h1 className="text-3xl font-bold">LAPORAN EVALUASI DIRI</h1>
           <p className="text-sm mt-2 opacity-90">
-            Kelola data budaya mutu untuk berbagai aspek standar pendidikan tinggi
+            Kelola data LED untuk berbagai aspek standar pendidikan tinggi
           </p>
         </div>
 

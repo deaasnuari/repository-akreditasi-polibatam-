@@ -9,7 +9,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-8 items-center">
           <div>
             <h1 className="text-3xl md:text-4xl font-bold text-[#183A64] mb-6">
-              Selamat Datang di Sistem Informasi Akreditasi & Repositori Digital Polibatam
+              Selamat Datang di Sistem Informasi Akreditasi & Repository Digital Polibatam
             </h1>
             <p className="text-gray-700 mb-8 leading-relaxed">
               Platform terpusat untuk mengelola, menyimpan, dan mengakses seluruh dokumen akreditasi institusi dan program studi di Politeknik Negeri Batam secara digital dan terstruktur.
