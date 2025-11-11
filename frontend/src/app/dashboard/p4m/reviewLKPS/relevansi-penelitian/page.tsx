@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X } from 'lucide-react';
+import { FileText, Download, Save, Edit, Trash2, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -9,8 +9,6 @@ import {
   saveRelevansiPenelitian,
   updateRelevansiPenelitian,
   deleteRelevansiPenelitian,
-  previewImport,
-  commitImport
 } from '@/services/relevansiPenelitianService';
 
 export default function RelevansiPenelitianPage() {
@@ -21,23 +19,17 @@ export default function RelevansiPenelitianPage() {
   const [showForm, setShowForm] = useState(false);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [formData, setFormData] = useState<any>({});
-  const [importing, setImporting] = useState(false);
-  const [previewFile, setPreviewFile] = useState<File | null>(null);
-  const [previewHeaders, setPreviewHeaders] = useState<string[]>([]);
-  const [previewRows, setPreviewRows] = useState<any[]>([]);
-  const [suggestions, setSuggestions] = useState<Record<string, string>>({});
-  const [showPreviewModal, setShowPreviewModal] = useState(false);
-  const [mapping, setMapping] = useState<Record<string, string>>({});
+  // Import Excel functionality removed (state and handlers removed)
   const [saving, setSaving] = useState(false);
 
   // --- Tabs utama ---
   const tabs = [
-    { label: 'Budaya Mutu', href: '/dashboard/tim-akreditasi/lkps' },
-    { label: 'Relevansi Pendidikan', href: '/dashboard/tim-akreditasi/lkps/relevansi-pendidikan' },
-    { label: 'Relevansi Penelitian', href: '/dashboard/tim-akreditasi/lkps/relevansi-penelitian' },
-    { label: 'Relevansi PKM', href: '/dashboard/tim-akreditasi/lkps/relevansi-pkm' },
-    { label: 'Akuntabilitas', href: '/dashboard/tim-akreditasi/lkps/akuntabilitas' },
-    { label: 'Diferensiasi Misi', href: '/dashboard/tim-akreditasi/lkps/diferensiasi-misi' },
+    { label: 'Budaya Mutu', href: '/dashboard/p4m/reviewLKPS' },
+    { label: 'Relevansi Pendidikan', href: '/dashboard/p4m/reviewLKPS/relevansi-pendidikan' },
+    { label: 'Relevansi Penelitian', href: '/dashboard/p4m/reviewLKPS/relevansi-penelitian' },
+    { label: 'Relevansi Pkm', href: '/dashboard/p4m/reviewLKPS/relevansi-pkm' },
+    { label: 'Akuntabilitas', href: '/dashboard/p4m/reviewLKPS/akuntabilitas' },
+    { label: 'Diferensiasi Misi', href: '/dashboard/p4m/reviewLKPS/diferensiasi-misi' },
   ];
 
   // --- Subtab fields ---
@@ -115,7 +107,7 @@ export default function RelevansiPenelitianPage() {
 
   // --- Form handlers ---
   const handleChange = (e: any) => setFormData({ ...formData, [e.target.name]: e.target.value });
-  const openAdd = () => { setFormData({}); setEditIndex(null); setShowForm(true); };
+  // openAdd (tambah data) dihilangkan; fungsi tambah tidak tersedia dari UI
   const openEdit = (item: any) => { setFormData(item); setEditIndex(item.id ?? null); setShowForm(true); };
 
   const handleSave = async () => {
@@ -151,70 +143,38 @@ export default function RelevansiPenelitianPage() {
     }
   };
 
-  // --- Import Excel handlers ---
-  const handleFileChange = async (e: any) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setImporting(true);
-    try {
-      const json = await previewImport(file, activeSubTab);
-      setPreviewFile(file);
-      setPreviewHeaders(json.headers || []);
-      setPreviewRows(json.previewRows || []);
-      setSuggestions(json.suggestions || {});
-      const initMap: Record<string,string> = {};
-      (json.headers || []).forEach(h => { initMap[h] = json.suggestions?.[h] ?? ''; });
-      setMapping(initMap);
-      setShowPreviewModal(true);
-    } catch(err:any) {
-      console.error(err);
-      setErrorMsg(err.message || String(err));
-    } finally {
-      setImporting(false);
-      try { e.target.value = ''; } catch {}
-    }
-  };
-
-  const handleCommitImport = async () => {
-    if (!previewFile) return;
-    try {
-      setImporting(true);
-      await commitImport(previewFile, activeSubTab, mapping);
-      await fetchData();
-      setShowPreviewModal(false);
-      setPreviewFile(null);
-      alert('Import berhasil');
-    } catch(err:any) {
-      console.error(err);
-      setErrorMsg(err.message || String(err));
-    } finally { setImporting(false); }
-  };
-
-  const applySuggestions = () => {
-    const newMap: Record<string,string> = { ...mapping };
-    previewHeaders.forEach(h => { if(suggestions[h]) newMap[h] = suggestions[h]; });
-    setMapping(newMap);
-  };
+  // Import handlers removed since UI import removed
 
   // --- Table render ---
-  const renderColumns = () => (orderedFields[activeSubTab] || []).map(c => (
-    <th key={c.key} className="whitespace-nowrap">{c.label}</th>
-  ));
+  const renderColumns = () => (
+    <tr>
+      {(orderedFields[activeSubTab] || []).map(c => (
+        <th key={c.key} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          {c.label}
+        </th>
+      ))}
+      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+    </tr>
+  );
 
   const renderRows = () => {
     const cols = orderedFields[activeSubTab] || [];
-    if (data.length === 0) return [...Array(5)].map((_,i) => (
-      <tr key={i} className="odd:bg-white even:bg-gray-50">
-        {cols.map(c => <td key={c.key+i} className="px-4 py-2 border-t text-gray-400">&nbsp;</td>)}
-        <td className="px-4 py-2 border-t text-center text-gray-400">&nbsp;</td>
-      </tr>
-    ));
-    return data.map(item => (
-      <tr key={item.id ?? Math.random()} className="hover:bg-gray-50">
-        {cols.map(c => <td key={c.key} className="px-4 py-2 border-t">{item[c.key] ?? ''}</td>)}
-        <td className="px-4 py-2 border-t text-center">
-          <button onClick={()=>openEdit(item)} className="text-blue-600 hover:text-blue-800 mr-2"><Edit size={16} /></button>
-          <button onClick={()=>item.id && handleDelete(item.id)} className="text-red-600 hover:text-red-800"><Trash2 size={16} /></button>
+    if (data.length === 0) {
+      return (
+        <tr>
+          <td colSpan={cols.length + 1} className="text-center py-6 text-gray-500">Belum ada data</td>
+        </tr>
+      );
+    }
+
+    return data.map((item, index) => (
+      <tr key={item.id ?? index} className="bg-white hover:bg-gray-50 border-b">
+        {cols.map(c => <td key={c.key} className="px-6 py-4 text-gray-800">{item[c.key] ?? ''}</td>)}
+        <td className="px-6 py-4 text-center">
+          <div className="flex gap-2 justify-center">
+            <button onClick={()=>openEdit(item)} className="text-blue-600 hover:text-blue-800 transition" title="Edit"><Edit size={16} /></button>
+            <button onClick={()=>item.id && handleDelete(item.id)} className="text-red-600 hover:text-red-800 transition" title="Hapus"><Trash2 size={16} /></button>
+          </div>
         </td>
       </tr>
     ));
@@ -257,21 +217,13 @@ export default function RelevansiPenelitianPage() {
           <div className="bg-white rounded-lg shadow overflow-hidden">
             <div className="flex justify-between items-center p-4 border-b bg-gray-50">
               <h3 className="font-semibold text-gray-900 capitalize">Data {activeSubTab.replace('-', ' ')}</h3>
-              <div className="flex gap-2">
-                <button onClick={openAdd} className="flex items-center gap-2 px-3 py-2 text-xs sm:text-sm text-white bg-blue-700 rounded-lg hover:bg-blue-800"><Plus size={16} /> Tambah Data</button>
-                <label className="flex items-center gap-2 px-4 py-2 text-sm bg-white border rounded-lg hover:bg-gray-100 cursor-pointer">
-                  <Upload size={16} /> {importing?'Importing...':'Import Excel'}
-                  <input onChange={handleFileChange} type="file" accept=".xlsx,.xls" className="hidden" />
-                </label>
-              </div>
+              {/* Tombol Tambah / Import dihilangkan sesuai permintaan */}
             </div>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto px-4 py-2">
               {errorMsg && <div className="p-4 bg-red-50 text-red-700 border-t border-red-100">Error: {errorMsg}</div>}
-              <table className="w-full text-sm text-left text-gray-600 border-collapse table-auto">
-                <thead className="bg-gray-100 text-gray-700 uppercase sticky top-0">
-                  <tr>{renderColumns()}<th className="whitespace-nowrap">Aksi</th></tr>
-                </thead>
-                <tbody className="text-xs sm:text-sm">{renderRows()}</tbody>
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">{renderColumns()}</thead>
+                <tbody className="bg-white divide-y divide-gray-200">{renderRows()}</tbody>
               </table>
             </div>
           </div>
@@ -300,34 +252,7 @@ export default function RelevansiPenelitianPage() {
             </div>
           )}
 
-          {/* Preview & Mapping Modal */}
-          {showPreviewModal && (
-            <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
-              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-semibold">Preview Import — mapping kolom</h3>
-                  <button onClick={()=>setShowPreviewModal(false)} className="text-gray-500">Tutup</button>
-                </div>
-                <div className="grid grid-cols-1 gap-3">
-                  <div className="flex gap-2 mb-2">
-                    <button onClick={applySuggestions} className="px-3 py-1 bg-green-600 text-white rounded text-sm">Auto Map</button>
-                  </div>
-                  {previewHeaders.map(h => (
-                    <div key={h} className="flex gap-3 items-center">
-                      <div className="min-w-[160px] text-sm font-medium">{h}</div>
-                      <select value={mapping[h]??''} onChange={e=>setMapping({...mapping,[h]:e.target.value})} className="border px-2 py-1">
-                        <option value="">-- tidak dipetakan --</option>
-                        {(orderedFields[activeSubTab]||[]).map(f=> <option key={f.key} value={f.key}>{f.key}</option>)}
-                      </select>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-6">
-                  <button onClick={handleCommitImport} className="px-4 py-2 bg-blue-700 text-white rounded hover:bg-blue-800">{importing?'Menyimpan...':'Simpan Import'}</button>
-                </div>
-              </div>
-            </div>
-          )}
+          {/* Import preview removed along with import functionality */}
 
         </main>
       </div>

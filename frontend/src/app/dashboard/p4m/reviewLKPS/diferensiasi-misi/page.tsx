@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, ChangeEvent } from 'react';
-import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X } from 'lucide-react';
+import { FileText, Download, Save, Edit, Trash2, X } from 'lucide-react';
 
 // --- Data item ---
 interface DataItem {
@@ -20,12 +20,12 @@ export default function DiferensiasiMisiPage() {
   const API_BASE = 'http://localhost:5000/api/diferensiasi-misi';
 
   const tabs = [
-    { label: 'Budaya Mutu', href: '/dashboard/tim-akreditasi/lkps' },
-    { label: 'Relevansi Pendidikan', href: '/dashboard/tim-akreditasi/lkps/relevansi-pendidikan' },
-    { label: 'Relevansi Penelitian', href: '/dashboard/tim-akreditasi/lkps/relevansi-penelitian' },
-    { label: 'Relevansi PKM', href: '/dashboard/tim-akreditasi/lkps/relevansi-pkm' },
-    { label: 'Akuntabilitas', href: '/dashboard/tim-akreditasi/lkps/akuntabilitas' },
-    { label: 'Diferensiasi Misi', href: '/dashboard/tim-akreditasi/lkps/diferensiasi-misi' },
+    { label: 'Budaya Mutu', href: '/dashboard/p4m/reviewLKPS' },
+    { label: 'Relevansi Pendidikan', href: '/dashboard/p4m/reviewLKPS/relevansi-pendidikan' },
+    { label: 'Relevansi Penelitian', href: '/dashboard/p4m/reviewLKPS/relevansi-penelitian' },
+    { label: 'Relevansi Pkm', href: '/dashboard/p4m/reviewLKPS/relevansi-pkm' },
+    { label: 'Akuntabilitas', href: '/dashboard/p4m/reviewLKPS/akuntabilitas' },
+    { label: 'Diferensiasi Misi', href: '/dashboard/p4m/reviewLKPS/diferensiasi-misi' },
   ];
 
   // --- Fetch Data ---
@@ -48,11 +48,7 @@ export default function DiferensiasiMisiPage() {
   }, []);
 
   // --- Form & CRUD ---
-  const openAdd = () => {
-    setFormData({});
-    setEditIndex(null);
-    setShowForm(true);
-  };
+  // fungsi tambah data dihilangkan (UI & trigger dihapus). Edit tetap tersedia.
 
   const handleSave = async () => {
     try {
@@ -108,28 +104,7 @@ export default function DiferensiasiMisiPage() {
     });
   };
 
-  // --- Import Excel ---
-  const handleImport = async (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const formDataImport = new FormData();
-    formDataImport.append('file', file);
-    formDataImport.append('type', 'visi-misi');
-
-    try {
-      const res = await fetch(`${API_BASE}/import`, { method: 'POST', body: formDataImport });
-      const json = await res.json();
-      if (res.ok) {
-        alert('✅ Data berhasil diimport');
-        fetchData();
-      } else {
-        alert(json.message || 'Gagal import data');
-      }
-    } catch (err) {
-      console.error('Import error:', err);
-    }
-  };
+  // Import Excel handler dihilangkan (fungsi UI terkait dihapus)
 
   // --- Render utama ---
   return (
@@ -183,32 +158,7 @@ export default function DiferensiasiMisiPage() {
               <p className="text-sm text-gray-600">Tabel Visi dan Misi</p>
             </div>
 
-            {/* Tombol Aksi */}
-            <div className="flex justify-between items-center mb-4">
-              <div className="flex gap-2">
-                <button
-                  onClick={openAdd}
-                  className="flex items-center gap-2 px-4 py-2 text-sm text-white bg-blue-700 rounded-lg hover:bg-blue-800"
-                >
-                  <Plus size={16} /> Tambah Data
-                </button>
-                <div className="relative">
-                  <input
-                    type="file"
-                    accept=".xlsx, .xls"
-                    id="importExcel"
-                    className="absolute inset-0 opacity-0 cursor-pointer"
-                    onChange={handleImport}
-                  />
-                  <label
-                    htmlFor="importExcel"
-                    className="flex items-center gap-2 px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-100 cursor-pointer"
-                  >
-                    <Upload size={16} /> Import Excel
-                  </label>
-                </div>
-              </div>
-            </div>
+            {/* Tombol Tambah / Import dihilangkan sesuai permintaan */}
 
             {/* Tabel */}
             <div className="overflow-x-auto bg-white rounded-lg shadow-md">

@@ -1,7 +1,6 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X } from 'lucide-react';
-import * as XLSX from 'xlsx';
+import { FileText, Download, Save, Edit, Trash2, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -21,37 +20,15 @@ export default function AkuntabilitasPage() {
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [formData, setFormData] = useState<any>({});
 
-  const handleImportExcel = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const data = new Uint8Array(e.target?.result as ArrayBuffer);
-      const workbook = XLSX.read(data, { type: 'array' });
-      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-      const jsonData = XLSX.utils.sheet_to_json(firstSheet);
-
-      const formattedData = jsonData.map((item: any) => ({
-        id: null,
-        data: item,
-      }));
-
-      setTabData(formattedData);
-      saveDraftAkuntabilitas(activeSubTab, formattedData);
-      alert('✅ Data dari Excel berhasil dimuat!');
-    };
-
-    reader.readAsArrayBuffer(file);
-  };
+  // Handler import Excel dihilangkan. Data import tidak lagi tersedia via UI.
 
   const tabs = [
-    { label: 'Budaya Mutu', href: '/dashboard/tim-akreditasi/lkps' },
-    { label: 'Relevansi Pendidikan', href: '/dashboard/tim-akreditasi/lkps/relevansi-pendidikan' },
-    { label: 'Relevansi Penelitian', href: '/dashboard/tim-akreditasi/lkps/relevansi-penelitian' },
-    { label: 'Relevansi PKM', href: '/dashboard/tim-akreditasi/lkps/relevansi-pkm' },
-    { label: 'Akuntabilitas', href: '/dashboard/tim-akreditasi/lkps/akuntabilitas' },
-    { label: 'Diferensiasi Misi', href: '/dashboard/tim-akreditasi/lkps/diferensiasi-misi' },
+    { label: 'Budaya Mutu', href: '/dashboard/p4m/reviewLKPS' },
+    { label: 'Relevansi Pendidikan', href: '/dashboard/p4m/reviewLKPS/relevansi-pendidikan' },
+    { label: 'Relevansi Penelitian', href: '/dashboard/p4m/reviewLKPS/relevansi-penelitian' },
+    { label: 'Relevansi Pkm', href: '/dashboard/p4m/reviewLKPS/relevansi-pkm' },
+    { label: 'Akuntabilitas', href: '/dashboard/p4m/reviewLKPS/akuntabilitas' },
+    { label: 'Diferensiasi Misi', href: '/dashboard/p4m/reviewLKPS/diferensiasi-misi' },
   ];
 
   useEffect(() => {
@@ -63,11 +40,7 @@ export default function AkuntabilitasPage() {
     }
   }, [activeSubTab]);
 
-  const openAdd = () => {
-    setFormData({});
-    setEditIndex(null);
-    setShowForm(true);
-  };
+  // openAdd (tambah data) dihilangkan — UI tombol tambah sudah dihapus
 
   const handleSave = async () => {
     let res;
@@ -199,17 +172,7 @@ export default function AkuntabilitasPage() {
                 {activeSubTab === 'tataKelola' ? 'Sistem Tata Kelola' : 'Sarana & Prasarana'}
               </h3>
 
-              <div className="flex gap-2 flex-wrap">
-                <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2 text-sm text-white bg-blue-700 rounded-lg hover:bg-blue-800">
-                  <Plus size={16} /> Tambah Data
-                </button>
-                <form onSubmit={(e) => e.preventDefault()} className="relative">
-                  <input type="file" accept=".xlsx, .xls" id="importExcel" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleImportExcel} />
-                  <label htmlFor="importExcel" className="flex items-center gap-2 px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-100 cursor-pointer">
-                    <Upload size={16} /> Import Excel
-                  </label>
-                </form>
-              </div>
+              {/* Tombol Tambah / Import dihilangkan sesuai permintaan */}
             </div>
 
             <div className="overflow-x-auto px-4 py-2">
