@@ -171,44 +171,37 @@ export default function RelevansiPkmPage() {
     ],
   };
 
-  const renderColumns = () =>
-    (subtabFields[activeSubTab] ?? []).map((c) => (
-      <th key={c.key} className="px-4 py-2 whitespace-nowrap">{c.label}</th>
-    ));
+  const renderColumns = () => (
+    <tr>
+      {(subtabFields[activeSubTab] ?? []).map((c) => (
+        <th key={c.key} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          {c.label}
+        </th>
+      ))}
+      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+    </tr>
+  );
 
   const renderRows = () => {
     const cols = subtabFields[activeSubTab] ?? [];
     if (data.length === 0) {
       return (
         <tr>
-          <td colSpan={cols.length + 1} className="text-center py-6 text-gray-500">
-            Belum ada data
-          </td>
+          <td colSpan={cols.length + 1} className="text-center py-6 text-gray-500">Belum ada data</td>
         </tr>
       );
     }
-    return data.map((item: any) => (
-      <tr key={item.id ?? Math.random()} className="hover:bg-gray-50">
+
+    return data.map((item: any, index: number) => (
+      <tr key={item.id ?? index} className="bg-white hover:bg-gray-50 border-b">
         {cols.map((c) => (
-          <td key={c.key} className="px-4 py-2 border-t">
-            {item[c.key] ?? ''}
-          </td>
+          <td key={c.key} className="px-6 py-4 text-gray-800">{item[c.key] ?? ''}</td>
         ))}
-        <td className="px-4 py-2 border-t text-center">
-          <button 
-            onClick={() => openEdit(item)} 
-            className="text-blue-600 hover:text-blue-800 mr-2"
-            title="Edit"
-          >
-            <Edit size={16} />
-          </button>
-          <button
-            onClick={() => handleDelete(item)}
-            className="text-red-600 hover:text-red-800"
-            title="Hapus"
-          >
-            <Trash2 size={16} />
-          </button>
+        <td className="px-6 py-4 text-center">
+          <div className="flex gap-2 justify-center">
+            <button onClick={() => openEdit(item)} className="text-blue-600 hover:text-blue-800 transition" title="Edit"><Edit size={16} /></button>
+            <button onClick={() => handleDelete(item)} className="text-red-600 hover:text-red-800 transition" title="Hapus"><Trash2 size={16} /></button>
+          </div>
         </td>
       </tr>
     ));
@@ -292,20 +285,15 @@ export default function RelevansiPkmPage() {
               </div>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto px-4 py-2">
               {errorMsg && (
                 <div className="p-4 bg-red-50 text-red-700 border-t border-red-100">
                   ❌ Error: {errorMsg}
                 </div>
               )}
-              <table className="w-full text-sm text-left text-gray-600 border-collapse table-auto">
-                <thead className="bg-gray-100 text-gray-700 uppercase sticky top-0">
-                  <tr>
-                    {renderColumns()}
-                    <th className="px-4 py-2 whitespace-nowrap">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="text-xs sm:text-sm">{renderRows()}</tbody>
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">{renderColumns()}</thead>
+                <tbody className="bg-white divide-y divide-gray-200">{renderRows()}</tbody>
               </table>
             </div>
           </div>
