@@ -2,6 +2,8 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
 
 // Routes
 import authRoutes from './routes/authRoutes.js';
@@ -15,8 +17,13 @@ import reviewLEDP4MRoutes from "./routes/reviewLEDP4M.js";
 import akuntabilitasRoutes from "./routes/akuntabilitas.js";
 import matriksPenilaianAkreditasiRoutes from "./routes/matriksPenilaianAkreditasi.js";
 import relevansiPkmRoutes from "./routes/relevansiPkm.js";
+import akreditasiRoutes from "./routes/akreditasiRoutes.js";
 
 dotenv.config();
+
+// Untuk mendapatkan __dirname di ES Module
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 app.set('trust proxy', 1); // kalau deploy pakai proxy (nginx, etc)
@@ -34,6 +41,9 @@ app.use(cors({
   origin: 'http://localhost:3000', // alamat frontend Next.js
   credentials: true, // wajib supaya cookie bisa dikirim
 }));
+
+// ✅ TAMBAHKAN INI: Static files untuk serve uploaded files
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Logger untuk debug
 app.use((req, res, next) => {
@@ -53,7 +63,21 @@ app.use("/api/upload", uploadRoutes);
 app.use("/api/p4m/reviewLED", reviewLEDP4MRoutes);
 app.use("/api/akuntabilitas", akuntabilitasRoutes);
 app.use("/api/matriks-penilaian", matriksPenilaianAkreditasiRoutes);
+app.use("/api/akreditasi", akreditasiRoutes);
+
+app.get("/", (req, res) => res.send("Server berjalan 🚀"));
+
+// ✅ TAMBAHKAN INI: Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('❌ Server Error:', err);
+  res.status(500).json({ 
+    success: false, 
+    message: err.message || 'Internal Server Error' 
+  });
+});
 
 // ===== Start Server =====
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`[backend] Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`[backend] Server running on port ${PORT}`);
+});

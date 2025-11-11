@@ -53,24 +53,25 @@ export default function ExportAkreditasi() {
   }, [bagianList, filterStatus, searchQuery]);
 
   const fetchData = async () => {
-    try {
-      const [statsRes, bagianRes, templatesRes] = await Promise.all([
-        fetch(`${API_URL}/dashboard/stats`),
-        fetch(`${API_URL}/bagian`),
-        fetch(`${API_URL}/templates`),
-      ]);
+  try {
+    const [statsRes, bagianRes, templatesRes] = await Promise.all([
+      fetch(`${API_URL}/akreditasi/stats`), // ✅ perbaikan disini
+      fetch(`${API_URL}/akreditasi/bagian`), // sesuaikan
+      fetch(`${API_URL}/akreditasi/templates`), // sesuaikan
+    ]);
 
-      const statsData = await statsRes.json();
-      const bagianData = await bagianRes.json();
-      const templatesData = await templatesRes.json();
+    const statsData = await statsRes.json();
+    const bagianData = await bagianRes.json();
+    const templatesData = await templatesRes.json();
 
-      setStats(statsData);
-      setBagianList(bagianData);
-      setTemplates(templatesData);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    }
-  };
+    setStats(statsData);
+    setBagianList(bagianData);
+    setTemplates(templatesData);
+  } catch (error) {
+    console.error('Error fetching data:', error);
+  }
+};
+
 
   const filterBagianData = () => {
     let filtered = [...bagianList];

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { loginUser, registerUser } from "../../services/auth";
 
@@ -26,25 +25,19 @@ export default function AuthPage() {
   const [regPassword, setRegPassword] = useState('');
   const [regRole, setRegRole] = useState('tim-akreditasi');
 
-  // Hindari hydration mismatch
   useEffect(() => setMounted(true), []);
   if (!mounted) return null;
 
-  // ==== LOGIN HANDLER ====
+  // === LOGIN HANDLER ===
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-
     try {
       const data = await loginUser(loginEmail, loginPassword, loginRole);
-
       if (data.success && data.user) {
-        // Set per-tab auth flag so only this tab reflects the login
-        if (typeof window !== 'undefined') sessionStorage.setItem('tabAuth', 'true');
-        // Redirect otomatis berdasarkan role
+        sessionStorage.setItem('tabAuth', 'true');
         const role = data.user.role;
-
         if (role === 'tim-akreditasi') router.push('/dashboard/tim-akreditasi');
         else if (role === 'p4m') router.push('/dashboard/p4m');
         else if (role === 'tu') router.push('/dashboard/tata-usaha');
@@ -59,13 +52,12 @@ export default function AuthPage() {
     }
   };
 
-  // ==== REGISTER HANDLER ====
+  // === REGISTER HANDLER ===
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccess('');
     setLoading(true);
-
     try {
       await registerUser(regName, regEmail, regPassword, regRole);
       setSuccess('Registrasi berhasil! Silakan login.');
@@ -82,8 +74,16 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100 px-4 py-8">
-      <div className="w-full max-w-md bg-white rounded-[2rem] shadow-[0_0_40px_rgba(0,0,0,0.15)] p-8">
+    <div
+      className="min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat px-4 py-8"
+      style={{
+        backgroundImage: "url('/images/Gedungpolibatam.jpg')", // 👉 ubah sesuai nama file kamu
+      }}
+    >
+      {/* Overlay opsional (hapus kalau gak mau efek gelap sedikit) */}
+      <div className="absolute inset-0 bg-black/20" />
+
+      <div className="relative w-full max-w-md bg-white rounded-[2rem] shadow-[0_0_40px_rgba(0,0,0,0.15)] p-8 z-10">
         {/* === Tabs === */}
         <div className="flex justify-center mb-6">
           {(['login', 'register'] as Tab[]).map((tab) => (
