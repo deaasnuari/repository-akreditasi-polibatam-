@@ -232,14 +232,14 @@ export default function RelevansiPkmPage() {
 
           {/* Tabs utama */}
           <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
-            {tabs.map((tab) => (
+            {tabs.map(tab => (
               <Link
                 key={tab.href}
                 href={tab.href}
-                className={`px-4 py-2 rounded-lg text-sm transition ${
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
                   pathname === tab.href
-                    ? 'bg-blue-100 text-blue-900 font-medium'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    ? 'bg-[#183A64] text-[#ADE7F7]'
+                    : 'bg- text-[#183A64] hover:bg-[#90d8ee]'
                 }`}
               >
                 {tab.label}
@@ -247,56 +247,65 @@ export default function RelevansiPkmPage() {
             ))}
           </div>
 
+
           {/* Subtabs */}
           <div className="flex gap-2 border-b pb-2 mb-4 overflow-x-auto">
-            {[
-              { key: 'sarana-prasarana', label: 'Sarana & Prasarana PkM' },
-              { key: 'pkm-hibah', label: 'PkM DTPR, Hibah & Pembiayaan' },
-              { key: 'kerjasama-pkm', label: 'Kerjasama PkM' },
-              { key: 'hki-pkm', label: 'Perolehan HKI PkM' },
-            ].map((sub) => (
-              <button
-                key={sub.key}
-                onClick={() => setActiveSubTab(sub.key)}
-                className={`px-4 py-2 text-sm rounded-t-lg ${
-                  activeSubTab === sub.key
-                    ? 'bg-blue-100 text-blue-900 font-semibold'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {sub.label}
-              </button>
-            ))}
-          </div>
-
+        {[
+          { key: 'sarana-prasarana', label: 'Sarana & Prasarana PkM' },
+          { key: 'pkm-hibah', label: 'PkM DTPR, Hibah & Pembiayaan' },
+          { key: 'kerjasama-pkm', label: 'Kerjasama PkM' },
+          { key: 'hki-pkm', label: 'Perolehan HKI PkM' },
+        ].map((sub) => (
+          <button
+            key={sub.key}
+            onClick={() => setActiveSubTab(sub.key)}
+            className={`px-4 py-2 text-sm rounded-t-lg font-semibold transition-all duration-200
+              ${
+                activeSubTab === sub.key
+                  ? 'bg-[#183A64] text-[#ADE7F7]' // aktif
+                  : 'bg-[#ADE7F7] text-[#183A64] hover:bg-[#90d8ee]' // tidak aktif
+              }`}
+          >
+            {sub.label}
+          </button>
+        ))}
+      </div>
+      
           {/* Table Section */}
-          <div className="bg-white rounded-lg shadow overflow-hidden">
-            <div className="flex justify-between items-center p-4 border-b bg-gray-50">
-              <h3 className="font-semibold text-gray-900 capitalize">
-                Data {activeSubTab.replace('-', ' ')}
-              </h3>
-              <div className="flex gap-2">
-                <button
-                  onClick={openAdd}
-                  className="flex items-center gap-2 px-3 py-2 text-xs sm:text-sm text-white bg-blue-700 rounded-lg hover:bg-blue-800"
-                >
-                  <Plus size={16} /> Tambah Data
-                </button>
-              </div>
-            </div>
+          <div className="bg-[#ADE7F7]/20 rounded-lg shadow overflow-hidden">
+  {/* Header */}
+  <div className="flex justify-between items-center p-4 border-b bg-[#183A64]">
+    <h3 className="font-semibold text-[#ADE7F7] capitalize">
+      Data {activeSubTab.replace('-', ' ')}
+    </h3>
+    <div className="flex gap-2">
+      <button
+        onClick={openAdd}
+        className="flex items-center gap-2 px-3 py-2 text-xs sm:text-sm font-semibold text-[#183A64] bg-[#ADE7F7] rounded-lg hover:bg-[#90d8ee] transition-all duration-200"
+      >
+        <Plus size={16} /> Tambah Data
+      </button>
+    </div>
+  </div>
 
-            <div className="overflow-x-auto px-4 py-2">
-              {errorMsg && (
-                <div className="p-4 bg-red-50 text-red-700 border-t border-red-100">
-                  ❌ Error: {errorMsg}
-                </div>
-              )}
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">{renderColumns()}</thead>
-                <tbody className="bg-white divide-y divide-gray-200">{renderRows()}</tbody>
-              </table>
-            </div>
-          </div>
+  {/* Table Section */}
+  <div className="overflow-x-auto px-4 py-2 bg-white">
+    {errorMsg && (
+      <div className="p-4 bg-red-50 text-red-700 border-t border-red-100 rounded">
+        ❌ Error: {errorMsg}
+      </div>
+    )}
+    <table className="min-w-full divide-y divide-gray-200">
+      <thead className="bg-[#ADE7F7]/40 text-[#183A64] font-semibold">
+        {renderColumns()}
+      </thead>
+      <tbody className="bg-white divide-y divide-gray-200">
+        {renderRows()}
+      </tbody>
+    </table>
+  </div>
+</div>
+
 
           {/* Modal Tambah/Edit */}
           {showForm && (

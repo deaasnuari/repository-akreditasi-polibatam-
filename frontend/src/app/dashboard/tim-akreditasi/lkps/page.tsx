@@ -1,8 +1,8 @@
 'use client';
-
+import Link from "next/link";
 import React, { useEffect, useState } from 'react';
 import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Info } from 'lucide-react';
-
+import { usePathname } from "next/navigation"; // kalau kamu pakai pathname
 export default function LKPSPage() {
   type SubTab = 'tupoksi' | 'pendanaan' | 'penggunaan-dana' | 'ewmp' | 'ktk' | 'spmi';
 
@@ -720,11 +720,21 @@ export default function LKPSPage() {
           </div>
 
           {/* Tabs utama */}
-          <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
-            {tabs.map(tab => (
-              <a key={tab.href} href={tab.href} className="px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-gray-100 text-gray-700 hover:bg-[#ADE7F7] hover:text-[#183A64]">{tab.label}</a>
-            ))}
-          </div>
+          <div className="flex flex-wrap gap-2 mb-4">
+          {tabs.map((tab) => (
+            <a
+              key={tab.href}
+              href={tab.href}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200
+                ${window.location.pathname === tab.href 
+                  ? 'bg-[#183A64] text-[#ADE7F7]' 
+                  : 'bg-white text-gray-700 hover:bg-gray-100'
+                }`}
+            >
+              {tab.label}
+            </a>
+          ))}
+        </div>
 
           {/* Budaya Mutu Tab */}
           <div className="bg-white rounded-lg shadow-md p-6 space-y-6">
@@ -801,14 +811,22 @@ export default function LKPSPage() {
             </div>
 
             {/* Sub-tabs */}
-            <div className="flex gap-2 border-b pb-2 mb-4 overflow-x-auto">
-              {['tupoksi','pendanaan','penggunaan-dana','ewmp','ktk','spmi'].map(sub => (
-                <button key={sub} onClick={() => setActiveSubTab(sub as SubTab)}
-                  className={`px-4 py-2 text-sm rounded-t-lg whitespace-nowrap ${activeSubTab === sub ? 'bg-blue-100 text-blue-900 font-semibold' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
-                  {sub.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase())}
-                </button>
-              ))}
-            </div>
+<div className="flex gap-2 border-b pb-2 mb-4 overflow-x-auto">
+  {['tupoksi','pendanaan','penggunaan-dana','ewmp','ktk','spmi'].map(sub => (
+    <button
+      key={sub}
+      onClick={() => setActiveSubTab(sub as SubTab)}
+      className={`px-4 py-2 text-sm rounded-t-lg whitespace-nowrap font-medium transition ${
+        activeSubTab === sub
+          ? 'bg-[#183A64] text-[#ADE7F7]' // aktif
+          : 'bg-[#ADE7F7] text-[#183A64] hover:bg-[#90d8ee]' // tidak aktif
+      }`}
+    >
+      {sub.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase())}
+    </button>
+  ))}
+</div>
+
 
             {/* Table Section */}
             <div className="bg-white rounded-lg shadow-md overflow-hidden">

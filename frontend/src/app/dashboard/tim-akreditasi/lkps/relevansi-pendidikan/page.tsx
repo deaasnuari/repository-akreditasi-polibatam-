@@ -1,4 +1,4 @@
-'use client';
+ 'use client';
 
 import React, { useEffect, useState, ChangeEvent } from 'react';
 import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X } from 'lucide-react';
@@ -471,21 +471,37 @@ export default function RelevansiPendidikanPage() {
           {/* Konten */}
           <div className="bg-white rounded-lg shadow p-6">
             {/* Subtab */}
-            <div className="flex gap-2 border-b pb-2 mb-4">
-              {['mahasiswa', 'keragaman-asal', 'kondisi-jumlah-mahasiswa', 'tabel-pembelajaran', 'pemetaan-CPL-PL', 'peta-pemenuhan-CPL', 'rata-rata-masa-tunggu-lulusan', 'kesesuaian-bidang', 'kepuasan-pengguna', 'fleksibilitas', 'rekognisi-apresiasi'].map((sub) => (
-                <button
-                  key={sub}
-                  onClick={() => setActiveSubTab(sub as SubTab)}
-                  className={`px-4 py-2 text-sm rounded-t-lg ${
-                    activeSubTab === sub
-                      ? 'bg-blue-100 text-blue-900 font-semibold'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {sub.replace('-', ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
-                </button>
-              ))}
-            </div>
+            <div className="flex gap-2 border-b pb-2 mb-4 overflow-x-auto">
+  {[
+    'mahasiswa',
+    'keragaman-asal',
+    'kondisi-jumlah-mahasiswa',
+    'tabel-pembelajaran',
+    'pemetaan-CPL-PL',
+    'peta-pemenuhan-CPL',
+    'rata-rata-masa-tunggu-lulusan',
+    'kesesuaian-bidang',
+    'kepuasan-pengguna',
+    'fleksibilitas',
+    'rekognisi-apresiasi',
+  ].map((sub) => (
+    <button
+      key={sub}
+      onClick={() => setActiveSubTab(sub as SubTab)}
+      className={`px-4 py-2 text-sm rounded-t-lg font-semibold transition-all duration-200
+        ${
+          activeSubTab === sub
+            ? 'bg-[#183A64] text-[#ADE7F7]'
+            : 'bg-[#ADE7F7] text-[#183A64] hover:bg-[#90d8ee] hover:text-[#102b4d]'
+        }`}
+    >
+      {sub
+        .replace(/-/g, ' ')
+        .replace(/\b\w/g, (c) => c.toUpperCase())}
+    </button>
+  ))}
+</div>
+
 
             {/* Judul Subtab & Tabel */}
             <div className="mb-4">

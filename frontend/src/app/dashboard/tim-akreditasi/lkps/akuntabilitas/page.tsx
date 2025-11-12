@@ -152,40 +152,42 @@ export default function AkuntabilitasPage() {
           </div>
 
           {/* Tabs utama */}
-          <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
-            {tabs.map((tab) => (
-              <Link
-                key={tab.href}
-                href={tab.href}
-                className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                  pathname === tab.href
-                    ? 'bg-[#183A64] text-[#ADE7F7]'
-                    : 'bg-gray-100 text-gray-700 hover:bg-[#ADE7F7] hover:text-[#183A64]'
-                }`}
-              >
-                {tab.label}
-              </Link>
-            ))}
-          </div>
+                <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
+        {tabs.map(tab => (
+          <Link
+            key={tab.href}
+            href={tab.href}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+              pathname === tab.href
+                ? 'bg-[#183A64] text-[#ADE7F7]'
+                : 'bg-text-[#183A64] hover:bg-[#90d8ee]'
+            }`}
+          >
+            {tab.label}
+          </Link>
+        ))}
+      </div>
+
 
           {/* Sub-tabs */}
           <div className="flex gap-2 border-b pb-2 mb-4">
             <button
               onClick={() => setActiveSubTab('tataKelola')}
-              className={`px-4 py-2 rounded-t-lg text-sm font-semibold ${
+              className={`px-4 py-2 rounded-t-lg text-sm font-semibold transition ${
                 activeSubTab === 'tataKelola'
-                  ? 'bg-blue-100 text-blue-900'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-[#183A64] text-[#ADE7F7]' // aktif
+                  : 'bg-[#ADE7F7] text-[#183A64] hover:bg-[#90d8ee]' // tidak aktif
               }`}
             >
               Sistem Tata Kelola
             </button>
+
             <button
               onClick={() => setActiveSubTab('sarana')}
-              className={`px-4 py-2 rounded-t-lg text-sm font-semibold ${
+              className={`px-4 py-2 rounded-t-lg text-sm font-semibold transition ${
                 activeSubTab === 'sarana'
-                  ? 'bg-blue-100 text-blue-900'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-[#183A64] text-[#ADE7F7]' // aktif
+                  : 'bg-[#ADE7F7] text-[#183A64] hover:bg-[#90d8ee]' // tidak aktif
               }`}
             >
               Sarana & Prasarana

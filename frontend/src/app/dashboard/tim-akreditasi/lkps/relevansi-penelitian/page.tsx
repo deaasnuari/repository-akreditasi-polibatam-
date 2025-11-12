@@ -252,17 +252,39 @@ export default function RelevansiPenelitianPage() {
 
           {/* Tabs utama */}
           <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
-            {tabs.map(tab => (
-              <Link key={tab.href} href={tab.href} className={`px-4 py-2 rounded-lg text-sm transition ${pathname === tab.href ? 'bg-blue-100 text-blue-900 font-medium' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>{tab.label}</Link>
-            ))}
-          </div>
+              {tabs.map(tab => (
+                <Link
+                  key={tab.href}
+                  href={tab.href}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                    pathname === tab.href
+                      ? 'bg-[#183A64] text-[#ADE7F7]' // aktif
+                      : 'bg- text-[#183A64] hover:bg-[#90d8ee]'
+                  }`}
+                >
+                  {tab.label}
+                </Link>
+              ))}
+            </div>
+
 
           {/* Subtabs */}
           <div className="flex gap-2 border-b pb-2 mb-4 overflow-x-auto">
-            {Object.keys(subtabFields).map(key => (
-              <button key={key} onClick={()=>setActiveSubTab(key)} className={`px-4 py-2 text-sm rounded-t-lg ${activeSubTab===key?'bg-blue-100 text-blue-900 font-semibold':'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>{key.replace(/-/g,' ')}</button>
-            ))}
-          </div>
+  {Object.keys(subtabFields).map((key) => (
+    <button
+      key={key}
+      onClick={() => setActiveSubTab(key)}
+      className={`px-4 py-2 text-sm rounded-t-lg font-medium transition whitespace-nowrap ${
+        activeSubTab === key
+          ? 'bg-[#183A64] text-[#ADE7F7]' // aktif
+          : 'bg-[#ADE7F7] text-[#183A64] hover:bg-[#90d8ee]' // tidak aktif
+      }`}
+    >
+      {key.replace(/-/g, ' ')}
+    </button>
+  ))}
+</div>
+
 
           {/* Table */}
           <div className="bg-white rounded-lg shadow overflow-hidden">
