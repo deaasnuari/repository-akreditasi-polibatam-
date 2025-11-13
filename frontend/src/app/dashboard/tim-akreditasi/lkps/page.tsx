@@ -2,7 +2,8 @@
 import Link from "next/link";
 import React, { useEffect, useState } from 'react';
 import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Info } from 'lucide-react';
-import { usePathname } from "next/navigation"; // kalau kamu pakai pathname
+import { usePathname } from "next/navigation";
+
 export default function LKPSPage() {
   type SubTab = 'tupoksi' | 'pendanaan' | 'penggunaan-dana' | 'ewmp' | 'ktk' | 'spmi';
 
@@ -27,6 +28,7 @@ export default function LKPSPage() {
   const [showForm, setShowForm] = useState(false);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [formData, setFormData] = useState<any>({});
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   // State untuk popup notifikasi
   const [popup, setPopup] = useState<{ 
@@ -179,11 +181,26 @@ export default function LKPSPage() {
     );
   };
 
+  // Fungsi validasi form
+  const validateForm = () => {
+    const errors: Record<string, string> = {};
+    const fields = getFormFields(activeSubTab);
+    
+    fields.forEach(field => {
+      const value = formData[field.key];
+      if (!value || value.trim() === '') {
+        errors[field.key] = `${field.label} harus diisi`;
+      }
+    });
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   useEffect(() => {
     fetchData();
   }, [activeSubTab]);
 
-  // Fetch struktur organisasi saat component mount
   useEffect(() => {
     fetchStrukturOrganisasi();
   }, []);
@@ -224,7 +241,6 @@ export default function LKPSPage() {
     }
   };
 
-  // Fetch struktur organisasi dari backend
   const fetchStrukturOrganisasi = async () => {
     try {
       const res = await fetch(`${API_BASE}/struktur`);
@@ -285,19 +301,16 @@ export default function LKPSPage() {
     e.target.value = '';
   };
 
-  // Handle upload struktur organisasi
   const handleUploadStruktur = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validasi ukuran file (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
       showPopup('Ukuran file maksimal 10MB', 'error');
       e.target.value = '';
       return;
     }
 
-    // Validasi tipe file
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
     if (!allowedTypes.includes(file.type)) {
       showPopup('Format file harus JPG, PNG, atau PDF', 'error');
@@ -311,21 +324,13 @@ export default function LKPSPage() {
     try {
       showPopup('Sedang mengupload struktur organisasi...', 'info');
 
-      // Jika sudah ada file, update. Jika belum, upload baru
       const url = strukturFileId 
         ? `${API_BASE}/struktur/${strukturFileId}` 
         : `${API_BASE}/upload-struktur`;
       
       const method = strukturFileId ? 'PUT' : 'POST';
 
-      console.log('Uploading to:', url);
-      console.log('Method:', method);
-      console.log('File:', file.name, file.type, file.size);
-
       const res = await fetch(url, { method, body: fd });
-
-      console.log('Response status:', res.status);
-      console.log('Response headers:', res.headers.get('content-type'));
 
       const contentType = res.headers.get('content-type');
       
@@ -337,7 +342,6 @@ export default function LKPSPage() {
       }
 
       const json = await res.json();
-      console.log('Response JSON:', json);
 
       if (res.ok && json.success) {
         setStrukturFileName(json.fileName || file.name);
@@ -355,7 +359,6 @@ export default function LKPSPage() {
     }
   };
 
-  // Handle delete struktur organisasi
   const handleDeleteStruktur = async () => {
     if (!strukturFileId) {
       showPopup("ID file tidak ditemukan", "error");
@@ -391,6 +394,7 @@ export default function LKPSPage() {
   const openAdd = () => {
     setFormData(getEmptyFormData(activeSubTab));
     setEditIndex(null);
+    setFormErrors({});
     setShowForm(true);
   };
 
@@ -398,9 +402,20 @@ export default function LKPSPage() {
     setShowForm(false);
     setEditIndex(null);
     setFormData({});
+    setFormErrors({});
   };
 
   const handleSave = async () => {
+    // Validasi form sebelum menyimpan
+    if (!validateForm()) {
+      showModal(
+        'Data Tidak Lengkap',
+        'Mohon lengkapi semua field yang wajib diisi sebelum menyimpan data.',
+        () => {}
+      );
+      return;
+    }
+
     try {
       const { id: itemId, ...dataToSave } = formData;
       
@@ -409,8 +424,6 @@ export default function LKPSPage() {
 
       const body = JSON.stringify({ type: activeSubTab, data: dataToSave });
       
-      console.log('Saving data:', { method, url, body });
-      
       const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body });
       
       const contentType = res.headers.get('content-type');
@@ -418,8 +431,6 @@ export default function LKPSPage() {
         const responseText = await res.text();
         showPopup('Server error - response bukan JSON', 'error');
         console.error('Response:', responseText);
-        console.error('Status:', res.status);
-        console.error('URL:', url);
         return;
       }
 
@@ -449,6 +460,7 @@ export default function LKPSPage() {
       setShowForm(false);
       setEditIndex(null);
       setFormData({});
+      setFormErrors({});
     } catch (err) {
       console.error('Save error:', err);
       showPopup('Gagal menyimpan data', 'error');
@@ -459,6 +471,7 @@ export default function LKPSPage() {
     setFormData({ ...item.data, id: item.id });
     const idx = tabData[activeSubTab].findIndex(d => d.id === item.id);
     setEditIndex(idx !== -1 ? idx : null);
+    setFormErrors({});
     setShowForm(true);
   };
 
@@ -497,7 +510,17 @@ export default function LKPSPage() {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+    
+    // Clear error untuk field yang sedang diisi
+    if (formErrors[name]) {
+      setFormErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
   };
 
   const getEmptyFormData = (subTab: SubTab) => {
@@ -648,10 +671,7 @@ export default function LKPSPage() {
 
   return (
     <div className="flex w-full bg-gray-100">
-      {/* Popup Notification */}
       <PopupNotification />
-      
-      {/* Modal Konfirmasi */}
       <ConfirmModal />
 
       <style>{`
@@ -721,20 +741,20 @@ export default function LKPSPage() {
 
           {/* Tabs utama */}
           <div className="flex flex-wrap gap-2 mb-4">
-          {tabs.map((tab) => (
-            <a
-              key={tab.href}
-              href={tab.href}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200
-                ${window.location.pathname === tab.href 
-                  ? 'bg-[#183A64] text-[#ADE7F7]' 
-                  : 'bg-white text-gray-700 hover:bg-gray-100'
-                }`}
-            >
-              {tab.label}
-            </a>
-          ))}
-        </div>
+            {tabs.map((tab) => (
+              <a
+                key={tab.href}
+                href={tab.href}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200
+                  ${window.location.pathname === tab.href 
+                    ? 'bg-[#183A64] text-[#ADE7F7]' 
+                    : 'bg-white text-gray-700 hover:bg-gray-100'
+                  }`}
+              >
+                {tab.label}
+              </a>
+            ))}
+          </div>
 
           {/* Budaya Mutu Tab */}
           <div className="bg-white rounded-lg shadow-md p-6 space-y-6">
@@ -763,7 +783,6 @@ export default function LKPSPage() {
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center relative">
                 {strukturFileUrl ? (
                   <>
-                    {/* Tombol aksi (edit & hapus) */}
                     <div className="absolute top-3 right-3 flex gap-2">
                       <label
                         htmlFor="strukturFile"
@@ -782,7 +801,6 @@ export default function LKPSPage() {
                       </button>
                     </div>
 
-                    {/* Pratinjau file */}
                     <div className="mt-4">
                       {strukturFileUrl.endsWith('.pdf') ? (
                         <iframe
@@ -799,7 +817,6 @@ export default function LKPSPage() {
                       )}
                     </div>
 
-                    {/* Nama file di bawahnya */}
                     <p className="mt-2 text-sm text-gray-600 italic">
                       {strukturFileName}
                     </p>
@@ -811,22 +828,21 @@ export default function LKPSPage() {
             </div>
 
             {/* Sub-tabs */}
-<div className="flex gap-2 border-b pb-2 mb-4 overflow-x-auto">
-  {['tupoksi','pendanaan','penggunaan-dana','ewmp','ktk','spmi'].map(sub => (
-    <button
-      key={sub}
-      onClick={() => setActiveSubTab(sub as SubTab)}
-      className={`px-4 py-2 text-sm rounded-t-lg whitespace-nowrap font-medium transition ${
-        activeSubTab === sub
-          ? 'bg-[#183A64] text-[#ADE7F7]' // aktif
-          : 'bg-[#ADE7F7] text-[#183A64] hover:bg-[#90d8ee]' // tidak aktif
-      }`}
-    >
-      {sub.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase())}
-    </button>
-  ))}
-</div>
-
+            <div className="flex gap-2 border-b pb-2 mb-4 overflow-x-auto">
+              {['tupoksi','pendanaan','penggunaan-dana','ewmp','ktk','spmi'].map(sub => (
+                <button
+                  key={sub}
+                  onClick={() => setActiveSubTab(sub as SubTab)}
+                  className={`px-4 py-2 text-sm rounded-t-lg whitespace-nowrap font-medium transition ${
+                    activeSubTab === sub
+                      ? 'bg-[#183A64] text-[#ADE7F7]'
+                      : 'bg-[#ADE7F7] text-[#183A64] hover:bg-[#90d8ee]'
+                  }`}
+                >
+                  {sub.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                </button>
+              ))}
+            </div>
 
             {/* Table Section */}
             <div className="bg-white rounded-lg shadow-md overflow-hidden">
@@ -857,7 +873,7 @@ export default function LKPSPage() {
               </div>
             </div>
 
-            {/* Form Input */}
+            {/* Form Input dengan Validasi */}
             {showForm && (
               <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-start md:items-center overflow-auto z-50 p-4">
                 <div className="bg-white p-5 md:p-6 rounded-xl shadow-lg w-full max-w-xl md:max-w-lg max-h-[85vh] overflow-y-auto transition-transform">
@@ -865,7 +881,7 @@ export default function LKPSPage() {
                     <h2 className="text-lg font-semibold text-gray-800">
                       {editIndex !== null ? 'Edit Data' : 'Tambah Data Baru'}
                     </h2>
-                    <button onClick={() => setShowForm(false)} className="text-gray-500 hover:text-gray-700">
+                    <button onClick={handleCloseForm} className="text-gray-500 hover:text-gray-700">
                       <X size={24} />
                     </button>
                   </div>
@@ -878,7 +894,7 @@ export default function LKPSPage() {
                         className={field.key === 'tugasPokokDanFungsi' || field.key === 'dokumenSPMI' ? 'md:col-span-2' : ''}
                       >
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          {field.label}
+                          {field.label} <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="text"
@@ -894,17 +910,19 @@ export default function LKPSPage() {
 
                   <div className="flex justify-end mt-6 gap-2">
                     <button
-                      onClick={() => setShowForm(false)}
-                      className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100"
-                    >
-                      Batal
-                    </button>
-                    <button
-                      onClick={handleSave}
-                      className="px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800"
-                    >
-                      Simpan
-                    </button>
+                    onClick={handleCloseForm}
+                    className="px-4 py-2 bg-red-500 text-white rounded-lg shadow-md transition-all duration-200 hover:bg-red-600 hover:shadow-lg hover:scale-105 focus:ring-2 focus:ring-red-300"
+                  >
+                    Batal
+                  </button>
+
+                  <button
+                    onClick={handleSave}
+                    className="px-4 py-2 bg-blue-900 text-white rounded-lg shadow-md transition-all duration-200 hover:bg-blue-800 hover:shadow-lg hover:scale-105 focus:ring-2 focus:ring-blue-300"
+                  >
+                    Simpan
+                  </button>
+
                   </div>
                 </div>
               </div>
@@ -914,4 +932,4 @@ export default function LKPSPage() {
       </div>
     </div>
   );
-};
+}

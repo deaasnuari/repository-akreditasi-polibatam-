@@ -234,61 +234,68 @@ export default function BudayaMutuLEDPage() {
   const currentTabData = tabData[activeTab] || createEmptyTab();
 
   return (
-    <div className="min-h-screen bg-white p-6">
+    <div className="w-full bg-gray-50 min-h-screen">
       <Toaster position="top-right" richColors />
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-[#183A64] to-[#2C5F8D] text-white p-6 rounded-lg shadow-lg">
-          <h1 className="text-3xl font-bold">LAPORAN EVALUASI DIRI</h1>
-          <p className="text-sm mt-2 opacity-90">
-            Kelola data LED untuk berbagai aspek standar pendidikan tinggi
-          </p>
-        </div>
-
-        {/* Tabs Navigation */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 bg-gray-100 p-2 rounded-lg shadow-sm">
-          {tabs.map(([val, label]) => (
-            <button
-              key={val}
-              onClick={() => setActiveTab(val)}
-              className={`text-xs md:text-sm py-2.5 px-2 rounded-lg border transition-all duration-200 font-medium ${
-                activeTab === val
-                  ? 'bg-[#183A64] text-white border-[#183A64] shadow-md scale-105'
-                  : 'bg-white border-gray-300 text-[#183A64] hover:bg-[#ADE7F7] hover:border-[#183A64]'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {/* Content Area */}
-        <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
-          <h2 className="text-2xl text-[#183A64] font-semibold border-b-4 border-[#183A64] pb-2 mb-4">
-            {tabs.find(([key]) => key === activeTab)?.[1]}
-          </h2>
-
-          <div className="flex items-start gap-3 bg-[#ADE7F7]/40 border-l-4 border-[#183A64] p-4 rounded-lg mb-6">
-            <Info className="h-5 w-5 text-[#183A64] mt-1 flex-shrink-0" />
-            <div className="text-sm text-gray-700">
-              <p className="font-medium mb-1">Panduan Pengisian:</p>
-              <ul className="list-disc list-inside space-y-1">
-                <li>Lengkapi tabel dengan pernyataan standar dan keterlaksanaannya</li>
-                <li>Gunakan tombol <strong>Tambah Baris</strong> untuk menambah data baru</li>
-                <li>Gunakan tombol <strong>Hapus</strong> untuk menghapus baris (minimal 1 baris)</li>
-                <li>Data akan otomatis tersimpan setiap 30 detik</li>
-              </ul>
+      <div className="flex w-full min-h-screen flex-col">
+        <main className="w-full p-4 md:p-6 max-w-full overflow-x-hidden">
+          <div className="max-w-3xl mx-auto space-y-4 md:space-y-6">
+            {/* Header */}
+            <div className="bg-white rounded-lg shadow p-3 sm:p-4 md:p-6 mb-4 md:mb-6">
+              <div className="flex items-center gap-3 md:gap-4">
+                <div className="text-2xl md:text-3xl font-bold text-[#183A64]">📋</div>
+                <div className="flex-1">
+                  <h1 className="text-lg md:text-2xl lg:text-3xl font-bold text-gray-800">Laporan Evaluasi Diri (LED)</h1>
+                  <p className="text-xs sm:text-sm text-gray-600 mt-1">Kelola data LED untuk berbagai aspek standar pendidikan tinggi</p>
+                </div>
+              </div>
             </div>
-          </div>
+
+            {/* Tabs Navigation */}
+            <div className="bg-white rounded-lg shadow overflow-x-auto">
+              <div className="flex gap-1 md:gap-2 p-2 md:p-3 overflow-x-auto">
+                {tabs.map(([val, label]) => (
+                  <button
+                    key={val}
+                    onClick={() => setActiveTab(val)}
+                    className={`px-2 md:px-3 lg:px-4 py-2 md:py-3 text-xs sm:text-sm md:text-base rounded-lg font-semibold transition-all duration-200 whitespace-nowrap ${
+                      activeTab === val
+                        ? 'bg-[#183A64] text-[#ADE7F7] shadow-md'
+                        : 'bg-gray-100 text-gray-700 hover:bg-[#ADE7F7] hover:text-[#183A64]'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Content Area */}
+            <div className="bg-white rounded-lg shadow-md p-3 sm:p-4 md:p-6">
+              <h2 className="text-lg md:text-xl lg:text-2xl font-semibold text-[#183A64] border-b-2 md:border-b-4 border-[#183A64] pb-2 md:pb-3 mb-3 md:mb-6">
+                {tabs.find(([key]) => key === activeTab)?.[1]}
+              </h2>
+
+              <div className="flex items-start gap-2 md:gap-3 bg-[#ADE7F7]/40 border-l-4 border-[#183A64] p-2 md:p-4 rounded-lg mb-4 md:mb-6 text-xs md:text-sm">
+                <Info className="h-4 w-4 md:h-5 md:w-5 text-[#183A64] mt-0.5 flex-shrink-0" />
+                <div className="text-gray-700">
+                  <p className="font-medium mb-1">Panduan Pengisian:</p>
+                  <ul className="list-disc list-inside space-y-0.5 md:space-y-1">
+                    <li>Lengkapi tabel dengan pernyataan standar dan keterlaksanaannya</li>
+                    <li>Gunakan tombol <strong>Tambah Baris</strong> untuk menambah data baru</li>
+                    <li>Gunakan tombol <strong>Hapus</strong> untuk menghapus baris (minimal 1 baris)</li>
+                    <li>Data akan otomatis tersimpan setiap 30 detik</li>
+                  </ul>
+                </div>
+              </div>
 
           {/* Penetapan Section */}
-          <div className="mb-8">
-            <h3 className="font-semibold text-[#183A64] text-lg mb-3 flex items-center gap-2">
-              <span className="bg-[#183A64] text-white px-3 py-1 rounded">1</span>
+          <div className="mb-6 md:mb-8">
+            <h3 className="font-semibold text-[#183A64] text-base md:text-lg mb-2 md:mb-3 flex items-center gap-2">
+              <span className="bg-[#183A64] text-white px-2 md:px-3 py-1 rounded text-xs md:text-sm">1</span>
               Penetapan
             </h3>
-            <div className="mb-4">
-              <h4 className="text-sm font-medium text-gray-600 mb-2">Tabel A</h4>
+            <div className="mb-3 md:mb-4">
+              <h4 className="text-xs md:text-sm font-medium text-gray-600 mb-2">Tabel A</h4>
               <Table2Col
                 rows={currentTabData.penetapanA}
                 sectionKey="penetapanA"
@@ -298,7 +305,7 @@ export default function BudayaMutuLEDPage() {
               />
             </div>
             <div>
-              <h4 className="text-sm font-medium text-gray-600 mb-2">Tabel B</h4>
+              <h4 className="text-xs md:text-sm font-medium text-gray-600 mb-2">Tabel B</h4>
               <Table2Col
                 rows={currentTabData.penetapanB}
                 sectionKey="penetapanB"
@@ -310,13 +317,13 @@ export default function BudayaMutuLEDPage() {
           </div>
 
           {/* Pelaksanaan Section */}
-          <div className="mb-8">
-            <h3 className="font-semibold text-[#183A64] text-lg mb-3 flex items-center gap-2">
-              <span className="bg-[#183A64] text-white px-3 py-1 rounded">2</span>
+          <div className="mb-6 md:mb-8">
+            <h3 className="font-semibold text-[#183A64] text-base md:text-lg mb-2 md:mb-3 flex items-center gap-2">
+              <span className="bg-[#183A64] text-white px-2 md:px-3 py-1 rounded text-xs md:text-sm">2</span>
               Pelaksanaan
             </h3>
-            <div className="mb-4">
-              <h4 className="text-sm font-medium text-gray-600 mb-2">Tabel A</h4>
+            <div className="mb-3 md:mb-4">
+              <h4 className="text-xs md:text-sm font-medium text-gray-600 mb-2">Tabel A</h4>
               <Table2Col
                 rows={currentTabData.pelaksanaanA}
                 sectionKey="pelaksanaanA"
@@ -326,7 +333,7 @@ export default function BudayaMutuLEDPage() {
               />
             </div>
             <div>
-              <h4 className="text-sm font-medium text-gray-600 mb-2">Tabel B</h4>
+              <h4 className="text-xs md:text-sm font-medium text-gray-600 mb-2">Tabel B</h4>
               <Table2Col
                 rows={currentTabData.pelaksanaanB}
                 sectionKey="pelaksanaanB"
@@ -345,17 +352,19 @@ export default function BudayaMutuLEDPage() {
             onUpdate={handleUpdateRow}
           />
 
-          <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 md:gap-3 mt-4 md:mt-6 pt-3 md:pt-4 border-t">
             <button
               type="button"
               onClick={() => handleSave(true, false)}
-              className="inline-flex items-center gap-2 bg-[#183A64] text-white px-6 py-3 rounded-lg hover:bg-[#2C5F8D] transition-all duration-200 shadow-md hover:shadow-lg font-medium"
+              className="inline-flex items-center justify-center gap-2 bg-[#183A64] text-white px-3 md:px-6 py-2 md:py-3 rounded-lg hover:bg-[#2C5F8D] transition-all duration-200 shadow-md hover:shadow-lg font-medium text-sm md:text-base"
             >
-              <Save className="h-5 w-5" />
-          Simpan Data ke Server
+              <Save className="h-4 w-4 md:h-5 md:w-5" />
+              Simpan Data ke Server
             </button>
           </div>
-        </div>
+            </div>
+          </div>
+        </main>
       </div>
     </div>
   );
@@ -393,16 +402,16 @@ function Table2Col({ rows, sectionKey, onAdd, onRemove, onUpdate }: Table2ColPro
   return (
     <div className="border border-gray-200 rounded-lg overflow-hidden mb-4 shadow-sm">
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-sm">
-          <thead className="bg-[#ADE7F7]/40">
+        <table className="w-full border-collapse text-xs sm:text-sm">
+          <thead className="bg-[#ADE7F7]/40 sticky top-0 z-10">
             <tr>
-              <th className="border border-gray-300 p-3 text-left w-1/2 font-semibold text-[#183A64]">
+              <th className="border border-gray-300 p-2 md:p-3 text-left w-1/2 font-semibold text-[#183A64]">
                 Pernyataan Standar
               </th>
-              <th className="border border-gray-300 p-3 text-left w-1/2 font-semibold text-[#183A64]">
+              <th className="border border-gray-300 p-2 md:p-3 text-left w-1/2 font-semibold text-[#183A64]">
                 Keterlaksanaan
               </th>
-              <th className="border border-gray-300 p-3 w-24 text-center font-semibold text-[#183A64]">
+              <th className="border border-gray-300 p-2 md:p-3 w-20 md:w-24 text-center font-semibold text-[#183A64]">
                 Aksi
               </th>
             </tr>
@@ -415,31 +424,31 @@ function Table2Col({ rows, sectionKey, onAdd, onRemove, onUpdate }: Table2ColPro
                   index % 2 === 0 ? 'bg-white' : 'bg-[#ADE7F7]/10'
                 } hover:bg-[#ADE7F7]/20 transition-colors`}
               >
-                <td className="border border-gray-300 p-2 align-top">
+                <td className="border border-gray-300 p-2 md:p-3 align-top">
                   <textarea
                     value={r.pernyataan || ''}
                     onChange={(e) => onUpdate(sectionKey, r.id, 'pernyataan', e.target.value)}
-                    className="w-full min-h-[80px] border border-gray-300 rounded p-2 text-sm resize-y focus:border-[#183A64] focus:ring-2 focus:ring-[#ADE7F7]/50 focus:outline-none"
+                    className="w-full min-h-[60px] md:min-h-[80px] border border-gray-300 rounded p-2 text-xs sm:text-sm resize-y focus:border-[#183A64] focus:ring-2 focus:ring-[#ADE7F7]/50 focus:outline-none"
                     placeholder="Isi pernyataan standar..."
                   />
                 </td>
-                <td className="border border-gray-300 p-2 align-top">
+                <td className="border border-gray-300 p-2 md:p-3 align-top">
                   <textarea
                     value={r.keterlaksanaan || ''}
                     onChange={(e) => onUpdate(sectionKey, r.id, 'keterlaksanaan', e.target.value)}
-                    className="w-full min-h-[80px] border border-gray-300 rounded p-2 text-sm resize-y focus:border-[#183A64] focus:ring-2 focus:ring-[#ADE7F7]/50 focus:outline-none"
+                    className="w-full min-h-[60px] md:min-h-[80px] border border-gray-300 rounded p-2 text-xs sm:text-sm resize-y focus:border-[#183A64] focus:ring-2 focus:ring-[#ADE7F7]/50 focus:outline-none"
                     placeholder="Isi keterlaksanaan..."
                   />
                 </td>
-                <td className="border border-gray-300 p-2 text-center align-top">
+                <td className="border border-gray-300 p-2 md:p-3 text-center align-top">
                   <button
                     type="button"
                     onClick={(e) => handleRemoveClick(e, r.id)}
                     disabled={safeRows.length === 1}
-                    className="inline-flex items-center gap-1 bg-red-600 text-white px-3 py-2 rounded hover:bg-red-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    className="inline-flex items-center justify-center gap-1 bg-red-600 text-white px-2 md:px-3 py-1 md:py-2 rounded text-xs md:text-sm hover:bg-red-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                     title={safeRows.length === 1 ? 'Minimal 1 baris harus ada' : 'Hapus baris'}
                   >
-                    <Trash className="h-4 w-4" />
+                    <Trash className="h-3 w-3 md:h-4 md:w-4" />
                   </button>
                 </td>
               </tr>
@@ -448,13 +457,13 @@ function Table2Col({ rows, sectionKey, onAdd, onRemove, onUpdate }: Table2ColPro
         </table>
       </div>
 
-      <div className="p-3 bg-gray-50 border-t border-gray-300 flex justify-center">
+      <div className="p-2 md:p-3 bg-gray-50 border-t border-gray-300 flex justify-center">
         <button
           type="button"
           onClick={handleAddClick}
-          className="inline-flex items-center gap-2 bg-[#183A64] text-white px-5 py-2 rounded-lg hover:bg-[#2C5F8D] transition-all duration-200 shadow-sm hover:shadow-md font-medium"
+          className="inline-flex items-center justify-center gap-2 bg-[#183A64] text-white px-3 md:px-5 py-1.5 md:py-2 rounded-lg hover:bg-[#2C5F8D] transition-all duration-200 shadow-sm hover:shadow-md font-medium text-xs md:text-sm"
         >
-          <Plus className="h-4 w-4" /> Tambah Baris
+          <Plus className="h-3 w-3 md:h-4 md:w-4" /> Tambah Baris
         </button>
       </div>
     </div>
@@ -502,32 +511,32 @@ function SectionEval({ evalRows, onAdd, onRemove, onUpdate }: SectionEvalProps) 
 
   
   return (
-    <div className="mb-8">
-      <h3 className="font-semibold text-[#183A64] text-lg mb-3 flex items-center gap-2">
-        <span className="bg-[#183A64] text-white px-3 py-1 rounded">3</span>
+    <div className="mb-6 md:mb-8">
+      <h3 className="font-semibold text-[#183A64] text-base md:text-lg mb-2 md:mb-3 flex items-center gap-2">
+        <span className="bg-[#183A64] text-white px-2 md:px-3 py-1 rounded text-xs md:text-sm">3</span>
         Evaluasi
       </h3>
       <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-sm">
-            <thead className="bg-[#ADE7F7]/40">
+          <table className="w-full border-collapse text-xs sm:text-sm">
+            <thead className="bg-[#ADE7F7]/40 sticky top-0 z-10">
               <tr>
-                <th className="border border-gray-300 p-3 text-left font-semibold text-[#183A64]">
+                <th className="border border-gray-300 p-2 md:p-3 text-left font-semibold text-[#183A64]">
                   Pernyataan Standar
                 </th>
-                <th className="border border-gray-300 p-3 text-left font-semibold text-[#183A64]">
+                <th className="border border-gray-300 p-2 md:p-3 text-left font-semibold text-[#183A64]">
                   Keterlaksanaan
                 </th>
-                <th className="border border-gray-300 p-3 text-left font-semibold text-[#183A64]">
+                <th className="border border-gray-300 p-2 md:p-3 text-left font-semibold text-[#183A64]">
                   Evaluasi
                 </th>
-                <th className="border border-gray-300 p-3 text-left font-semibold text-[#183A64]">
+                <th className="border border-gray-300 p-2 md:p-3 text-left font-semibold text-[#183A64]">
                   Tindak Lanjut
                 </th>
-                <th className="border border-gray-300 p-3 text-left font-semibold text-[#183A64]">
+                <th className="border border-gray-300 p-2 md:p-3 text-left font-semibold text-[#183A64]">
                   Hasil Optimalisasi
                 </th>
-                <th className="border border-gray-300 p-3 w-24 text-center font-semibold text-[#183A64]">
+                <th className="border border-gray-300 p-2 md:p-3 w-20 md:w-24 text-center font-semibold text-[#183A64]">
                   Aksi
                 </th>
               </tr>
@@ -542,25 +551,25 @@ function SectionEval({ evalRows, onAdd, onRemove, onUpdate }: SectionEvalProps) 
                 >
                   {(['pernyataan', 'keterlaksanaan', 'evaluasi', 'tindak_lanjut', 'hasil_optimalisasi'] as const).map(
                     (field) => (
-                      <td key={field} className="border border-gray-300 p-2 align-top">
+                      <td key={field} className="border border-gray-300 p-2 md:p-3 align-top">
                         <textarea
                           value={r[field] || ''}
                           onChange={(e) => onUpdate('evalRows', r.id, field, e.target.value)}
-                          className="w-full min-h-[60px] border border-gray-300 rounded p-2 text-sm resize-y focus:border-[#183A64] focus:ring-2 focus:ring-[#ADE7F7]/50 focus:outline-none"
+                          className="w-full min-h-[50px] md:min-h-[60px] border border-gray-300 rounded p-1 md:p-2 text-xs sm:text-sm resize-y focus:border-[#183A64] focus:ring-2 focus:ring-[#ADE7F7]/50 focus:outline-none"
                           placeholder={`Isi ${field.replace('_', ' ')}...`}
                         />
                       </td>
                     )
                   )}
-                  <td className="border border-gray-300 p-2 text-center align-top">
+                  <td className="border border-gray-300 p-2 md:p-3 text-center align-top">
                     <button
                       type="button"
                       onClick={(e) => handleRemoveClick(e, r.id)}
                       disabled={safeRows.length === 1}
-                      className="inline-flex items-center gap-1 bg-red-600 text-white px-3 py-2 rounded hover:bg-red-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                      className="inline-flex items-center justify-center gap-1 bg-red-600 text-white px-2 md:px-3 py-1 md:py-2 rounded text-xs md:text-sm hover:bg-red-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                       title={safeRows.length === 1 ? 'Minimal 1 baris harus ada' : 'Hapus baris'}
                     >
-                      <Trash className="h-4 w-4" />
+                      <Trash className="h-3 w-3 md:h-4 md:w-4" />
                     </button>
                   </td>
                 </tr>
@@ -568,13 +577,13 @@ function SectionEval({ evalRows, onAdd, onRemove, onUpdate }: SectionEvalProps) 
             </tbody>
           </table>
         </div>
-        <div className="p-3 bg-gray-50 border-t border-gray-300 flex justify-center">
+        <div className="p-2 md:p-3 bg-gray-50 border-t border-gray-300 flex justify-center">
           <button
             type="button"
             onClick={handleAddClick}
-            className="inline-flex items-center gap-2 bg-[#183A64] text-white px-5 py-2 rounded-lg hover:bg-[#2C5F8D] transition-all duration-200 shadow-sm hover:shadow-md font-medium"
+            className="inline-flex items-center justify-center gap-2 bg-[#183A64] text-white px-3 md:px-5 py-1.5 md:py-2 rounded-lg hover:bg-[#2C5F8D] transition-all duration-200 shadow-sm hover:shadow-md font-medium text-xs md:text-sm"
           >
-            <Plus className="h-4 w-4" /> Tambah Baris
+            <Plus className="h-3 w-3 md:h-4 md:w-4" /> Tambah Baris
           </button>
         </div>
       </div>
