@@ -129,7 +129,7 @@ export default function LayoutTimAkreditasi({
   }
 
   return (
-    <div className={`flex w-full bg-gray-100 ${poppins.variable} font-sans`}>
+    <div className={`flex w-full min-h-screen bg-gray-100 ${poppins.variable} font-sans`}>
       {/* === SIDEBAR === */}
       <div
         className={`
@@ -235,7 +235,7 @@ export default function LayoutTimAkreditasi({
       </div>
 
       {/* === MAIN CONTENT === */}
-      <div className="flex-1 relative">
+      <div className="flex-1 relative w-full">
         {/* Toggle Button */}
         <button
           onClick={toggleSidebar}
@@ -248,7 +248,7 @@ export default function LayoutTimAkreditasi({
         </button>
 
         {/* Page Content */}
-        <main className="p-6">{children}</main>
+        <main className="w-full p-2 sm:p-4 md:p-6">{children}</main>
       </div>
     </div>
   );
