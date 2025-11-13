@@ -15,7 +15,11 @@ export async function saveRelevansiPenelitian(subtab: string, payload: any) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ subtab, ...payload }), // perbaikan: pakai subtab
   });
-  if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+  if (!res.ok) {
+    let bodyText = '';
+    try { const json = await res.json(); bodyText = json.message || json.error || JSON.stringify(json); } catch { try { bodyText = await res.text(); } catch {} }
+    throw new Error(`HTTP ${res.status} ${res.statusText} - ${bodyText}`);
+  }
   return await res.json();
 }
 

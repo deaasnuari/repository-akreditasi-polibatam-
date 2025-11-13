@@ -69,3 +69,60 @@ CREATE TABLE IF NOT EXISTS migration_log (
     executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- ===== MIGRATION 2.0.0: Tabel relevansi_penelitian =====
+DO $$
+BEGIN
+    -- Buat tabel relevansi_penelitian jika belum ada
+    IF NOT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'relevansi_penelitian') THEN
+        CREATE TABLE relevansi_penelitian (
+            id SERIAL PRIMARY KEY,
+            subtab VARCHAR(50) NOT NULL,
+            namaprasarana VARCHAR(255),
+            dayatampung VARCHAR(100),
+            luasruang VARCHAR(100),
+            status VARCHAR(50),
+            lisensi VARCHAR(50),
+            perangkat VARCHAR(255),
+            linkbukti VARCHAR(500),
+            namadtpr VARCHAR(255),
+            judulpenelitian VARCHAR(500),
+            jumlahmahasiswaterlibat VARCHAR(100),
+            jenishibah VARCHAR(100),
+            sumber VARCHAR(100),
+            durasi VARCHAR(50),
+            pendanaan VARCHAR(100),
+            tahun VARCHAR(20),
+            jenispengembangan VARCHAR(100),
+            tahunakademik VARCHAR(20),
+            judulkerjasama VARCHAR(500),
+            mitra VARCHAR(255),
+            judulpublikasi VARCHAR(500),
+            jenispublikasi VARCHAR(100),
+            judul VARCHAR(500),
+            jenishki VARCHAR(100),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        
+        RAISE NOTICE 'Tabel relevansi_penelitian berhasil dibuat';
+    ELSE
+        RAISE NOTICE 'Tabel relevansi_penelitian sudah ada';
+    END IF;
+END $$;
+
+-- Buat index untuk relevansi_penelitian
+CREATE INDEX IF NOT EXISTS idx_relevansi_penelitian_subtab ON relevansi_penelitian(subtab);
+CREATE INDEX IF NOT EXISTS idx_relevansi_penelitian_created ON relevansi_penelitian(created_at);
+
+-- Buat trigger update timestamp untuk relevansi_penelitian
+DROP TRIGGER IF EXISTS update_relevansi_penelitian_updated_at ON relevansi_penelitian;
+CREATE TRIGGER update_relevansi_penelitian_updated_at 
+    BEFORE UPDATE ON relevansi_penelitian 
+    FOR EACH ROW 
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Log migration
+INSERT INTO migration_log (version, description, executed_at) 
+VALUES ('2.0.0', 'Buat tabel relevansi_penelitian', CURRENT_TIMESTAMP)
+ON CONFLICT DO NOTHING;
+

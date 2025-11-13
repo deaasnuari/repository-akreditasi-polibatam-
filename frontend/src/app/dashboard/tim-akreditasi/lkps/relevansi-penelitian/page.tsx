@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X } from 'lucide-react';
+import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -29,6 +29,56 @@ export default function RelevansiPenelitianPage() {
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [mapping, setMapping] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [popup, setPopup] = useState<{ show: boolean; message: string; type: 'success' | 'error' | 'info' }>({
+    show: false,
+    message: '',
+    type: 'success',
+  });
+
+  // Fungsi untuk menampilkan popup
+  const showPopup = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    setPopup({ show: true, message, type });
+    setTimeout(() => setPopup({ show: false, message: '', type: 'success' }), 3000);
+  };
+
+  // Komponen Popup Notification
+  const PopupNotification = () => {
+    if (!popup.show) return null;
+
+    const bgColor = popup.type === 'success' ? 'bg-green-50 border-green-500' : 
+                    popup.type === 'error' ? 'bg-red-50 border-red-500' : 
+                    'bg-blue-50 border-blue-500';
+    const textColor = popup.type === 'success' ? 'text-green-800' : 
+                      popup.type === 'error' ? 'text-red-800' : 
+                      'text-blue-800';
+    const Icon = popup.type === 'success' ? CheckCircle : 
+                 popup.type === 'error' ? AlertCircle : 
+                 Info;
+
+    return (
+      <div className="fixed top-0 left-0 right-0 flex justify-center z-[60] pt-4">
+        <div className={`${bgColor} ${textColor} border-l-4 rounded-lg shadow-2xl p-5 flex items-center gap-4 min-w-[350px] max-w-md animate-slideDown`}>
+          <Icon size={28} className={popup.type === 'success' ? 'text-green-500' : 
+                                     popup.type === 'error' ? 'text-red-500' : 
+                                     'text-blue-500'} />
+          <div className="flex-1">
+            <p className="font-bold text-base mb-1">
+              {popup.type === 'success' ? 'Berhasil!' : 
+               popup.type === 'error' ? 'Error!' : 
+               'Info'}
+            </p>
+            <p className="text-sm">{popup.message}</p>
+          </div>
+          <button 
+            onClick={() => setPopup({ show: false, message: '', type: 'success' })}
+            className="hover:opacity-70 transition-opacity"
+          >
+            <X size={20} />
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   // --- Tabs utama ---
   const tabs = [
@@ -131,9 +181,11 @@ export default function RelevansiPenelitianPage() {
       setShowForm(false);
       setFormData({});
       setEditIndex(null);
+      showPopup('Data berhasil disimpan', 'success');
     } catch (err: any) {
       console.error(err);
       setErrorMsg(err.message || String(err));
+      showPopup(err.message || 'Gagal menyimpan data', 'error');
     } finally {
       setSaving(false);
     }
@@ -145,9 +197,11 @@ export default function RelevansiPenelitianPage() {
       setErrorMsg(null);
       await deleteRelevansiPenelitian(activeSubTab, id);
       await fetchData();
+      showPopup('Data berhasil dihapus', 'success');
     } catch (err: any) {
       console.error(err);
       setErrorMsg(err.message || String(err));
+      showPopup(err.message || 'Gagal menghapus data', 'error');
     }
   };
 
@@ -183,10 +237,11 @@ export default function RelevansiPenelitianPage() {
       await fetchData();
       setShowPreviewModal(false);
       setPreviewFile(null);
-      alert('Import berhasil');
+      showPopup('Import berhasil', 'success');
     } catch(err:any) {
       console.error(err);
       setErrorMsg(err.message || String(err));
+      showPopup(err.message || 'Gagal import data', 'error');
     } finally { setImporting(false); }
   };
 
@@ -233,6 +288,7 @@ export default function RelevansiPenelitianPage() {
 
   return (
     <div className="flex w-full bg-gray-100">
+      <PopupNotification />
       <div className="flex-1 w-full">
         <main className="w-full p-4 md:p-6 max-w-full overflow-x-hidden">
           {/* Header */}
@@ -361,6 +417,22 @@ export default function RelevansiPenelitianPage() {
           )}
 
         </main>
+
+        <style>{`
+          @keyframes slideDown {
+            from {
+              transform: translateY(-100%);
+              opacity: 0;
+            }
+            to {
+              transform: translateY(0);
+              opacity: 1;
+            }
+          }
+          .animate-slideDown {
+            animation: slideDown 0.3s ease-out;
+          }
+        `}</style>
       </div>
     </div>
   );

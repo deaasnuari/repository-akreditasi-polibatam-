@@ -1,5 +1,17 @@
 const API_BASE = "http://localhost:5000/api/relevansi-pkm";
 
+// Helper: Convert camelCase to snake_case for database
+function camelToSnake(obj: any): any {
+  if (!obj || typeof obj !== 'object') return obj;
+  
+  const converted: any = {};
+  for (const key in obj) {
+    const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+    converted[snakeKey] = obj[key];
+  }
+  return converted;
+}
+
 // =======================
 // 🔹 GET data per subtab
 // =======================
@@ -19,10 +31,11 @@ export async function getRelevansiPkm(type: string) {
 // 🔹 POST data baru
 // =======================
 export async function saveRelevansiPkm(type: string, payload: any) {
+  const converted = camelToSnake(payload);
   const res = await fetch(`${API_BASE}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ...payload, type }), // ✅ type masuk di body
+    body: JSON.stringify({ ...converted, type }), // ✅ Convert camelCase to snake_case
   });
   
   const json = await res.json();
@@ -38,10 +51,11 @@ export async function saveRelevansiPkm(type: string, payload: any) {
 // 🔹 PUT / Update data
 // =======================
 export async function updateRelevansiPkm(type: string, id: number | string, payload: any) {
+  const converted = camelToSnake(payload);
   const res = await fetch(`${API_BASE}/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ...payload, type }), // ✅ type bisa dikirim juga (optional)
+    body: JSON.stringify({ ...converted, type }), // ✅ Convert camelCase to snake_case
   });
   
   const json = await res.json();
