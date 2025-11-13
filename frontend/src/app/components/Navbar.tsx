@@ -20,10 +20,28 @@ export default function Navbar() {
     pathname.startsWith('/dashboard') || pathname === '/login' || pathname === '/register';
 
   const handleHomeClick = () => {
+  };
+
+  // Scroll helper: if we're already on home page, scroll smoothly to target;
+  // otherwise navigate to '/' first and then scroll after a short delay.
+  const handleScrollTo = (targetId?: string) => {
+    const doScroll = () => {
+      if (!targetId) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+      const el = document.getElementById(targetId);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
     if (pathname === '/') {
-      window.location.reload();
+      doScroll();
     } else {
+      // navigate to home first, then scroll after a short delay
+      // Note: next/navigation router.push in app-router is synchronous (void),
+      // so wait a small amount for the page to render before scrolling.
       router.push('/');
+      setTimeout(doScroll, 220);
     }
   };
 
@@ -47,14 +65,36 @@ export default function Navbar() {
       {!hideMenu && (
         <div className="flex gap-4 items-center">
           <button
-          onClick={handleHomeClick}
-          className="bg-[#183A64] text-[#ADE7F7] px-4 py-1.5 rounded-md font-semibold hover:bg-[#FF7F00] hover:text-white transition-all duration-300"
+            onClick={() => handleScrollTo(undefined)}
+            className="bg-[#183A64] text-[#ADE7F7] px-4 py-1.5 rounded-md font-semibold hover:bg-[#FF7F00] hover:text-white transition-all duration-300"
           >
-            Home
+            Beranda
           </button>
+
+          <button
+            onClick={() => handleScrollTo('fitur')}
+            className="bg-[#183A64] text-[#ADE7F7] px-4 py-1.5 rounded-md font-semibold hover:bg-[#FF7F00] hover:text-white transition-all duration-300"
+          >
+            Fitur
+          </button>
+
+          <button
+            onClick={() => handleScrollTo('tentang')}
+            className="bg-[#183A64] text-[#ADE7F7] px-4 py-1.5 rounded-md font-semibold hover:bg-[#FF7F00] hover:text-white transition-all duration-300"
+          >
+            Tentang
+          </button>
+
+          <button
+            onClick={() => handleScrollTo('kontak')}
+            className="bg-[#183A64] text-[#ADE7F7] px-4 py-1.5 rounded-md font-semibold hover:bg-[#FF7F00] hover:text-white transition-all duration-300"
+          >
+            Kontak
+          </button>
+
           <Link
-          href="/login"
-          className="bg-[#183A64] text-[#ADE7F7] px-4 py-1.5 rounded-md font-semibold hover:bg-[#FF7F00] hover:text-white transition-all duration-300"
+            href="/login"
+            className="bg-[#183A64] text-[#ADE7F7] px-4 py-1.5 rounded-md font-semibold hover:bg-[#FF7F00] hover:text-white transition-all duration-300"
           >
             Login
           </Link>

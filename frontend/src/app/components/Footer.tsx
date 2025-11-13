@@ -9,7 +9,7 @@ const poppins = Poppins({
 
 export default function Footer() {
   return (
-    <footer className={`mt-10 w-full ${poppins.className}`}>
+    <footer id="kontak" className={`mt-10 w-full ${poppins.className}`}>
       {/* Bagian Atas */}
       <div className="bg-[#183A64] text-white w-full">
         <div className="max-w-[1600px] mx-auto flex justify-between items-start px-6 py-6">

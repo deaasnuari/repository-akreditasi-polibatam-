@@ -41,8 +41,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="bg-gray-200 py-20 px-4 md:px-8 mt-32">
+  {/* Features Section */}
+  <section id="fitur" className="bg-gray-200 py-20 px-4 md:px-8 mt-32">
         <div className="max-w-[1400px] mx-auto">
           <div className="text-center mb-12">
             <span className="inline-block bg-gray-400 text-white px-6 py-2 rounded-full text-sm mb-4">
@@ -139,8 +139,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* About Section */}
-      <section className="bg-white py-20 px-4 md:px-8">
+  {/* About Section */}
+  <section id="tentang" className="bg-white py-20 px-4 md:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="mb-8">
             <span className="inline-block bg-gray-400 text-white px-6 py-2 rounded-full text-sm">
