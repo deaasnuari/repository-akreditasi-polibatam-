@@ -130,6 +130,10 @@ model relevansi_pkm {
   @@index([subtab], map: "idx_relevansi_pkm_subtab")
 }
 
+// =========================
+// USERS (AUTH)
+// =========================
+//
 model users {
   id         Int       @id @default(autoincrement())
   username   String    @unique @db.VarChar(50)

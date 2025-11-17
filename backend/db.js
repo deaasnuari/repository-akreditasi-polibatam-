@@ -9,7 +9,8 @@ const pool = new Pool({
   port: process.env.DB_PORT || 5432,
   user: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD || '030104',
-  database: process.env.DB_NAME || 'repository_polibatam',
+  database: process.env.DB_DATABASE || 'repository_polibatam',
+
 });
 
 pool.on('connect', () => {
