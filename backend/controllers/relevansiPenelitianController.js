@@ -1,4 +1,4 @@
-import pool from '../db.js';
+import * as Model from '../models/relevansiPenelitianModel.js';
 import xlsx from 'xlsx';
 import multer from 'multer';
 
@@ -8,11 +8,8 @@ const upload = multer({ storage: multer.memoryStorage() });
 export const getData = async (req, res) => {
   try {
     const subtab = req.query.subtab; // ganti type -> subtab
-    const result = await pool.query(
-      'SELECT * FROM relevansi_penelitian WHERE subtab = $1 ORDER BY id ASC',
-      [subtab]
-    );
-    res.json({ success: true, data: result.rows });
+    const rows = await Model.findBySubtab(subtab);
+    res.json({ success: true, data: rows });
   } catch (err) {
     console.error('GET error:', err);
     res.status(500).json({ success: false, message: 'Gagal mengambil data', error: err.message });
@@ -23,16 +20,31 @@ export const getData = async (req, res) => {
 export const createData = async (req, res) => {
   try {
     const { subtab, ...data } = req.body; // ganti type -> subtab
-    const columns = Object.keys(data).join(', ');
-    const values = Object.values(data);
-    const placeholders = values.map((_, i) => `$${i + 2}`).join(', ');
-    const query = `INSERT INTO relevansi_penelitian (subtab, ${columns}) VALUES ($1, ${placeholders}) RETURNING *`;
 
-    const result = await pool.query(query, [subtab, ...values]);
-    res.json({ success: true, message: '✅ Data berhasil ditambahkan', data: result.rows[0] });
+    if (!subtab) {
+      return res.status(400).json({ success: false, message: 'Field "subtab" wajib diisi' });
+    }
+
+    const keys = Object.keys(data || {});
+    if (keys.length === 0) {
+      return res.status(400).json({ success: false, message: 'Tidak ada data untuk disimpan' });
+    }
+
+    // Basic validation: ensure column names are safe identifiers
+    const invalidKey = keys.find(k => !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(k));
+    if (invalidKey) {
+      return res.status(400).json({ success: false, message: `Nama kolom tidak valid: ${invalidKey}` });
+    }
+
+    const item = await Model.create(subtab, data);
+    res.json({ success: true, message: '✅ Data berhasil ditambahkan', data: item });
   } catch (err) {
     console.error('POST error:', err);
-    res.status(500).json({ success: false, message: 'Gagal menambahkan data', error: err.message });
+    // In development return the error message so frontend can show details.
+    const safeMessage = process.env.NODE_ENV === 'production' ? 'Gagal menambahkan data' : (err.message || 'Gagal menambahkan data');
+    const payload = { success: false, message: safeMessage };
+    if (process.env.NODE_ENV !== 'production') payload.error = err.stack || err.message;
+    res.status(500).json(payload);
   }
 };
 
@@ -53,17 +65,9 @@ export const updateData = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Tidak ada data yang diberikan untuk diupdate' });
     }
 
-    // Build SET clause safely
-    const setClause = keys.map((key, i) => `${key} = $${i + 1}`).join(', ');
-    const values = keys.map(k => data[k]);
-
-    const query = `UPDATE relevansi_penelitian SET ${setClause} WHERE id = $${values.length + 1} RETURNING *`;
-    const result = await pool.query(query, [...values, id]);
-
-    if (result.rows.length === 0)
-      return res.status(404).json({ success: false, message: 'Data tidak ditemukan' });
-
-    res.json({ success: true, message: '✅ Data berhasil diperbarui', data: result.rows[0] });
+    const updated = await Model.updateById(id, data);
+    if (!updated) return res.status(404).json({ success: false, message: 'Data tidak ditemukan' });
+    res.json({ success: true, message: '✅ Data berhasil diperbarui', data: updated });
   } catch (err) {
     console.error('PUT error:', err);
     res.status(500).json({ success: false, message: 'Gagal memperbarui data', error: err.message });
@@ -77,18 +81,13 @@ export const deleteData = async (req, res) => {
     // log incoming id for debugging
     console.log(`[relevansi-penelitian] DELETE called with idRaw=${idRaw}`);
     const id = Number(idRaw);
-    console.log(`[relevansi-penelitian] parsed id=${id} (type=${typeof id})`);
     if (!Number.isFinite(id) || id <= 0) {
-      console.warn(`[relevansi-penelitian] invalid id: ${idRaw}`);
       return res.status(400).json({ success: false, message: 'ID tidak valid' });
     }
 
-    const result = await pool.query('DELETE FROM relevansi_penelitian WHERE id = $1 RETURNING *', [id]);
-
-    if (result.rows.length === 0)
-      return res.status(404).json({ success: false, message: 'Data tidak ditemukan' });
-
-    res.json({ success: true, message: '🗑️ Data berhasil dihapus', data: result.rows[0] });
+    const deleted = await Model.deleteById(id);
+    if (!deleted) return res.status(404).json({ success: false, message: 'Data tidak ditemukan' });
+    res.json({ success: true, message: '🗑️ Data berhasil dihapus', data: deleted });
   } catch (err) {
     console.error('DELETE error:', err);
     // print stack if available to help debugging
@@ -129,14 +128,8 @@ export const importExcel = [
           if (mapping[h]) mappedRow[mapping[h]] = r[h] ?? '';
         });
 
-        const columns = Object.keys(mappedRow).join(', ');
-        const values = Object.values(mappedRow);
-        const placeholders = values.map((_, i) => `$${i + 2}`).join(', ');
-
-        await pool.query(
-          `INSERT INTO relevansi_penelitian (subtab, ${columns}) VALUES ($1, ${placeholders})`,
-          [subtab, ...values]
-        );
+        // use model importRows for batch insert
+        await Model.importRows(subtab, [mappedRow]);
         added++;
       }
 

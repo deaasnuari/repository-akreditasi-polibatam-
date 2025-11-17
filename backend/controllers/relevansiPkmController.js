@@ -1,4 +1,4 @@
-import pool from "../db.js";
+import * as Model from '../models/relevansiPkmModel.js';
 import xlsx from "xlsx";
 import multer from "multer";
 
@@ -46,19 +46,9 @@ export const getData = async (req, res) => {
       });
     }
 
-    const result = await pool.query(
-      "SELECT * FROM relevansi_pkm WHERE subtab = $1 ORDER BY id ASC",
-      [subtab]
-    );
-
-    // Convert snake_case ke camelCase untuk frontend
-    const dataWithCamelCase = result.rows.map(row => convertKeysFromSnake(row));
-
-    res.json({ 
-      success: true, 
-      data: dataWithCamelCase,
-      count: dataWithCamelCase.length 
-    });
+    const rows = await Model.findBySubtab(subtab);
+    const dataWithCamelCase = rows.map(row => convertKeysFromSnake(row));
+    res.json({ success: true, data: dataWithCamelCase, count: dataWithCamelCase.length });
   } catch (err) {
     console.error("❌ GET error:", err);
     res.status(500).json({ 
@@ -106,16 +96,9 @@ export const createData = async (req, res) => {
       RETURNING *
     `;
     
-    const result = await pool.query(query, [subtab, ...values]);
-
-    // Convert hasil ke camelCase
-    const savedData = convertKeysFromSnake(result.rows[0]);
-
-    res.status(201).json({ 
-      success: true, 
-      message: "✅ Data berhasil ditambahkan", 
-      data: savedData 
-    });
+    const saved = await Model.create(subtab, data);
+    const savedData = convertKeysFromSnake(saved);
+    res.status(201).json({ success: true, message: '✅ Data berhasil ditambahkan', data: savedData });
   } catch (err) {
     console.error("❌ POST error:", err);
     res.status(500).json({ 
@@ -166,23 +149,10 @@ export const updateData = async (req, res) => {
       RETURNING *
     `;
     
-    const result = await pool.query(query, [...values, id]);
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "Data tidak ditemukan" 
-      });
-    }
-
-    // Convert hasil ke camelCase
-    const updatedData = convertKeysFromSnake(result.rows[0]);
-
-    res.json({ 
-      success: true, 
-      message: "✅ Data berhasil diperbarui", 
-      data: updatedData 
-    });
+    const updated = await Model.updateById(id, data);
+    if (!updated) return res.status(404).json({ success: false, message: 'Data tidak ditemukan' });
+    const updatedData = convertKeysFromSnake(updated);
+    res.json({ success: true, message: '✅ Data berhasil diperbarui', data: updatedData });
   } catch (err) {
     console.error("❌ PUT error:", err);
     res.status(500).json({ 
@@ -207,23 +177,9 @@ export const deleteData = async (req, res) => {
       });
     }
 
-    const result = await pool.query(
-      "DELETE FROM relevansi_pkm WHERE id = $1 RETURNING *", 
-      [id]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "Data tidak ditemukan" 
-      });
-    }
-
-    res.json({ 
-      success: true, 
-      message: "🗑️ Data berhasil dihapus", 
-      data: result.rows[0] 
-    });
+    const deleted = await Model.deleteById(id);
+    if (!deleted) return res.status(404).json({ success: false, message: 'Data tidak ditemukan' });
+    res.json({ success: true, message: '🗑️ Data berhasil dihapus', data: deleted });
   } catch (err) {
     console.error("❌ DELETE error:", err);
     res.status(500).json({ 
@@ -296,12 +252,8 @@ export const importExcel = [
           const values = Object.values(snakeRow);
           const placeholders = values.map((_, idx) => `$${idx + 2}`).join(", ");
 
-          const query = `
-            INSERT INTO relevansi_pkm (subtab, ${columns}) 
-            VALUES ($1, ${placeholders})
-          `;
-          
-          await pool.query(query, [subtab, ...values]);
+          const mapped = snakeRow;
+          await Model.importRows(subtab, [mapped]);
           added++;
         } catch (err) {
           failed++;

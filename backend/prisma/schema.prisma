@@ -1,0 +1,140 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model budaya_mutu {
+  id         Int       @id @default(autoincrement())
+  type       String
+  data       Json
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  updated_at DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model relevansi_pendidikan {
+  id                     Int       @id @default(autoincrement())
+  type                   String    @db.VarChar(100)
+  tahun                  String?   @db.VarChar(10)
+  ts2                    String?   @db.VarChar(100)
+  ts1                    String?   @db.VarChar(100)
+  ts                     String?   @db.VarChar(100)
+  linkbukti              String?
+  daya_tampung           Int?
+  pendaftar              Int?
+  diterima               Int?
+  aktif                  Int?
+  asalmahasiswa          String?   @db.VarChar(255)
+  alasan                 String?
+  jumlah                 Int?
+  mata_kuliah            String?   @db.VarChar(255)
+  sks                    Int?
+  semester               String?   @db.VarChar(20)
+  profil_lulusan         String?
+  pl1                    String?
+  pl2                    String?
+  cpl                    String?
+  cpmk                   String?
+  semester1              String?
+  semester2              String?
+  semester3              String?
+  semester4              String?
+  semester5              String?
+  semester6              String?
+  semester7              String?
+  semester8              String?
+  jumlah_lulusan         Int?
+  jumlah_terlacak        Int?
+  rata_rata_waktu_tunggu Decimal?  @db.Decimal(5, 2)
+  profesi_infokom        String?
+  profesi_noninfokom     String?
+  lingkup_internasional  String?
+  lingkup_nasional       String?
+  lingkup_wirausaha      String?
+  no                     Int?
+  jenis_kemampuan        String?
+  sangat_baik            Int?
+  baik                   Int?
+  cukup                  Int?
+  kurang                 Int?
+  rencana_tindak_lanjut  String?
+  tahun_akademik         String?   @db.VarChar(20)
+  sumber_rekognisi       String?
+  jenis_pengakuan        String?
+  created_at             DateTime? @default(now()) @db.Timestamp(6)
+  updated_at             DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model relevansi_penelitian {
+  id                      Int       @id @default(autoincrement())
+  subtab                  String    @db.VarChar(50)
+  namaprasarana           String?   @db.VarChar(255)
+  dayatampung             Int?
+  luasruang               Decimal?  @db.Decimal(10, 2)
+  status                  String?   @db.VarChar(10)
+  lisensi                 String?   @db.VarChar(10)
+  perangkat               String?   @db.VarChar(255)
+  linkbukti               String?
+  namadtpr                String?   @db.VarChar(255)
+  judulpenelitian         String?
+  jumlahmahasiswaterlibat Int?
+  jenishibah              String?   @db.VarChar(50)
+  sumber                  String?   @db.VarChar(100)
+  durasi                  Decimal?  @db.Decimal(5, 2)
+  pendanaan               Decimal?  @db.Decimal(15, 2)
+  tahun                   Int?
+  jenispengembangan       String?   @db.VarChar(100)
+  tahunakademik           String?   @db.VarChar(20)
+  judulkerjasama          String?
+  mitra                   String?   @db.VarChar(255)
+  judulpublikasi          String?
+  jenispublikasi          String?   @db.VarChar(50)
+  judul                   String?
+  jenishki                String?   @db.VarChar(50)
+  created_at              DateTime? @default(now()) @db.Timestamp(6)
+  updated_at              DateTime? @default(now()) @db.Timestamp(6)
+
+  @@index([subtab], map: "idx_relevansi_penelitian_subtab")
+}
+
+model relevansi_pkm {
+  id               Int       @id @default(autoincrement())
+  subtab           String    @db.VarChar(100)
+  nama_prasarana   String?   @db.VarChar(255)
+  daya_tampung     String?   @db.VarChar(50)
+  luas_ruang       String?   @db.VarChar(50)
+  status           String?   @db.VarChar(10)
+  lisensi          String?   @db.VarChar(10)
+  perangkat        String?
+  link_bukti       String?
+  no               String?   @db.VarChar(50)
+  nama_dtpr        String?   @db.VarChar(255)
+  judul_pkm        String?
+  jumlah_mahasiswa String?   @db.VarChar(50)
+  jenis_hibah      String?   @db.VarChar(255)
+  sumber_dana      String?   @db.VarChar(255)
+  durasi           String?   @db.VarChar(50)
+  pendanaan        String?   @db.VarChar(50)
+  tahun            String?   @db.VarChar(50)
+  judul_kerjasama  String?
+  mitra            String?   @db.VarChar(255)
+  sumber           String?   @db.VarChar(10)
+  judul            String?
+  jenis_hki        String?   @db.VarChar(255)
+  created_at       DateTime? @default(now()) @db.Timestamp(6)
+  updated_at       DateTime? @default(now()) @db.Timestamp(6)
+
+  @@index([subtab], map: "idx_relevansi_pkm_subtab")
+}
+
+model users {
+  id         Int       @id @default(autoincrement())
+  username   String    @unique @db.VarChar(50)
+  email      String    @unique @db.VarChar(100)
+  password   String    @db.VarChar(255)
+  role       String?   @default("user") @db.VarChar(20)
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+}
