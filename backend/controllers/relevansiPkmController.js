@@ -1,4 +1,4 @@
-import * as Model from '../models/relevansiPkmModel.js';
+import prisma from "../prismaClient.js";
 import xlsx from "xlsx";
 import multer from "multer";
 
@@ -46,7 +46,11 @@ export const getData = async (req, res) => {
       });
     }
 
-    const rows = await Model.findBySubtab(subtab);
+    const rows = await prisma.relevansi_pkm.findMany({
+      where: { subtab },
+      orderBy: { id: 'asc' }
+    });
+
     const dataWithCamelCase = rows.map(row => convertKeysFromSnake(row));
     res.json({ success: true, data: dataWithCamelCase, count: dataWithCamelCase.length });
   } catch (err) {
@@ -86,19 +90,19 @@ export const createData = async (req, res) => {
     // Convert camelCase dari frontend ke snake_case untuk database
     data = convertKeysToSnake(data);
 
-    const columns = Object.keys(data).join(", ");
-    const values = Object.values(data);
-    const placeholders = values.map((_, i) => `$${i + 2}`).join(", ");
+    const saved = await prisma.relevansi_pkm.create({
+      data: {
+        subtab,
+        ...data
+      }
+    });
 
-    const query = `
-      INSERT INTO relevansi_pkm (subtab, ${columns}) 
-      VALUES ($1, ${placeholders}) 
-      RETURNING *
-    `;
-    
-    const saved = await Model.create(subtab, data);
     const savedData = convertKeysFromSnake(saved);
-    res.status(201).json({ success: true, message: '✅ Data berhasil ditambahkan', data: savedData });
+    res.status(201).json({ 
+      success: true, 
+      message: '✅ Data berhasil ditambahkan', 
+      data: savedData 
+    });
   } catch (err) {
     console.error("❌ POST error:", err);
     res.status(500).json({ 
@@ -114,12 +118,13 @@ export const createData = async (req, res) => {
 // ==========================
 export const updateData = async (req, res) => {
   try {
-    const { id } = req.params;
+    const idRaw = req.params.id;
+    const id = Number(idRaw);
     
-    if (!id) {
+    if (!Number.isFinite(id) || id <= 0) {
       return res.status(400).json({ 
         success: false, 
-        message: "ID wajib diisi" 
+        message: "ID tidak valid" 
       });
     }
 
@@ -137,24 +142,28 @@ export const updateData = async (req, res) => {
     // Convert camelCase ke snake_case
     data = convertKeysToSnake(data);
 
-    const setClause = Object.keys(data)
-      .map((key, i) => `${key} = $${i + 1}`)
-      .join(", ");
-    const values = Object.values(data);
+    const updated = await prisma.relevansi_pkm.update({
+      where: { id },
+      data: data
+    });
 
-    const query = `
-      UPDATE relevansi_pkm 
-      SET ${setClause} 
-      WHERE id = $${values.length + 1} 
-      RETURNING *
-    `;
-    
-    const updated = await Model.updateById(id, data);
-    if (!updated) return res.status(404).json({ success: false, message: 'Data tidak ditemukan' });
     const updatedData = convertKeysFromSnake(updated);
-    res.json({ success: true, message: '✅ Data berhasil diperbarui', data: updatedData });
+    res.json({ 
+      success: true, 
+      message: '✅ Data berhasil diperbarui', 
+      data: updatedData 
+    });
   } catch (err) {
     console.error("❌ PUT error:", err);
+    
+    // Prisma error P2025 = Record not found
+    if (err.code === 'P2025') {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Data tidak ditemukan' 
+      });
+    }
+    
     res.status(500).json({ 
       success: false, 
       message: "Gagal memperbarui data", 
@@ -168,20 +177,36 @@ export const updateData = async (req, res) => {
 // ==========================
 export const deleteData = async (req, res) => {
   try {
-    const { id } = req.params;
+    const idRaw = req.params.id;
+    const id = Number(idRaw);
     
-    if (!id) {
+    if (!Number.isFinite(id) || id <= 0) {
       return res.status(400).json({ 
         success: false, 
-        message: "ID wajib diisi" 
+        message: "ID tidak valid" 
       });
     }
 
-    const deleted = await Model.deleteById(id);
-    if (!deleted) return res.status(404).json({ success: false, message: 'Data tidak ditemukan' });
-    res.json({ success: true, message: '🗑️ Data berhasil dihapus', data: deleted });
+    const deleted = await prisma.relevansi_pkm.delete({
+      where: { id }
+    });
+
+    res.json({ 
+      success: true, 
+      message: '🗑️ Data berhasil dihapus', 
+      data: deleted 
+    });
   } catch (err) {
     console.error("❌ DELETE error:", err);
+    
+    // Prisma error P2025 = Record not found
+    if (err.code === 'P2025') {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Data tidak ditemukan' 
+      });
+    }
+    
     res.status(500).json({ 
       success: false, 
       message: "Gagal menghapus data", 
@@ -248,12 +273,13 @@ export const importExcel = [
           // Convert keys ke snake_case
           const snakeRow = convertKeysToSnake(row);
           
-          const columns = Object.keys(snakeRow).join(", ");
-          const values = Object.values(snakeRow);
-          const placeholders = values.map((_, idx) => `$${idx + 2}`).join(", ");
-
-          const mapped = snakeRow;
-          await Model.importRows(subtab, [mapped]);
+          await prisma.relevansi_pkm.create({
+            data: {
+              subtab,
+              ...snakeRow
+            }
+          });
+          
           added++;
         } catch (err) {
           failed++;
@@ -288,11 +314,14 @@ export const importExcel = [
 // ==========================
 export const getAllData = async (req, res) => {
   try {
-    const result = await pool.query(
-      "SELECT * FROM relevansi_pkm ORDER BY subtab, id ASC"
-    );
+    const result = await prisma.relevansi_pkm.findMany({
+      orderBy: [
+        { subtab: 'asc' },
+        { id: 'asc' }
+      ]
+    });
 
-    const dataWithCamelCase = result.rows.map(row => convertKeysFromSnake(row));
+    const dataWithCamelCase = result.map(row => convertKeysFromSnake(row));
 
     res.json({ 
       success: true, 
