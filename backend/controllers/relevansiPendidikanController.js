@@ -16,6 +16,18 @@ export const getRelevansiPendidikan = async (req, res) => {
   }
 };
 
+export const getRelevansiPendidikanById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query("SELECT * FROM relevansi_pendidikan WHERE id = $1", [id]);
+    if (result.rowCount === 0) return res.status(404).json({ success: false, message: "Data tidak ditemukan" });
+    res.json({ success: true, data: result.rows[0] });
+  } catch (err) {
+    console.error("Error GET by ID:", err);
+    res.status(500).json({ success: false, message: "Gagal mengambil data" });
+  }
+};
+
 // POST: tambah data baru
 export const addRelevansiPendidikan = async (req, res) => {
   try {

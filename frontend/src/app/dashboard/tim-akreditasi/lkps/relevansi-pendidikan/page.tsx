@@ -143,18 +143,137 @@ export default function RelevansiPendidikanPage() {
     const emptyColSpan = 6;
     return (
       <div className="overflow-x-auto bg-white rounded-lg shadow-md">
-        <table className="min-w-full text-sm text-gray-700">
+        {activeSubTab === 'mahasiswa' ? (
+          // TABEL MAHASISWA - STRUKTUR BARU
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-xs sm:text-sm text-gray-700 border-collapse">
+              <thead className="bg-gray-50 sticky top-0">
+                <tr>
+                  {/* Kolom TS dan Hari Tampung */}
+                  <th rowSpan={3} className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-left font-semibold text-gray-800 bg-gray-100">
+                    TS
+                  </th>
+                  <th rowSpan={3} className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center font-semibold text-gray-800 bg-gray-100">
+                    Hari Tampung
+                  </th>
+
+                  {/* Jumlah Calon Mahasiswa */}
+                  <th colSpan={5} className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center font-semibold text-gray-800 bg-gray-100">
+                    Jumlah Calon Mahasiswa
+                  </th>
+
+                  {/* Jumlah Mahasiswa Baru */}
+                  <th colSpan={5} className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center font-semibold text-gray-800 bg-gray-100">
+                    Jumlah Mahasiswa Baru
+                  </th>
+
+                  {/* Jumlah Mahasiswa Aktif */}
+                  <th colSpan={5} className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center font-semibold text-gray-800 bg-gray-100">
+                    Jumlah Mahasiswa Aktif
+                  </th>
+
+                  {/* Aksi */}
+                  <th rowSpan={3} className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center font-semibold text-gray-800 bg-gray-100 w-16 sm:w-20 sticky right-0 bg-gray-100">
+                    Aksi
+                  </th>
+                </tr>
+
+                {/* Row 2 - Sub-headers untuk Reguler dan RPL */}
+                <tr>
+                  <th colSpan={2} className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-gray-700 bg-gray-50">Reguler</th>
+                  <th colSpan={2} className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-gray-700 bg-gray-50">RPL</th>
+                  <th className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-gray-700 bg-gray-50">Total</th>
+
+                  <th colSpan={2} className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-gray-700 bg-gray-50">Reguler</th>
+                  <th colSpan={2} className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-gray-700 bg-gray-50">RPL</th>
+                  <th className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-gray-700 bg-gray-50">Total</th>
+
+                  <th colSpan={2} className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-gray-700 bg-gray-50">Reguler</th>
+                  <th colSpan={2} className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-gray-700 bg-gray-50">RPL</th>
+                  <th className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-gray-700 bg-gray-50">Total</th>
+                </tr>
+
+                {/* Row 3 - Detail columns */}
+                <tr>
+                  <th className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-xs text-gray-700 bg-white">Diterima</th>
+                  <th className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-xs text-gray-700 bg-white">Afirmasi</th>
+                  <th className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-xs text-gray-700 bg-white">Diterima</th>
+                  <th className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-xs text-gray-700 bg-white">Afirmasi</th>
+                  <th className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-xs text-gray-700 bg-white">Kebutuhan Khusus</th>
+
+                  <th className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-xs text-gray-700 bg-white">Diterima</th>
+                  <th className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-xs text-gray-700 bg-white">Afirmasi</th>
+                  <th className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-xs text-gray-700 bg-white">Diterima</th>
+                  <th className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-xs text-gray-700 bg-white">Afirmasi</th>
+                  <th className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-xs text-gray-700 bg-white">Kebutuhan Khusus</th>
+
+                  <th className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-xs text-gray-700 bg-white">Diterima</th>
+                  <th className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-xs text-gray-700 bg-white">Afirmasi</th>
+                  <th className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-xs text-gray-700 bg-white">Diterima</th>
+                  <th className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-xs text-gray-700 bg-white">Afirmasi</th>
+                  <th className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-xs text-gray-700 bg-white">Kebutuhan Khusus</th>
+                </tr>
+              </thead>
+
+              <tbody className="divide-y divide-gray-100">
+                {data.length === 0 ? (
+                  <tr>
+                    <td colSpan={20} className="py-6 text-center text-gray-500">
+                      Belum ada data
+                    </td>
+                  </tr>
+                ) : (
+                  data.map((item, index) => (
+                    <tr key={item.id ?? `row-${index}`} className="hover:bg-gray-50 bg-yellow-50">
+                      <td className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center font-medium">{item.tahun}</td>
+                      <td className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center">{item.daya_tampung || '-'}</td>
+
+                      {/* Jumlah Calon Mahasiswa - Reguler */}
+                      <td className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center">{item.calon_reguler_diterima || '-'}</td>
+                      <td className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center">{item.calon_reguler_afirmasi || '-'}</td>
+                      {/* Jumlah Calon Mahasiswa - RPL */}
+                      <td className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center">{item.calon_rpl_diterima || '-'}</td>
+                      <td className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center">{item.calon_rpl_afirmasi || '-'}</td>
+                      <td className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center font-semibold">{item.calon_kebutuhan_khusus || '-'}</td>
+
+                      {/* Jumlah Mahasiswa Baru - Reguler */}
+                      <td className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center">{item.baru_reguler_diterima || '-'}</td>
+                      <td className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center">{item.baru_reguler_afirmasi || '-'}</td>
+                      {/* Jumlah Mahasiswa Baru - RPL */}
+                      <td className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center">{item.baru_rpl_diterima || '-'}</td>
+                      <td className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center">{item.baru_rpl_afirmasi || '-'}</td>
+                      <td className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center font-semibold">{item.baru_kebutuhan_khusus || '-'}</td>
+
+                      {/* Jumlah Mahasiswa Aktif - Reguler */}
+                      <td className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center">{item.aktif_reguler_diterima || '-'}</td>
+                      <td className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center">{item.aktif_reguler_afirmasi || '-'}</td>
+                      {/* Jumlah Mahasiswa Aktif - RPL */}
+                      <td className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center">{item.aktif_rpl_diterima || '-'}</td>
+                      <td className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center">{item.aktif_rpl_afirmasi || '-'}</td>
+                      <td className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center font-semibold">{item.aktif_kebutuhan_khusus || '-'}</td>
+
+                      {/* Aksi */}
+                      <td className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center sticky right-0 bg-yellow-50">
+                        <div className="flex justify-center gap-1 sm:gap-2">
+                          <button onClick={() => handleEdit(item)} className="text-blue-700 hover:text-blue-900 p-1">
+                            <Edit size={16} />
+                          </button>
+                          <button onClick={() => handleDelete(item.id)} className="text-red-600 hover:text-red-800 p-1">
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          // TABEL LAINNYA - STRUKTUR LAMA
+          <table className="min-w-full text-sm text-gray-700">
           <thead className="bg-gray-50">
             <tr className="text-xs text-gray-700 uppercase">
-              {activeSubTab === 'mahasiswa' && (
-                <>
-                  <th className="px-4 py-3 text-left">Tahun (TS)</th>
-                  <th className="px-4 py-3 text-center">Daya Tampung</th>
-                  <th className="px-4 py-3 text-center">Pendaftar</th>
-                  <th className="px-4 py-3 text-center">Diterima</th>
-                  <th className="px-4 py-3 text-center">Aktif</th>
-                </>
-              )}
               {activeSubTab === 'keragaman-asal' && (
                 <>
                   <th className="px-4 py-3 text-left">Asal Mahasiswa</th>
@@ -254,8 +373,6 @@ export default function RelevansiPendidikanPage() {
                     <th className="px-4 py-3 text-left">Link Bukti</th>
                   </>
                 )}
-
-
               <th className="w-24 px-4 py-3 text-center">Aksi</th>
             </tr>
           </thead>
@@ -270,15 +387,6 @@ export default function RelevansiPendidikanPage() {
             ) : (
               data.map((item, index) => (
                 <tr key={item.id ?? `row-${index}`} className="hover:bg-gray-50">
-                  {activeSubTab === 'mahasiswa' && (
-                    <>
-                      <td className="px-4 py-3">{item.tahun}</td>
-                      <td className="px-4 py-3 text-center">{item.daya_tampung}</td>
-                      <td className="px-4 py-3 text-center">{item.pendaftar}</td>
-                      <td className="px-4 py-3 text-center">{item.diterima}</td>
-                      <td className="px-4 py-3 text-center">{item.aktif}</td>
-                    </>
-                  )}
                   {activeSubTab === 'keragaman-asal' && (
                     <>
                       <td className="px-4 py-3">{item.asalMahasiswa}</td>
@@ -420,6 +528,7 @@ export default function RelevansiPendidikanPage() {
             )}
           </tbody>
         </table>
+        )}
       </div>
     );
   };
@@ -428,35 +537,35 @@ export default function RelevansiPendidikanPage() {
   return (
     <div className="flex w-full bg-gray-100">
       <div className="flex-1 w-full">
-        <main className="w-full p-4 md:p-6 max-w-full overflow-x-hidden">
+        <main className="w-full p-2 sm:p-4 md:p-6 max-w-full overflow-x-hidden">
           {/* Header LKPS */}
-          <div className="bg-white rounded-lg shadow p-6 mb-6 flex justify-between items-start">
-            <div className="flex items-center gap-3 mb-2">
-              <FileText className="text-blue-900" size={32} />
+          <div className="bg-white rounded-lg shadow p-3 sm:p-4 md:p-6 mb-4 sm:mb-6 flex flex-col sm:flex-row justify-between items-start gap-3 sm:gap-4">
+            <div className="flex items-center gap-2 sm:gap-3 mb-2">
+              <FileText className="text-blue-900 w-6 h-6 sm:w-8 sm:h-8" />
               <div>
-                <h1 className="text-2xl font-bold text-gray-800">Laporan Kinerja Program Studi (LKPS)</h1>
-                <p className="text-sm text-gray-600">Kelola data kuantitatif berdasarkan kriteria akreditasi</p>
+                <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800">Laporan Kinerja Program Studi (LKPS)</h1>
+                <p className="text-xs sm:text-sm text-gray-600">Kelola data kuantitatif berdasarkan kriteria akreditasi</p>
               </div>
             </div>
-            <div className="flex gap-2">
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-                <Download size={16} /> Export PDF
+            <div className="flex gap-1.5 sm:gap-2 flex-wrap">
+              <button className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-xs sm:text-sm">
+                <Download size={14} className="sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Export PDF</span><span className="inline sm:hidden">Export</span>
               </button>
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-                <Save size={16} /> Save Draft
+              <button className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-xs sm:text-sm">
+                <Save size={14} className="sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Save Draft</span><span className="inline sm:hidden">Save</span>
               </button>
             </div>
           </div>
 
           {/* Tabs utama */}
-          <div className="flex gap-2 overflow-x-auto pb-2">
+          <div className="flex gap-1 sm:gap-2 overflow-x-auto pb-2 mb-4 sm:mb-6">
                     {tabs.map((tab) => {
                       const isActive = pathname === tab.href; 
                       return (
                         <Link
                           key={tab.href}
                           href={tab.href}
-                          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                          className={`px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 whitespace-nowrap ${
                             isActive
                               ? 'bg-[#183A64] text-[#ADE7F7] shadow-md scale-105'
                               : 'bg-gray-100 text-gray-700 hover:bg-[#ADE7F7] hover:text-[#183A64]'
@@ -469,9 +578,9 @@ export default function RelevansiPendidikanPage() {
                   </div>
 
           {/* Konten */}
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow p-3 sm:p-4 md:p-6">
             {/* Subtab */}
-            <div className="flex gap-2 border-b pb-2 mb-4 overflow-x-auto">
+            <div className="flex gap-1 sm:gap-2 border-b pb-2 mb-3 sm:mb-4 overflow-x-auto">
   {[
     'mahasiswa',
     'keragaman-asal',
@@ -488,7 +597,7 @@ export default function RelevansiPendidikanPage() {
     <button
       key={sub}
       onClick={() => setActiveSubTab(sub as SubTab)}
-      className={`px-4 py-2 text-sm rounded-t-lg font-semibold transition-all duration-200
+      className={`px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm rounded-t-lg font-semibold transition-all duration-200 whitespace-nowrap
         ${
           activeSubTab === sub
             ? 'bg-[#183A64] text-[#ADE7F7]'
@@ -504,19 +613,19 @@ export default function RelevansiPendidikanPage() {
 
 
             {/* Judul Subtab & Tabel */}
-            <div className="mb-4">
-              <h2 className="text-lg font-semibold text-gray-800 mb-1">Data {activeSubTab.replace('-', ' ')}</h2>
-              <p className="text-sm text-gray-600">{tableTitles[activeSubTab]}</p>
+            <div className="mb-3 sm:mb-4">
+              <h2 className="text-base sm:text-lg font-semibold text-gray-800 mb-1">Data {activeSubTab.replace('-', ' ')}</h2>
+              <p className="text-xs sm:text-sm text-gray-600">{tableTitles[activeSubTab]}</p>
             </div>
 
             {/* Tombol Aksi */}
-            <div className="flex justify-between items-center mb-4">
-              <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+              <div className="flex gap-1.5 sm:gap-2 flex-wrap">
                 <button
                   onClick={openAdd}
-                  className="flex items-center gap-2 px-4 py-2 text-sm text-white bg-blue-700 rounded-lg hover:bg-blue-800"
+                  className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm text-white bg-blue-700 rounded-lg hover:bg-blue-800"
                 >
-                  <Plus size={16} /> Tambah Data
+                  <Plus size={14} className="sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Tambah</span> Data
                 </button>
                 <form onSubmit={(e) => e.preventDefault()} className="relative">
                   <input
@@ -528,9 +637,9 @@ export default function RelevansiPendidikanPage() {
                   />
                   <label
                     htmlFor="importExcel"
-                    className="flex items-center gap-2 px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-100 cursor-pointer"
+                    className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-100 cursor-pointer"
                   >
-                    <Upload size={16} /> Import Excel
+                    <Upload size={14} className="sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Import</span> Excel
                   </label>
                 </form>
               </div>
@@ -577,11 +686,23 @@ export default function RelevansiPendidikanPage() {
 
                     {activeSubTab === 'mahasiswa' && (
                       <>
-                        <input name="tahun" value={formData.tahun || ''} onChange={handleChange} placeholder="Tahun" className="border p-3 rounded-lg w-full" />
+                        <input name="tahun" value={formData.tahun || ''} onChange={handleChange} placeholder="Tahun (TS)" className="border p-3 rounded-lg w-full" />
                         <input name="daya_tampung" value={formData.daya_tampung || ''} onChange={handleChange} placeholder="Daya Tampung" className="border p-3 rounded-lg w-full" />
-                        <input name="pendaftar" value={formData.pendaftar || ''} onChange={handleChange} placeholder="Pendaftar" className="border p-3 rounded-lg w-full" />
-                        <input name="diterima" value={formData.diterima || ''} onChange={handleChange} placeholder="Diterima" className="border p-3 rounded-lg w-full" />
-                        <input name="aktif" value={formData.aktif || ''} onChange={handleChange} placeholder="Aktif" className="border p-3 rounded-lg w-full" />
+                        <input name="calon_reguler_diterima" value={(formData as any).calon_reguler_diterima || ''} onChange={handleChange} placeholder="Calon Reguler Diterima" className="border p-3 rounded-lg w-full" />
+                        <input name="calon_reguler_afirmasi" value={(formData as any).calon_reguler_afirmasi || ''} onChange={handleChange} placeholder="Calon Reguler Afirmasi" className="border p-3 rounded-lg w-full" />
+                        <input name="calon_rpl_diterima" value={(formData as any).calon_rpl_diterima || ''} onChange={handleChange} placeholder="Calon RPL Diterima" className="border p-3 rounded-lg w-full" />
+                        <input name="calon_rpl_afirmasi" value={(formData as any).calon_rpl_afirmasi || ''} onChange={handleChange} placeholder="Calon RPL Afirmasi" className="border p-3 rounded-lg w-full" />
+                        <input name="calon_kebutuhan_khusus" value={(formData as any).calon_kebutuhan_khusus || ''} onChange={handleChange} placeholder="Calon Kebutuhan Khusus" className="border p-3 rounded-lg w-full" />
+                        <input name="baru_reguler_diterima" value={(formData as any).baru_reguler_diterima || ''} onChange={handleChange} placeholder="Baru Reguler Diterima" className="border p-3 rounded-lg w-full" />
+                        <input name="baru_reguler_afirmasi" value={(formData as any).baru_reguler_afirmasi || ''} onChange={handleChange} placeholder="Baru Reguler Afirmasi" className="border p-3 rounded-lg w-full" />
+                        <input name="baru_rpl_diterima" value={(formData as any).baru_rpl_diterima || ''} onChange={handleChange} placeholder="Baru RPL Diterima" className="border p-3 rounded-lg w-full" />
+                        <input name="baru_rpl_afirmasi" value={(formData as any).baru_rpl_afirmasi || ''} onChange={handleChange} placeholder="Baru RPL Afirmasi" className="border p-3 rounded-lg w-full" />
+                        <input name="baru_kebutuhan_khusus" value={(formData as any).baru_kebutuhan_khusus || ''} onChange={handleChange} placeholder="Baru Kebutuhan Khusus" className="border p-3 rounded-lg w-full" />
+                        <input name="aktif_reguler_diterima" value={(formData as any).aktif_reguler_diterima || ''} onChange={handleChange} placeholder="Aktif Reguler Diterima" className="border p-3 rounded-lg w-full" />
+                        <input name="aktif_reguler_afirmasi" value={(formData as any).aktif_reguler_afirmasi || ''} onChange={handleChange} placeholder="Aktif Reguler Afirmasi" className="border p-3 rounded-lg w-full" />
+                        <input name="aktif_rpl_diterima" value={(formData as any).aktif_rpl_diterima || ''} onChange={handleChange} placeholder="Aktif RPL Diterima" className="border p-3 rounded-lg w-full" />
+                        <input name="aktif_rpl_afirmasi" value={(formData as any).aktif_rpl_afirmasi || ''} onChange={handleChange} placeholder="Aktif RPL Afirmasi" className="border p-3 rounded-lg w-full" />
+                        <input name="aktif_kebutuhan_khusus" value={(formData as any).aktif_kebutuhan_khusus || ''} onChange={handleChange} placeholder="Aktif Kebutuhan Khusus" className="border p-3 rounded-lg w-full" />
                       </>
                     )}
                     {activeSubTab === 'tabel-pembelajaran' && (

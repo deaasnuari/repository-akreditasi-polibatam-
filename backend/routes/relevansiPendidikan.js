@@ -1,6 +1,7 @@
 import express from "express";
 import {
   getRelevansiPendidikan,
+  getRelevansiPendidikanById,
   addRelevansiPendidikan,
   importRelevansiPendidikan,
   updateRelevansiPendidikan,
@@ -10,6 +11,7 @@ import {
 const router = express.Router();
 
 router.get("/", getRelevansiPendidikan);
+router.get("/:id", getRelevansiPendidikanById);
 router.post("/", addRelevansiPendidikan);
 router.post("/import", importRelevansiPendidikan);
 router.put("/:id", updateRelevansiPendidikan);

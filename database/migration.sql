@@ -126,3 +126,65 @@ INSERT INTO migration_log (version, description, executed_at)
 VALUES ('2.0.0', 'Buat tabel relevansi_penelitian', CURRENT_TIMESTAMP)
 ON CONFLICT DO NOTHING;
 
+-- ===== MIGRATION 3.0.0: Tabel relevansi_pendidikan =====
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'relevansi_pendidikan') THEN
+        CREATE TABLE relevansi_pendidikan (
+            id SERIAL PRIMARY KEY,
+            type VARCHAR(50) NOT NULL,
+            tahun VARCHAR(20),
+            daya_tampung INTEGER,
+            pendaftar INTEGER,
+            diterima INTEGER,
+            aktif INTEGER,
+            calon_reguler_diterima INTEGER,
+            calon_reguler_afirmasi INTEGER,
+            calon_rpl_diterima INTEGER,
+            calon_rpl_afirmasi INTEGER,
+            calon_kebutuhan_khusus INTEGER,
+            baru_reguler_diterima INTEGER,
+            baru_reguler_afirmasi INTEGER,
+            baru_rpl_diterima INTEGER,
+            baru_rpl_afirmasi INTEGER,
+            baru_kebutuhan_khusus INTEGER,
+            aktif_reguler_diterima INTEGER,
+            aktif_reguler_afirmasi INTEGER,
+            aktif_rpl_diterima INTEGER,
+            aktif_rpl_afirmasi INTEGER,
+            aktif_kebutuhan_khusus INTEGER,
+            asalMahasiswa TEXT,
+            ts2 INTEGER,
+            ts1 INTEGER,
+            ts INTEGER,
+            jumlah INTEGER,
+            linkBukti TEXT,
+            mata_kuliah TEXT,
+            sks INTEGER,
+            semester INTEGER,
+            profil_lulusan TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        RAISE NOTICE 'Tabel relevansi_pendidikan berhasil dibuat';
+    ELSE
+        RAISE NOTICE 'Tabel relevansi_pendidikan sudah ada';
+    END IF;
+END $$;
+
+-- Indexes
+CREATE INDEX IF NOT EXISTS idx_relevansi_pendidikan_type ON relevansi_pendidikan(type);
+CREATE INDEX IF NOT EXISTS idx_relevansi_pendidikan_created ON relevansi_pendidikan(created_at);
+
+-- Trigger update timestamp
+DROP TRIGGER IF EXISTS update_relevansi_pendidikan_updated_at ON relevansi_pendidikan;
+CREATE TRIGGER update_relevansi_pendidikan_updated_at
+    BEFORE UPDATE ON relevansi_pendidikan
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Log migration
+INSERT INTO migration_log (version, description, executed_at) 
+VALUES ('3.0.0', 'Buat tabel relevansi_pendidikan', CURRENT_TIMESTAMP)
+ON CONFLICT DO NOTHING;
+
