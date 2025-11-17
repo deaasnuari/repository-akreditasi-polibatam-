@@ -7,12 +7,19 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model struktur_files {
+  id         Int      @id @default(autoincrement())
+  nama_file  String
+  file_path  String
+  created_at DateTime @default(now()) @db.Timestamp(6)
+}
+
 model budaya_mutu {
   id         Int       @id @default(autoincrement())
   type       String
   data       Json
-  created_at DateTime? @default(now()) @db.Timestamp(6)
-  updated_at DateTime? @default(now()) @db.Timestamp(6)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 }
 
 model relevansi_pendidikan {

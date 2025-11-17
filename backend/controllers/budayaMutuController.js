@@ -1,252 +1,256 @@
-import pool from '../db.js';
-import multer from 'multer';
-import xlsx from 'xlsx';
-import path from 'path';
-import fs from 'fs';
+import { PrismaClient } from "@prisma/client";
+import multer from "multer";
+import xlsx from "xlsx";
+import path from "path";
+import fs from "fs";
 
-// GET data per type
+const prisma = new PrismaClient();
+
+// ======================
+// 🟦 GET DATA BY TYPE
+// ======================
 export const getData = async (req, res) => {
   const { type } = req.query;
   try {
-    const result = await pool.query(
-      'SELECT * FROM budaya_mutu WHERE type=$1 ORDER BY id',
-      [type]
-    );
-    res.json({ success: true, data: result.rows });
+    const data = await prisma.budaya_mutu.findMany({
+      where: { type },
+      orderBy: { id: "asc" },
+    });
+
+    res.json({ success: true, data });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: 'Gagal mengambil data' });
+    res.status(500).json({ success: false, message: "Gagal mengambil data" });
   }
 };
 
-// POST data baru
+// ======================
+// 🟩 CREATE DATA
+// ======================
 export const createData = async (req, res) => {
   const { type, data } = req.body;
+
   try {
-    const result = await pool.query(
-      'INSERT INTO budaya_mutu(type, data) VALUES($1, $2) RETURNING *',
-      [type, data]
-    );
-    res.json({ success: true, data: result.rows[0] });
+    const created = await prisma.budaya_mutu.create({
+      data: {
+        type,
+        data,
+      },
+    });
+
+    res.json({ success: true, data: created });
   } catch (err) {
     console.error("CREATE ERROR:", err);
-    res.status(500).json({ success: false, message: 'Gagal menyimpan data' });
+    res.status(500).json({ success: false, message: "Gagal menyimpan data" });
   }
 };
 
-// PUT update data
+// ======================
+// 🟧 UPDATE DATA
+// ======================
 export const updateData = async (req, res) => {
   const { id } = req.params;
   const { type, data } = req.body;
+
   try {
-    const result = await pool.query(
-      'UPDATE budaya_mutu SET type=$1, data=$2, updated_at=NOW() WHERE id=$3 RETURNING *',
-      [type, data, id]
-    );
-    res.json({ success: true, data: result.rows[0] });
+    const updated = await prisma.budaya_mutu.update({
+      where: { id: Number(id) },
+      data: {
+        type,
+        data,
+        updated_at: new Date(),
+      },
+    });
+
+    res.json({ success: true, data: updated });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: 'Gagal update data' });
+    res.status(500).json({ success: false, message: "Gagal update data" });
   }
 };
 
-// DELETE data
+// ======================
+// 🟥 DELETE DATA
+// ======================
 export const deleteData = async (req, res) => {
   const { id } = req.params;
+
   try {
-    await pool.query('DELETE FROM budaya_mutu WHERE id=$1', [id]);
-    res.json({ success: true, message: 'Data berhasil dihapus' });
+    await prisma.budaya_mutu.delete({
+      where: { id: Number(id) },
+    });
+
+    res.json({ success: true, message: "Data berhasil dihapus" });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: 'Gagal hapus data' });
+    res.status(500).json({ success: false, message: "Gagal hapus data" });
   }
 };
 
-// --- konfigurasi upload sementara ---
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, 'uploads/'),
-  filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
-});
-export const upload = multer({ storage });
-
-// --- fungsi import Excel ---
+// ======================
+// 📤 IMPORT EXCEL
+// ======================
 export const importExcel = async (req, res) => {
-  console.log("🔥 ROUTE importExcel terpanggil");
   const { type } = req.params;
 
   if (!req.file) {
-    return res.status(400).json({ success: false, message: 'Tidak ada file diupload' });
+    return res.status(400).json({ success: false, message: "Tidak ada file diupload" });
   }
 
   try {
     const filePath = path.resolve(req.file.path);
     const workbook = xlsx.readFile(filePath);
-    const sheetName = workbook.SheetNames[0];
-    const sheet = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+    const sheet = xlsx.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
 
-    const normalizedRows = sheet.map(row => ({
-      namaKetua: row.__EMPTY || row['Nama Ketua'] || "",
-      periode: row.__EMPTY_1 || row['Periode Jabatan'] || "",
-      pendidikanTerakhir: row.__EMPTY_2 || row['Pendidikan Terakhir'] || "",
-      jabatanFungsional: row.__EMPTY_3 || row['Jabatan Fungsional'] || "",
-      tugasPokokDanFungsi: row.__EMPTY_4 || row['Tugas Pokok dan Fungsi'] || "",
-      unitKerja: row["Tabel 1.A.1 - Pimpinan dan Tupoksi UPPS dan PS"] || row['Unit Kerja'] || ""
-    }));
+    const rows = sheet.map(row => ({
+      namaKetua: row.__EMPTY || row["Nama Ketua"] || "",
+      periode: row.__EMPTY_1 || row["Periode Jabatan"] || "",
+      pendidikanTerakhir: row.__EMPTY_2 || row["Pendidikan Terakhir"] || "",
+      jabatanFungsional: row.__EMPTY_3 || row["Jabatan Fungsional"] || "",
+      tugasPokokDanFungsi: row.__EMPTY_4 || row["Tugas Pokok dan Fungsi"] || "",
+      unitKerja: row["Tabel 1.A.1 - Pimpinan dan Tupoksi UPPS dan PS"] || row["Unit Kerja"] || "",
+    })).filter(r => r.namaKetua.toLowerCase() !== "nama ketua");
 
-    const dataRows = normalizedRows.filter(
-      row => row.namaKetua.toLowerCase() !== "nama ketua"
-    );
-
-    for (const row of dataRows) {
-      await pool.query(
-        'INSERT INTO budaya_mutu (type, data) VALUES ($1, $2)',
-        [type, JSON.stringify(row)]
-      );
+    // insert menggunakan prisma
+    for (const row of rows) {
+      await prisma.budaya_mutu.create({
+        data: {
+          type,
+          data: row,
+        },
+      });
     }
 
     fs.unlinkSync(filePath);
 
     res.json({
       success: true,
-      message: 'Data berhasil diimport (header dilewati)',
-      count: dataRows.length
+      message: "Data berhasil diimport",
+      count: rows.length,
     });
-
   } catch (err) {
-    console.error('IMPORT ERROR:', err);
-    res.status(500).json({ success: false, message: 'Gagal import data' });
+    console.error("IMPORT ERROR:", err);
+    res.status(500).json({ success: false, message: "Gagal import data" });
   }
 };
 
-// === STRUKTUR ORGANISASI FUNCTIONS ===
+// ======================================================
+// 🏗 STRUKTUR ORGANISASI (CRUD FILE)
+// ======================================================
 
-// Upload Struktur Organisasi
+// UPLOAD FILE STRUKTUR
 export const uploadStruktur = async (req, res) => {
   const file = req.file;
-  if (!file) {
-    return res.status(400).json({ success: false, message: 'Tidak ada file diunggah' });
-  }
+
+  if (!file)
+    return res.status(400).json({ success: false, message: "Tidak ada file diunggah" });
 
   try {
-    const fileName = file.originalname;
-    const filePath = file.path;
-    const fileUrl = `/uploads/struktur/${file.filename}`;
-    
-    // Simpan ke database
-    const result = await pool.query(
-      'INSERT INTO struktur_files (nama_file, file_path) VALUES ($1, $2) RETURNING *',
-      [fileName, filePath]
-    );
+    const saved = await prisma.struktur_files.create({
+      data: {
+        nama_file: file.originalname,
+        file_path: file.path,
+      },
+    });
 
     res.json({
       success: true,
-      message: 'File berhasil diupload',
-      fileUrl,
-      fileName,
-      fileId: result.rows[0].id
+      message: "File berhasil diupload",
+      fileId: saved.id,
+      fileUrl: `/uploads/struktur/${path.basename(file.path)}`,
     });
   } catch (err) {
-    console.error('Upload Error:', err);
-    res.status(500).json({ success: false, message: 'Gagal upload struktur organisasi' });
+    console.error("UPLOAD ERROR:", err);
+    res.status(500).json({ success: false, message: "Gagal upload file" });
   }
 };
 
-// Get File Struktur Terbaru
+// GET TERBARU
 export const getStruktur = async (req, res) => {
   try {
-    const result = await pool.query(
-      'SELECT * FROM struktur_files ORDER BY created_at DESC LIMIT 1'
-    );
-    
-    if (result.rows.length === 0) {
-      return res.json({ success: true, file: null });
-    }
+    const file = await prisma.struktur_files.findFirst({
+      orderBy: {
+        created_at: "desc",
+      },
+    });
 
-    const file = result.rows[0];
-    const fileUrl = `/uploads/struktur/${path.basename(file.file_path)}`;
-    
+    if (!file) return res.json({ success: true, file: null });
+
     res.json({
       success: true,
       file: {
         id: file.id,
         fileName: file.nama_file,
-        fileUrl,
-        createdAt: file.created_at
-      }
+        fileUrl: `/uploads/struktur/${path.basename(file.file_path)}`,
+        createdAt: file.created_at,
+      },
     });
   } catch (err) {
-    console.error('Get Struktur Error:', err);
-    res.status(500).json({ success: false, message: 'Gagal mengambil data struktur' });
+    console.error("GET ERROR:", err);
+    res.status(500).json({ success: false, message: "Gagal mengambil file" });
   }
 };
 
-// Update/Replace File Struktur
+// UPDATE FILE STRUKTUR
 export const updateStruktur = async (req, res) => {
   const { id } = req.params;
   const file = req.file;
 
-  if (!file) {
-    return res.status(400).json({ success: false, message: 'Tidak ada file diunggah' });
-  }
-
   try {
-    // Ambil file lama
-    const oldFile = await pool.query('SELECT * FROM struktur_files WHERE id=$1', [id]);
-    
-    if (oldFile.rows.length === 0) {
-      return res.status(404).json({ success: false, message: 'File tidak ditemukan' });
+    const old = await prisma.struktur_files.findUnique({
+      where: { id: Number(id) },
+    });
+
+    if (!old)
+      return res.status(404).json({ success: false, message: "File tidak ditemukan" });
+
+    if (fs.existsSync(old.file_path)) {
+      fs.unlinkSync(old.file_path);
     }
 
-    // Hapus file lama dari sistem
-    if (fs.existsSync(oldFile.rows[0].file_path)) {
-      fs.unlinkSync(oldFile.rows[0].file_path);
-    }
-
-    // Update database dengan file baru
-    const fileName = file.originalname;
-    const filePath = file.path;
-    const fileUrl = `/uploads/struktur/${file.filename}`;
-
-    await pool.query(
-      'UPDATE struktur_files SET nama_file=$1, file_path=$2, created_at=NOW() WHERE id=$3',
-      [fileName, filePath, id]
-    );
+    await prisma.struktur_files.update({
+      where: { id: Number(id) },
+      data: {
+        nama_file: file.originalname,
+        file_path: file.path,
+        created_at: new Date(),
+      },
+    });
 
     res.json({
       success: true,
-      message: 'File berhasil diupdate',
-      fileUrl,
-      fileName,
-      fileId: id
+      message: "File berhasil diupdate",
+      fileUrl: `/uploads/struktur/${path.basename(file.path)}`,
     });
   } catch (err) {
-    console.error('Update Error:', err);
-    res.status(500).json({ success: false, message: 'Gagal update file' });
+    console.error("UPDATE ERROR:", err);
+    res.status(500).json({ success: false, message: "Gagal update file" });
   }
 };
 
-// Delete File Struktur
+// DELETE FILE
 export const deleteStruktur = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const file = await pool.query('SELECT * FROM struktur_files WHERE id=$1', [id]);
+    const file = await prisma.struktur_files.findUnique({
+      where: { id: Number(id) },
+    });
 
-    if (file.rows.length === 0) {
-      return res.status(404).json({ success: false, message: 'File tidak ditemukan' });
+    if (!file)
+      return res.status(404).json({ success: false, message: "File tidak ditemukan" });
+
+    if (fs.existsSync(file.file_path)) {
+      fs.unlinkSync(file.file_path);
     }
 
-    // Hapus file fisik
-    if (fs.existsSync(file.rows[0].file_path)) {
-      fs.unlinkSync(file.rows[0].file_path);
-    }
+    await prisma.struktur_files.delete({
+      where: { id: Number(id) },
+    });
 
-    // Hapus dari database
-    await pool.query('DELETE FROM struktur_files WHERE id=$1', [id]);
-
-    res.json({ success: true, message: 'File berhasil dihapus' });
+    res.json({ success: true, message: "File berhasil dihapus" });
   } catch (err) {
-    console.error('Delete Error:', err);
-    res.status(500).json({ success: false, message: 'Gagal menghapus file' });
+    console.error("DELETE ERROR:", err);
+    res.status(500).json({ success: false, message: "Gagal menghapus file" });
   }
 };
