@@ -1,142 +1,225 @@
-import * as Model from '../models/relevansiPenelitianModel.js';
+import prisma from "../prismaClient.js";
 import xlsx from 'xlsx';
 import multer from 'multer';
 
 const upload = multer({ storage: multer.memoryStorage() });
 
-// GET data per subtab
+/* =============================================
+   FIELD TYPE CONFIG (AUTO NORMALIZATION)
+============================================= */
+
+// Integer columns
+const INT_FIELDS = [
+  "dayatampung",
+  "jumlahmahasiswaterlibat",
+  "tahun"
+];
+
+// Decimal columns
+const DECIMAL_FIELDS = [
+  "luasruang",
+  "durasi",
+  "pendanaan"
+];
+
+/* =============================================
+    NORMALIZATION FUNCTION
+============================================= */
+function normalizeValue(key, value) {
+  if (value === undefined || value === null || value === "") return null;
+
+  // Convert INT
+  if (INT_FIELDS.includes(key)) {
+    const v = Number(value);
+    return isNaN(v) ? null : v;
+  }
+
+  // Convert DECIMAL (must be string for Prisma.decimal)
+  if (DECIMAL_FIELDS.includes(key)) {
+    const v = Number(value);
+    return isNaN(v) ? null : v.toString();
+  }
+
+  return value;
+}
+
+function normalizeRow(data = {}) {
+  const result = {};
+  for (const key of Object.keys(data)) {
+    result[key] = normalizeValue(key, data[key]);
+  }
+  return result;
+}
+
+/* =============================================
+    SAFE FILTER: remove unknown columns
+============================================= */
+const MODEL_FIELDS = [
+  "subtab",
+  "namaprasarana",
+  "dayatampung",
+  "luasruang",
+  "status",
+  "lisensi",
+  "perangkat",
+  "linkbukti",
+  "namadtpr",
+  "judulpenelitian",
+  "jumlahmahasiswaterlibat",
+  "jenishibah",
+  "sumber",
+  "durasi",
+  "pendanaan",
+  "tahun",
+  "jenispengembangan",
+  "tahunakademik",
+  "judulkerjasama",
+  "mitra",
+  "judulpublikasi",
+  "jenispublikasi",
+  "judul",
+  "jenishki"
+];
+
+function filterValidKeys(data) {
+  const result = {};
+  for (const key of Object.keys(data)) {
+    if (MODEL_FIELDS.includes(key)) {
+      result[key] = data[key];
+    }
+  }
+  return result;
+}
+
+/* =============================================
+    GET DATA
+============================================= */
 export const getData = async (req, res) => {
   try {
-    const subtab = req.query.subtab; // ganti type -> subtab
-    const rows = await Model.findBySubtab(subtab);
+    const subtab = req.query.subtab;
+
+    const rows = await prisma.relevansi_penelitian.findMany({
+      where: { subtab },
+      orderBy: { id: "asc" }
+    });
+
     res.json({ success: true, data: rows });
   } catch (err) {
-    console.error('GET error:', err);
-    res.status(500).json({ success: false, message: 'Gagal mengambil data', error: err.message });
+    res.status(500).json({ success: false, message: "Gagal mengambil data", error: err.message });
   }
 };
 
-// POST — tambah data baru
+/* =============================================
+    CREATE DATA
+============================================= */
 export const createData = async (req, res) => {
   try {
-    const { subtab, ...data } = req.body; // ganti type -> subtab
+    const { subtab, ...body } = req.body;
 
-    if (!subtab) {
-      return res.status(400).json({ success: false, message: 'Field "subtab" wajib diisi' });
-    }
+    let data = filterValidKeys(body);
+    data = normalizeRow(data);
 
-    const keys = Object.keys(data || {});
-    if (keys.length === 0) {
-      return res.status(400).json({ success: false, message: 'Tidak ada data untuk disimpan' });
-    }
+    const created = await prisma.relevansi_penelitian.create({
+      data: { subtab, ...data },
+    });
 
-    // Basic validation: ensure column names are safe identifiers
-    const invalidKey = keys.find(k => !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(k));
-    if (invalidKey) {
-      return res.status(400).json({ success: false, message: `Nama kolom tidak valid: ${invalidKey}` });
-    }
+    res.json({ success: true, message: "Data berhasil ditambahkan", data: created });
 
-    const item = await Model.create(subtab, data);
-    res.json({ success: true, message: '✅ Data berhasil ditambahkan', data: item });
   } catch (err) {
-    console.error('POST error:', err);
-    // In development return the error message so frontend can show details.
-    const safeMessage = process.env.NODE_ENV === 'production' ? 'Gagal menambahkan data' : (err.message || 'Gagal menambahkan data');
-    const payload = { success: false, message: safeMessage };
-    if (process.env.NODE_ENV !== 'production') payload.error = err.stack || err.message;
-    res.status(500).json(payload);
+    console.log("POST ERROR:", err);
+    res.status(500).json({ success: false, message: "Gagal menambahkan data", error: err.message });
   }
 };
 
-// PUT — update data
+/* =============================================
+    UPDATE DATA
+============================================= */
 export const updateData = async (req, res) => {
   try {
-    const idRaw = req.params.id;
-    console.log(`[relevansi-penelitian] UPDATE called with idRaw=${idRaw}, body=`, req.body);
-    const id = Number(idRaw);
-    if (!Number.isFinite(id) || id <= 0) {
-      console.warn(`[relevansi-penelitian] invalid id for update: ${idRaw}`);
-      return res.status(400).json({ success: false, message: 'ID tidak valid' });
-    }
+    const id = Number(req.params.id);
 
-    const data = req.body || {};
-    const keys = Object.keys(data);
-    if (keys.length === 0) {
-      return res.status(400).json({ success: false, message: 'Tidak ada data yang diberikan untuk diupdate' });
-    }
+    let data = filterValidKeys(req.body);
+    data = normalizeRow(data);
 
-    const updated = await Model.updateById(id, data);
-    if (!updated) return res.status(404).json({ success: false, message: 'Data tidak ditemukan' });
-    res.json({ success: true, message: '✅ Data berhasil diperbarui', data: updated });
+    const updated = await prisma.relevansi_penelitian.update({
+      where: { id },
+      data
+    });
+
+    res.json({ success: true, message: "Data berhasil diperbarui", data: updated });
+
   } catch (err) {
-    console.error('PUT error:', err);
-    res.status(500).json({ success: false, message: 'Gagal memperbarui data', error: err.message });
+    res.status(500).json({ success: false, message: "Gagal memperbarui data", error: err.message });
   }
 };
 
-// DELETE — hapus data
+/* =============================================
+    DELETE DATA
+============================================= */
 export const deleteData = async (req, res) => {
   try {
-    const idRaw = req.params.id;
-    // log incoming id for debugging
-    console.log(`[relevansi-penelitian] DELETE called with idRaw=${idRaw}`);
-    const id = Number(idRaw);
-    if (!Number.isFinite(id) || id <= 0) {
-      return res.status(400).json({ success: false, message: 'ID tidak valid' });
-    }
+    const id = Number(req.params.id);
 
-    const deleted = await Model.deleteById(id);
-    if (!deleted) return res.status(404).json({ success: false, message: 'Data tidak ditemukan' });
-    res.json({ success: true, message: '🗑️ Data berhasil dihapus', data: deleted });
+    const deleted = await prisma.relevansi_penelitian.delete({
+      where: { id }
+    });
+
+    res.json({ success: true, message: "Data berhasil dihapus", data: deleted });
+
   } catch (err) {
-    console.error('DELETE error:', err);
-    // print stack if available to help debugging
-    if (err && err.stack) console.error(err.stack);
-    res.status(500).json({ success: false, message: 'Gagal menghapus data', error: err.message });
+    res.status(500).json({ success: false, message: "Gagal menghapus data", error: err.message });
   }
 };
 
-// POST /import — import Excel
+/* =============================================
+    IMPORT EXCEL
+============================================= */
 export const importExcel = [
-  upload.single('file'),
+  upload.single("file"),
   async (req, res) => {
     try {
-      const subtab = req.body.subtab; // ganti type -> subtab
-      if (!req.file)
-        return res.status(400).json({ success: false, message: 'File tidak ditemukan' });
+      const subtab = req.body.subtab;
 
-      const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
-      const sheetName = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[sheetName];
-      const rows = xlsx.utils.sheet_to_json(sheet, { defval: '' });
-
-      if (req.body.preview === 'true') {
-        return res.json({
-          success: true,
-          previewRows: rows.slice(0, 10),
-          headers: rows.length > 0 ? Object.keys(rows[0]) : [],
-          suggestions: {}
-        });
-      }
+      const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = xlsx.utils.sheet_to_json(sheet, { defval: "" });
 
       const mapping = req.body.mapping ? JSON.parse(req.body.mapping) : {};
+
       let added = 0;
+      let errors = [];
 
-      for (const r of rows) {
-        const mappedRow = {};
-        Object.keys(mapping).forEach(h => {
-          if (mapping[h]) mappedRow[mapping[h]] = r[h] ?? '';
-        });
+      for (let idx = 0; idx < rows.length; idx++) {
+        try {
+          const raw = rows[idx];
+          const obj = { subtab };
 
-        // use model importRows for batch insert
-        await Model.importRows(subtab, [mappedRow]);
-        added++;
+          for (const h of Object.keys(mapping)) {
+            const dbField = mapping[h];
+            if (dbField) obj[dbField] = raw[h];
+          }
+
+          let clean = filterValidKeys(obj);
+          clean = normalizeRow(clean);
+
+          await prisma.relevansi_penelitian.create({ data: clean });
+          added++;
+
+        } catch (e) {
+          errors.push({ row: idx + 1, error: e.message });
+        }
       }
 
-      res.json({ success: true, message: `✅ Imported ${added} rows`, added });
+      res.json({
+        success: true,
+        message: `Import selesai: ${added} berhasil, ${errors.length} gagal`,
+        added,
+        failed: errors.length,
+        errors
+      });
+
     } catch (err) {
-      console.error('Import error:', err);
-      res.status(500).json({ success: false, message: 'Gagal mengimpor file', error: err.message });
+      res.status(500).json({ success: false, message: "Gagal import", error: err.message });
     }
-  },
+  }
 ];
