@@ -76,7 +76,7 @@ export default function BudayaMutuLEDPage() {
         const apiData = await fetchBudayaMutuLED();
         if (apiData?.length) {
           const latest = apiData[0];
-          setServerId(latest._id);
+          setServerId(String(latest.id));
           
           // Pastikan setiap tab memiliki data yang valid
           const validatedTabs: Record<string, TabData> = {};
@@ -140,8 +140,8 @@ export default function BudayaMutuLEDPage() {
         await updateBudayaMutuLED(serverId, { tabs: tabData });
       } else {
         const res = await createBudayaMutuLED({ tabs: tabData });
-        if (res?.data?._id) {
-          setServerId(res.data._id);
+        if (res?.data?.id) {
+          setServerId(String(res.data.id));
         }
       }
 
@@ -221,6 +221,7 @@ export default function BudayaMutuLEDPage() {
     });
   }, [activeTab]);
 
+  
   if (!isClient) return null;
 
   if (loading) {
