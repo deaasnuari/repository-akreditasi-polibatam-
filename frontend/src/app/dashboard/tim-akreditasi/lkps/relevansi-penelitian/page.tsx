@@ -4,19 +4,14 @@ import React, { useEffect, useState } from 'react';
 import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import {
-  getRelevansiPenelitian,
-  saveRelevansiPenelitian,
-  updateRelevansiPenelitian,
-  deleteRelevansiPenelitian,
-  previewImport,
-  commitImport
-} from '@/services/relevansiPenelitianService';
+import { relevansiPenelitianService, SubTab, DataItem } from '@/services/relevansiPenelitianService';
 
 export default function RelevansiPenelitianPage() {
   const pathname = usePathname();
-  const [activeSubTab, setActiveSubTab] = useState('sarana-prasarana');
-  const [data, setData] = useState<any[]>([]);
+
+  // --- State utama (top-level Hooks) ---
+  const [activeSubTab, setActiveSubTab] = useState<SubTab>('sarana-prasarana');
+  const [data, setData] = useState<DataItem[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editIndex, setEditIndex] = useState<number | null>(null);
@@ -35,44 +30,38 @@ export default function RelevansiPenelitianPage() {
     type: 'success',
   });
 
-  // Fungsi untuk menampilkan popup
+  // --- Fungsi Popup ---
   const showPopup = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     setPopup({ show: true, message, type });
     setTimeout(() => setPopup({ show: false, message: '', type: 'success' }), 3000);
   };
 
-  // Komponen Popup Notification
   const PopupNotification = () => {
     if (!popup.show) return null;
-
-    const bgColor = popup.type === 'success' ? 'bg-green-50 border-green-500' : 
-                    popup.type === 'error' ? 'bg-red-50 border-red-500' : 
+    const bgColor = popup.type === 'success' ? 'bg-green-50 border-green-500' :
+                    popup.type === 'error' ? 'bg-red-50 border-red-500' :
                     'bg-blue-50 border-blue-500';
-    const textColor = popup.type === 'success' ? 'text-green-800' : 
-                      popup.type === 'error' ? 'text-red-800' : 
+    const textColor = popup.type === 'success' ? 'text-green-800' :
+                      popup.type === 'error' ? 'text-red-800' :
                       'text-blue-800';
-    const Icon = popup.type === 'success' ? CheckCircle : 
-                 popup.type === 'error' ? AlertCircle : 
+    const Icon = popup.type === 'success' ? CheckCircle :
+                 popup.type === 'error' ? AlertCircle :
                  Info;
-
     return (
       <div className="fixed top-0 left-0 right-0 flex justify-center z-[60] pt-4">
         <div className={`${bgColor} ${textColor} border-l-4 rounded-lg shadow-2xl p-5 flex items-center gap-4 min-w-[350px] max-w-md animate-slideDown`}>
-          <Icon size={28} className={popup.type === 'success' ? 'text-green-500' : 
-                                     popup.type === 'error' ? 'text-red-500' : 
+          <Icon size={28} className={popup.type === 'success' ? 'text-green-500' :
+                                     popup.type === 'error' ? 'text-red-500' :
                                      'text-blue-500'} />
           <div className="flex-1">
             <p className="font-bold text-base mb-1">
-              {popup.type === 'success' ? 'Berhasil!' : 
-               popup.type === 'error' ? 'Error!' : 
+              {popup.type === 'success' ? 'Berhasil!' :
+               popup.type === 'error' ? 'Error!' :
                'Info'}
             </p>
             <p className="text-sm">{popup.message}</p>
           </div>
-          <button 
-            onClick={() => setPopup({ show: false, message: '', type: 'success' })}
-            className="hover:opacity-70 transition-opacity"
-          >
+          <button onClick={() => setPopup({ show: false, message: '', type: 'success' })} className="hover:opacity-70 transition-opacity">
             <X size={20} />
           </button>
         </div>
@@ -80,7 +69,7 @@ export default function RelevansiPenelitianPage() {
     );
   };
 
-  // --- Tabs utama ---
+  // --- Tabs & Subtabs ---
   const tabs = [
     { label: 'Budaya Mutu', href: '/dashboard/tim-akreditasi/lkps' },
     { label: 'Relevansi Pendidikan', href: '/dashboard/tim-akreditasi/lkps/relevansi-pendidikan' },
@@ -90,80 +79,76 @@ export default function RelevansiPenelitianPage() {
     { label: 'Diferensiasi Misi', href: '/dashboard/tim-akreditasi/lkps/diferensiasi-misi' },
   ];
 
-  // --- Subtab fields ---
- const subtabFields: Record<string, Array<{ key: string; label: string }>> = {
-  'sarana-prasarana': [
-    { key: 'namaprasarana', label: 'Nama Prasarana' },
-    { key: 'dayatampung', label: 'Daya Tampung' },
-    { key: 'luasruang', label: 'Luas Ruang (m²)' },
-    { key: 'status', label: 'Status (M/W)' },
-    { key: 'lisensi', label: 'Lisensi (L/P/T)' },
-    { key: 'perangkat', label: 'Perangkat' },
-    { key: 'linkbukti', label: 'Link Bukti' },
-  ],
-  'hibah-dan-pembiayaan': [
-    { key: 'namadtpr', label: 'Nama DTPR' },
-    { key: 'judulpenelitian', label: 'Judul Penelitian' },
-    { key: 'jumlahmahasiswaterlibat', label: 'Jumlah Mahasiswa Terlibat' },
-    { key: 'jenishibah', label: 'Jenis Hibah' },
-    { key: 'sumber', label: 'Sumber' },
-    { key: 'durasi', label: 'Durasi (tahun)' },
-    { key: 'pendanaan', label: 'Pendanaan (Rp Juta)' },
-    { key: 'tahun', label: 'Tahun' },
-  ],
-  'pengembangan-dtpr': [
-    { key: 'namadtpr', label: 'Nama DTPR' },
-    { key: 'jenispengembangan', label: 'Jenis Pengembangan' },
-    { key: 'tahunakademik', label: 'Tahun Akademik' },
-    { key: 'linkbukti', label: 'Link Bukti' },
-  ],
-  'kerjasama-penelitian': [
-    { key: 'judulkerjasama', label: 'Judul Kerjasama' },
-    { key: 'mitra', label: 'Mitra' },
-    { key: 'sumber', label: 'Sumber' },
-    { key: 'durasi', label: 'Durasi (tahun)' },
-    { key: 'pendanaan', label: 'Pendanaan (Rp Juta)' },
-    { key: 'tahun', label: 'Tahun' },
-    { key: 'linkbukti', label: 'Link Bukti' },
-  ],
-  'publikasi-penelitian': [
-    { key: 'namadtpr', label: 'Nama DTPR' },
-    { key: 'judulpublikasi', label: 'Judul Publikasi' },
-    { key: 'jenispublikasi', label: 'Jenis Publikasi' },
-    { key: 'tahun', label: 'Tahun' },
-    { key: 'linkbukti', label: 'Link Bukti' },
-  ],
-  'perolehan-hki': [
-    { key: 'judul', label: 'Judul' },
-    { key: 'jenishki', label: 'Jenis HKI' },
-    { key: 'namadtpr', label: 'Nama DTPR' },
-    { key: 'tahun', label: 'Tahun' },
-    { key: 'linkbukti', label: 'Link Bukti' },
-  ],
-};
+  const subtabFields: Record<string, Array<{ key: string; label: string }>> = {
+    'sarana-prasarana': [
+      { key: 'namaprasarana', label: 'Nama Prasarana' },
+      { key: 'dayatampung', label: 'Daya Tampung' },
+      { key: 'luasruang', label: 'Luas Ruang (m²)' },
+      { key: 'status', label: 'Status (M/W)' },
+      { key: 'lisensi', label: 'Lisensi (L/P/T)' },
+      { key: 'perangkat', label: 'Perangkat' },
+      { key: 'linkbukti', label: 'Link Bukti' },
+    ],
+    'hibah-dan-pembiayaan': [
+      { key: 'namadtpr', label: 'Nama DTPR' },
+      { key: 'judulpenelitian', label: 'Judul Penelitian' },
+      { key: 'jumlahmahasiswaterlibat', label: 'Jumlah Mahasiswa Terlibat' },
+      { key: 'jenishibah', label: 'Jenis Hibah' },
+      { key: 'sumber', label: 'Sumber' },
+      { key: 'durasi', label: 'Durasi (tahun)' },
+      { key: 'pendanaan', label: 'Pendanaan (Rp Juta)' },
+      { key: 'tahun', label: 'Tahun' },
+    ],
+    'pengembangan-dtpr': [
+      { key: 'namadtpr', label: 'Nama DTPR' },
+      { key: 'jenispengembangan', label: 'Jenis Pengembangan' },
+      { key: 'tahunakademik', label: 'Tahun Akademik' },
+      { key: 'linkbukti', label: 'Link Bukti' },
+    ],
+    'kerjasama-penelitian': [
+      { key: 'judulkerjasama', label: 'Judul Kerjasama' },
+      { key: 'mitra', label: 'Mitra' },
+      { key: 'sumber', label: 'Sumber' },
+      { key: 'durasi', label: 'Durasi (tahun)' },
+      { key: 'pendanaan', label: 'Pendanaan (Rp Juta)' },
+      { key: 'tahun', label: 'Tahun' },
+      { key: 'linkbukti', label: 'Link Bukti' },
+    ],
+    'publikasi-penelitian': [
+      { key: 'namadtpr', label: 'Nama DTPR' },
+      { key: 'judulpublikasi', label: 'Judul Publikasi' },
+      { key: 'jenispublikasi', label: 'Jenis Publikasi' },
+      { key: 'tahun', label: 'Tahun' },
+      { key: 'linkbukti', label: 'Link Bukti' },
+    ],
+    'perolehan-hki': [
+      { key: 'judul', label: 'Judul' },
+      { key: 'jenishki', label: 'Jenis HKI' },
+      { key: 'namadtpr', label: 'Nama DTPR' },
+      { key: 'tahun', label: 'Tahun' },
+      { key: 'linkbukti', label: 'Link Bukti' },
+    ],
+  };
 
-
-  // Ordered fields (untuk tabel)
-  const orderedFields: Record<string, Array<{ key: string; label: string }>> = subtabFields;
+  const orderedFields = subtabFields;
 
   // --- Fetch data ---
   useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setErrorMsg(null);
+        const json = await relevansiPenelitianService.fetchData(activeSubTab);
+        setData(json);
+      } catch (err: any) {
+        console.error(err);
+        setErrorMsg(err.message || String(err));
+        setData([]);
+      }
+    };
     fetchData();
   }, [activeSubTab]);
 
-  const fetchData = async () => {
-    try {
-      setErrorMsg(null);
-      const json = await getRelevansiPenelitian(activeSubTab);
-      setData(json);
-    } catch (err: any) {
-      console.error(err);
-      setErrorMsg(err.message || String(err));
-      setData([]);
-    }
-  };
-
-  // --- Form handlers ---
+  // --- Form Handlers ---
   const handleChange = (e: any) => setFormData({ ...formData, [e.target.name]: e.target.value });
   const openAdd = () => { setFormData({}); setEditIndex(null); setShowForm(true); };
   const openEdit = (item: any) => { setFormData(item); setEditIndex(item.id ?? null); setShowForm(true); };
@@ -173,11 +158,12 @@ export default function RelevansiPenelitianPage() {
       setSaving(true);
       setErrorMsg(null);
       if (editIndex !== null) {
-        await updateRelevansiPenelitian(activeSubTab, editIndex, formData);
+        await relevansiPenelitianService.updateData(editIndex, formData, activeSubTab);
       } else {
-        await saveRelevansiPenelitian(activeSubTab, formData);
+        await relevansiPenelitianService.createData(formData, activeSubTab);
       }
-      await fetchData();
+      const json = await relevansiPenelitianService.fetchData(activeSubTab);
+      setData(json);
       setShowForm(false);
       setFormData({});
       setEditIndex(null);
@@ -195,8 +181,9 @@ export default function RelevansiPenelitianPage() {
     if (!confirm('Hapus data ini?')) return;
     try {
       setErrorMsg(null);
-      await deleteRelevansiPenelitian(activeSubTab, id);
-      await fetchData();
+      await relevansiPenelitianService.deleteData(id);
+      const json = await relevansiPenelitianService.fetchData(activeSubTab);
+      setData(json);
       showPopup('Data berhasil dihapus', 'success');
     } catch (err: any) {
       console.error(err);
@@ -205,13 +192,13 @@ export default function RelevansiPenelitianPage() {
     }
   };
 
-  // --- Import Excel handlers ---
+  // --- Import Excel ---
   const handleFileChange = async (e: any) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setImporting(true);
     try {
-      const json = await previewImport(file, activeSubTab);
+      const json = await relevansiPenelitianService.previewImport(file, activeSubTab);
       setPreviewFile(file);
       setPreviewHeaders(json.headers || []);
       setPreviewRows(json.previewRows || []);
@@ -233,8 +220,9 @@ export default function RelevansiPenelitianPage() {
     if (!previewFile) return;
     try {
       setImporting(true);
-      await commitImport(previewFile, activeSubTab, mapping);
-      await fetchData();
+      await relevansiPenelitianService.commitImport(previewFile, activeSubTab, mapping);
+      const json = await relevansiPenelitianService.fetchData(activeSubTab);
+      setData(json);
       setShowPreviewModal(false);
       setPreviewFile(null);
       showPopup('Import berhasil', 'success');
@@ -251,7 +239,7 @@ export default function RelevansiPenelitianPage() {
     setMapping(newMap);
   };
 
-  // --- Table render ---
+  // --- Render Table ---
   const renderColumns = () => (
     <tr>
       {(orderedFields[activeSubTab] || []).map(c => (
@@ -265,14 +253,11 @@ export default function RelevansiPenelitianPage() {
 
   const renderRows = () => {
     const cols = orderedFields[activeSubTab] || [];
-    if (data.length === 0) {
-      return (
-        <tr>
-          <td colSpan={cols.length + 1} className="text-center py-6 text-gray-500">Belum ada data</td>
-        </tr>
-      );
-    }
-
+    if (data.length === 0) return (
+      <tr>
+        <td colSpan={cols.length + 1} className="text-center py-6 text-gray-500">Belum ada data</td>
+      </tr>
+    );
     return data.map((item, index) => (
       <tr key={item.id ?? index} className="bg-white hover:bg-gray-50 border-b">
         {cols.map(c => <td key={c.key} className="px-6 py-4 text-gray-800">{item[c.key] ?? ''}</td>)}
@@ -286,6 +271,7 @@ export default function RelevansiPenelitianPage() {
     ));
   };
 
+  // --- JSX Render ---
   return (
     <div className="flex w-full bg-gray-100">
       <PopupNotification />
@@ -308,39 +294,35 @@ export default function RelevansiPenelitianPage() {
 
           {/* Tabs utama */}
           <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
-              {tabs.map(tab => (
-                <Link
-                  key={tab.href}
-                  href={tab.href}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                    pathname === tab.href
-                      ? 'bg-[#183A64] text-[#ADE7F7]' // aktif
-                      : 'bg- text-[#183A64] hover:bg-[#90d8ee]'
-                  }`}
-                >
-                  {tab.label}
-                </Link>
-              ))}
-            </div>
-
+            {tabs.map(tab => (
+              <Link
+                key={tab.href}
+                href={tab.href}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                  pathname === tab.href ? 'bg-[#183A64] text-[#ADE7F7]' : 'bg- text-[#183A64] hover:bg-[#90d8ee]'
+                }`}
+              >
+                {tab.label}
+              </Link>
+            ))}
+          </div>
 
           {/* Subtabs */}
           <div className="flex gap-2 border-b pb-2 mb-4 overflow-x-auto">
-  {Object.keys(subtabFields).map((key) => (
-    <button
-      key={key}
-      onClick={() => setActiveSubTab(key)}
-      className={`px-4 py-2 text-sm rounded-t-lg font-medium transition whitespace-nowrap ${
-        activeSubTab === key
-          ? 'bg-[#183A64] text-[#ADE7F7]' // aktif
-          : 'bg-[#ADE7F7] text-[#183A64] hover:bg-[#90d8ee]' // tidak aktif
-      }`}
-    >
-      {key.replace(/-/g, ' ')}
-    </button>
-  ))}
-</div>
-
+            {Object.keys(subtabFields).map((key) => (
+              <button
+                key={key}
+                onClick={() => setActiveSubTab(key as SubTab)}
+                className={`px-4 py-2 text-sm rounded-t-lg font-medium transition whitespace-nowrap ${
+                  activeSubTab === key
+                    ? 'bg-[#183A64] text-[#ADE7F7]'
+                    : 'bg-[#ADE7F7] text-[#183A64] hover:bg-[#90d8ee]'
+                }`}
+              >
+                {key.replace(/-/g, ' ')}
+              </button>
+            ))}
+          </div>
 
           {/* Table */}
           <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -387,7 +369,7 @@ export default function RelevansiPenelitianPage() {
             </div>
           )}
 
-          {/* Preview & Mapping Modal */}
+          {/* Preview Modal */}
           {showPreviewModal && (
             <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
               <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -420,18 +402,10 @@ export default function RelevansiPenelitianPage() {
 
         <style>{`
           @keyframes slideDown {
-            from {
-              transform: translateY(-100%);
-              opacity: 0;
-            }
-            to {
-              transform: translateY(0);
-              opacity: 1;
-            }
+            from { transform: translateY(-100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
           }
-          .animate-slideDown {
-            animation: slideDown 0.3s ease-out;
-          }
+          .animate-slideDown { animation: slideDown 0.3s ease-out; }
         `}</style>
       </div>
     </div>

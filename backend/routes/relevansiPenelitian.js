@@ -6,22 +6,23 @@ import {
   deleteData,
   importExcel
 } from '../controllers/relevansiPenelitianController.js';
+import { authenticateToken } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
+// POST — import Excel (HARUS PALING ATAS sebelum "/:id")
+router.post('/import', authenticateToken, importExcel);
+
 // GET all data by subtab ?type=xxx
-router.get('/', getData);
+router.get('/', authenticateToken, getData);
 
 // POST — tambah data baru
-router.post('/', createData);
+router.post('/', authenticateToken, createData);
 
 // PUT — update data by ID
-router.put('/:id', updateData);
+router.put('/:id', authenticateToken, updateData);
 
 // DELETE — hapus data by ID
-router.delete('/:id', deleteData);
-
-// POST — import Excel
-router.post('/import', importExcel);
+router.delete('/:id', authenticateToken, deleteData);
 
 export default router;

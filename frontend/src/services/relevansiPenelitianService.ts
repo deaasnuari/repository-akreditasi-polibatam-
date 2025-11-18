@@ -1,86 +1,397 @@
-const API_BASE = 'http://localhost:5000/api/relevansi-penelitian';
+// services/relevansiPenelitianService.ts
 
-// GET data per subtab
-export async function getRelevansiPenelitian(subtab: string) {
-  const res = await fetch(`${API_BASE}?subtab=${subtab}`);
-  if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
-  const json = await res.json();
-  return json.data ?? json;
+export const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/relevansi-penelitian';
+
+export type SubTab =
+  | 'sarana-prasarana'
+  | 'hibah-dan-pembiayaan'
+  | 'pengembangan-dtpr'
+  | 'kerjasama-penelitian'
+  | 'publikasi-penelitian'
+  | 'perolehan-hki';
+
+export interface DataItem {
+  id?: number;
+  namaprasarana?: string;
+  dayatampung?: number;
+  luasruang?: number;
+  status?: string;
+  lisensi?: string;
+  perangkat?: string;
+  linkbukti?: string;
+  namadtpr?: string;
+  judulpenelitian?: string;
+  jumlahmahasiswaterlibat?: number;
+  jenishibah?: string;
+  sumber?: string;
+  durasi?: number;
+  pendanaan?: number;
+  tahun?: number;
+  jenispengembangan?: string;
+  tahunakademik?: string;
+  judulkerjasama?: string;
+  mitra?: string;
+  judulpublikasi?: string;
+  jenispublikasi?: string;
+  judul?: string;
+  jenishki?: string;
+  [key: string]: any; // untuk field dinamis
 }
 
-// POST — tambah data baru
-export async function saveRelevansiPenelitian(subtab: string, payload: any) {
-  const res = await fetch(API_BASE, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ subtab, ...payload }), // perbaikan: pakai subtab
-  });
-  if (!res.ok) {
-    let bodyText = '';
-    try { const json = await res.json(); bodyText = json.message || json.error || JSON.stringify(json); } catch { try { bodyText = await res.text(); } catch {} }
-    throw new Error(`HTTP ${res.status} ${res.statusText} - ${bodyText}`);
+export interface ApiResponse<T = any> {
+  success: boolean;
+  message?: string;
+  data?: T;
+  error?: string;
+}
+
+/**
+ * Ambil user_id dari localStorage. Hanya bisa di client-side.
+ */
+function getUserId() {
+  if (typeof window === "undefined") {
+    throw new Error("Harus di client-side. Tunggu sampai browser mount.");
   }
-  return await res.json();
-}
 
-// PUT — update data by ID
-// updateRelevansiPenelitian expects (subtab, id, payload) because page passes subtab first.
-export async function updateRelevansiPenelitian(subtab: string, id: number | string, payload: any) {
-  if (!id || Number.isNaN(Number(id))) throw new Error('ID tidak valid');
-  const res = await fetch(`${API_BASE}/${id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) {
-    let bodyText = '';
-    try { const json = await res.json(); bodyText = json.message || JSON.stringify(json); } catch { try { bodyText = await res.text(); } catch {} }
-    throw new Error(`HTTP ${res.status} ${res.statusText} - ${bodyText}`);
+  // Coba ambil dari localStorage dulu
+  const idStr = localStorage.getItem("user_id");
+  if (idStr) {
+    const id = Number(idStr);
+    if (!Number.isNaN(id)) return id;
   }
-  return await res.json();
+
+  // Jika tidak ada, coba ambil dari sessionStorage (untuk sementara)
+  const sessionIdStr = sessionStorage.getItem("user_id");
+  if (sessionIdStr) {
+    const id = Number(sessionIdStr);
+    if (!Number.isNaN(id)) return id;
+  }
+
+  throw new Error("User ID tidak ditemukan. Pastikan sudah login.");
 }
 
-// DELETE — hapus data by ID
-// deleteRelevansiPenelitian expects (subtab, id) because pages pass subtab first.
-export async function deleteRelevansiPenelitian(subtab: string, id: number | string) {
-  if (!id || Number.isNaN(Number(id))) throw new Error('ID tidak valid');
-  const res = await fetch(`${API_BASE}/${id}`, { method: 'DELETE' });
-  if (!res.ok) {
-    // Try to read JSON error body for more helpful message
-    let bodyText = '';
+class RelevansiPenelitianService {
+  /**
+   * Fetch data berdasarkan tipe subtab
+   */
+  async fetchData(subtab: SubTab): Promise<DataItem[]> {
     try {
-      const json = await res.json();
-      bodyText = json.message || JSON.stringify(json);
-    } catch (err) {
-      try {
-        bodyText = await res.text();
-      } catch {}
+      const response = await fetch(`${API_BASE}?subtab=${subtab}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result: ApiResponse<DataItem[]> = await response.json();
+      return result.data || [];
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      throw error;
     }
-    throw new Error(`HTTP ${res.status} ${res.statusText} - ${bodyText}`);
   }
-  return await res.json();
+
+  /**
+   * Tambah data baru
+   */
+  async createData(data: DataItem, subtab: SubTab): Promise<ApiResponse> {
+    try {
+      const user_id = getUserId();
+
+      const response = await fetch(API_BASE, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ subtab, user_id, ...data }),
+      });
+
+      const result: ApiResponse = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Gagal menambah data');
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Error creating data:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update data yang sudah ada
+   */
+  async updateData(id: number, data: DataItem, subtab: SubTab): Promise<ApiResponse> {
+    try {
+      const response = await fetch(`${API_BASE}/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ...data, subtab }),
+      });
+
+      const result: ApiResponse = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Gagal mengupdate data');
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Error updating data:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Hapus data
+   */
+  async deleteData(id: number): Promise<ApiResponse> {
+    try {
+      const response = await fetch(`${API_BASE}/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const result: ApiResponse = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Gagal menghapus data');
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Error deleting data:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Import data dari Excel
+   */
+  async importExcel(file: File, subtab: SubTab): Promise<ApiResponse> {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('subtab', subtab);
+
+      const response = await fetch(`${API_BASE}/import`, {
+        method: 'POST',
+        body: formData,
+        // Tidak perlu set Content-Type, browser akan set otomatis untuk FormData
+      });
+
+      const result: ApiResponse = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Gagal import data');
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Error importing data:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Preview Import Excel
+   */
+  async previewImport(file: File, subtab: SubTab): Promise<any> {
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('subtab', subtab);
+      fd.append('preview', 'true');
+
+      const response = await fetch(`${API_BASE}/import`, { method: 'POST', body: fd });
+      if (!response.ok) throw new Error(`HTTP ${response.status} ${response.statusText}`);
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error previewing import:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Commit Import Excel
+   */
+  async commitImport(file: File, subtab: SubTab, mapping: Record<string, string>): Promise<any> {
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('subtab', subtab);
+      fd.append('mapping', JSON.stringify(mapping));
+
+      const response = await fetch(`${API_BASE}/import`, { method: 'POST', body: fd });
+      if (!response.ok) throw new Error(`HTTP ${response.status} ${response.statusText}`);
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error committing import:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Export data ke Excel
+   */
+  async exportExcel(subtab: SubTab): Promise<Blob> {
+    try {
+      const response = await fetch(`${API_BASE}/export?subtab=${subtab}`, {
+        method: 'GET',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.blob();
+    } catch (error) {
+      console.error('Error exporting data:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Export data ke PDF
+   */
+  async exportPDF(subtab: SubTab): Promise<Blob> {
+    try {
+      const response = await fetch(`${API_BASE}/export-pdf?subtab=${subtab}`, {
+        method: 'GET',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.blob();
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Bulk delete - hapus multiple data sekaligus
+   */
+  async bulkDelete(ids: number[]): Promise<ApiResponse> {
+    try {
+      const response = await fetch(`${API_BASE}/bulk-delete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ids }),
+      });
+
+      const result: ApiResponse = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Gagal menghapus data');
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Error bulk deleting:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get single data by ID
+   */
+  async getDataById(id: number): Promise<DataItem | null> {
+    try {
+      const response = await fetch(`${API_BASE}/${id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result: ApiResponse<DataItem> = await response.json();
+      return result.data || null;
+    } catch (error) {
+      console.error('Error fetching data by ID:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Validasi data sebelum submit
+   */
+  validateData(data: DataItem, subtab: SubTab): { valid: boolean; errors: string[] } {
+    const errors: string[] = [];
+
+    switch (subtab) {
+      case 'sarana-prasarana':
+        if (!data.namaprasarana) errors.push('Nama Prasarana harus diisi');
+        if (!data.dayatampung || data.dayatampung <= 0) errors.push('Daya Tampung harus lebih dari 0');
+        break;
+
+      case 'hibah-dan-pembiayaan':
+        if (!data.namadtpr) errors.push('Nama DTPR harus diisi');
+        if (!data.judulpenelitian) errors.push('Judul Penelitian harus diisi');
+        break;
+
+      case 'pengembangan-dtpr':
+        if (!data.namadtpr) errors.push('Nama DTPR harus diisi');
+        if (!data.jenispengembangan) errors.push('Jenis Pengembangan harus diisi');
+        break;
+
+      case 'kerjasama-penelitian':
+        if (!data.judulkerjasama) errors.push('Judul Kerjasama harus diisi');
+        if (!data.mitra) errors.push('Mitra harus diisi');
+        break;
+
+      case 'publikasi-penelitian':
+        if (!data.namadtpr) errors.push('Nama DTPR harus diisi');
+        if (!data.judulpublikasi) errors.push('Judul Publikasi harus diisi');
+        break;
+
+      case 'perolehan-hki':
+        if (!data.judul) errors.push('Judul harus diisi');
+        if (!data.jenishki) errors.push('Jenis HKI harus diisi');
+        break;
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors
+    };
+  }
+
+  /**
+   * Download file (untuk export Excel/PDF)
+   */
+  downloadFile(blob: Blob, filename: string) {
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  }
 }
 
-// PREVIEW import Excel
-export async function previewImport(file: File, subtab: string) {
-  const fd = new FormData();
-  fd.append('file', file);
-  fd.append('subtab', subtab); // ganti type → subtab
-  fd.append('preview', 'true');
+// Export singleton instance
+export const relevansiPenelitianService = new RelevansiPenelitianService();
 
-  const res = await fetch(`${API_BASE}/import`, { method: 'POST', body: fd });
-  if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
-  return await res.json();
-}
-
-// COMMIT import Excel
-export async function commitImport(file: File, subtab: string, mapping: Record<string, string>) {
-  const fd = new FormData();
-  fd.append('file', file);
-  fd.append('subtab', subtab); // ganti type → subtab
-  fd.append('mapping', JSON.stringify(mapping));
-
-  const res = await fetch(`${API_BASE}/import`, { method: 'POST', body: fd });
-  if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
-  return await res.json();
-}
+export default relevansiPenelitianService;

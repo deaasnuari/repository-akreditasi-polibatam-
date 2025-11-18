@@ -76,36 +76,19 @@ model relevansi_pendidikan {
 }
 
 model relevansi_penelitian {
-  id                      Int       @id @default(autoincrement())
-  subtab                  String    @db.VarChar(50)
-  namaprasarana           String?   @db.VarChar(255)
-  dayatampung             Int?
-  luasruang               Decimal?  @db.Decimal(10, 2)
-  status                  String?   @db.VarChar(10)
-  lisensi                 String?   @db.VarChar(10)
-  perangkat               String?   @db.VarChar(255)
-  linkbukti               String?
-  namadtpr                String?   @db.VarChar(255)
-  judulpenelitian         String?
-  jumlahmahasiswaterlibat Int?
-  jenishibah              String?   @db.VarChar(50)
-  sumber                  String?   @db.VarChar(100)
-  durasi                  Decimal?  @db.Decimal(5, 2)
-  pendanaan               Decimal?  @db.Decimal(15, 2)
-  tahun                   Int?
-  jenispengembangan       String?   @db.VarChar(100)
-  tahunakademik           String?   @db.VarChar(20)
-  judulkerjasama          String?
-  mitra                   String?   @db.VarChar(255)
-  judulpublikasi          String?
-  jenispublikasi          String?   @db.VarChar(50)
-  judul                   String?
-  jenishki                String?   @db.VarChar(50)
-  created_at              DateTime? @default(now()) @db.Timestamp(6)
-  updated_at              DateTime? @default(now()) @db.Timestamp(6)
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  subtab     String   @db.VarChar(100)
+  data       Json     // semua data FE masuk ke sini
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  user users @relation(fields: [user_id], references: [id])
 
   @@index([subtab], map: "idx_relevansi_penelitian_subtab")
+  @@index([user_id], map: "idx_relevansi_penelitian_user")
 }
+
 
 model relevansi_pkm {
   id               Int       @id @default(autoincrement())
@@ -148,4 +131,8 @@ model users {
   password   String    @db.VarChar(255)
   role       String?   @default("user") @db.VarChar(20)
   created_at DateTime? @default(now()) @db.Timestamp(6)
+
+  // Relasi balik
+  relevansi_penelitian relevansi_penelitian[]
 }
+
