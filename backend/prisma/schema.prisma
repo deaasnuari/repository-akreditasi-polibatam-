@@ -91,33 +91,17 @@ model relevansi_penelitian {
 
 
 model relevansi_pkm {
-  id               Int       @id @default(autoincrement())
-  subtab           String    @db.VarChar(100)
-  nama_prasarana   String?   @db.VarChar(255)
-  daya_tampung     String?   @db.VarChar(50)
-  luas_ruang       String?   @db.VarChar(50)
-  status           String?   @db.VarChar(10)
-  lisensi          String?   @db.VarChar(10)
-  perangkat        String?
-  link_bukti       String?
-  no               String?   @db.VarChar(50)
-  nama_dtpr        String?   @db.VarChar(255)
-  judul_pkm        String?
-  jumlah_mahasiswa String?   @db.VarChar(50)
-  jenis_hibah      String?   @db.VarChar(255)
-  sumber_dana      String?   @db.VarChar(255)
-  durasi           String?   @db.VarChar(50)
-  pendanaan        String?   @db.VarChar(50)
-  tahun            String?   @db.VarChar(50)
-  judul_kerjasama  String?
-  mitra            String?   @db.VarChar(255)
-  sumber           String?   @db.VarChar(10)
-  judul            String?
-  jenis_hki        String?   @db.VarChar(255)
-  created_at       DateTime? @default(now()) @db.Timestamp(6)
-  updated_at       DateTime? @default(now()) @db.Timestamp(6)
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  subtab     String   @db.VarChar(100)
+  data       Json     // semua data FE masuk ke sini
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  user users @relation(fields: [user_id], references: [id])
 
   @@index([subtab], map: "idx_relevansi_pkm_subtab")
+  @@index([user_id], map: "idx_relevansi_pkm_user")
 }
 
 // =========================
@@ -134,5 +118,6 @@ model users {
 
   // Relasi balik
   relevansi_penelitian relevansi_penelitian[]
+  relevansi_pkm relevansi_pkm[]
 }
 

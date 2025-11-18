@@ -76,11 +76,13 @@ class RelevansiPenelitianService {
    */
   async fetchData(subtab: SubTab): Promise<DataItem[]> {
     try {
-      const response = await fetch(`${API_BASE}?subtab=${subtab}`, {
+      const user_id = getUserId();
+      const response = await fetch(`${API_BASE}?subtab=${subtab}&user_id=${user_id}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -107,6 +109,7 @@ class RelevansiPenelitianService {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({ subtab, user_id, ...data }),
       });
 
@@ -133,6 +136,7 @@ class RelevansiPenelitianService {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({ ...data, subtab }),
       });
 
@@ -159,6 +163,7 @@ class RelevansiPenelitianService {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
       });
 
       const result: ApiResponse = await response.json();
@@ -186,6 +191,7 @@ class RelevansiPenelitianService {
       const response = await fetch(`${API_BASE}/import`, {
         method: 'POST',
         body: formData,
+        credentials: 'include',
         // Tidak perlu set Content-Type, browser akan set otomatis untuk FormData
       });
 
@@ -212,7 +218,7 @@ class RelevansiPenelitianService {
       fd.append('subtab', subtab);
       fd.append('preview', 'true');
 
-      const response = await fetch(`${API_BASE}/import`, { method: 'POST', body: fd });
+      const response = await fetch(`${API_BASE}/import`, { method: 'POST', body: fd, credentials: 'include' });
       if (!response.ok) throw new Error(`HTTP ${response.status} ${response.statusText}`);
 
       return await response.json();
@@ -232,7 +238,7 @@ class RelevansiPenelitianService {
       fd.append('subtab', subtab);
       fd.append('mapping', JSON.stringify(mapping));
 
-      const response = await fetch(`${API_BASE}/import`, { method: 'POST', body: fd });
+      const response = await fetch(`${API_BASE}/import`, { method: 'POST', body: fd, credentials: 'include' });
       if (!response.ok) throw new Error(`HTTP ${response.status} ${response.statusText}`);
 
       return await response.json();
@@ -249,6 +255,7 @@ class RelevansiPenelitianService {
     try {
       const response = await fetch(`${API_BASE}/export?subtab=${subtab}`, {
         method: 'GET',
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -269,6 +276,7 @@ class RelevansiPenelitianService {
     try {
       const response = await fetch(`${API_BASE}/export-pdf?subtab=${subtab}`, {
         method: 'GET',
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -292,6 +300,7 @@ class RelevansiPenelitianService {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({ ids }),
       });
 
@@ -318,6 +327,7 @@ class RelevansiPenelitianService {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
       });
 
       if (!response.ok) {

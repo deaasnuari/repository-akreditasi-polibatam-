@@ -26,9 +26,14 @@ function normalizeRow(row = {}) {
 export const getData = async (req, res) => {
   try {
     const subtab = req.query.subtab;
+    const userId = req.user.id;
+    const userRole = req.user.role;
+
+    // Jika role tim-akreditasi, bisa lihat semua data, jika tidak, hanya data milik sendiri
+    const whereClause = userRole === 'tim-akreditasi' ? { subtab } : { subtab, user_id: userId };
 
     const rows = await prisma.relevansi_penelitian.findMany({
-      where: { subtab },
+      where: whereClause,
       orderBy: { id: "asc" },
     });
 
@@ -73,7 +78,23 @@ export const createData = async (req, res) => {
 export const updateData = async (req, res) => {
   try {
     const id = Number(req.params.id);
+    const userId = req.user.id;
+    const userRole = req.user.role;
     const cleanData = normalizeRow(req.body);
+
+    // Cek kepemilikan data
+    const record = await prisma.relevansi_penelitian.findUnique({
+      where: { id },
+      select: { user_id: true },
+    });
+
+    if (!record) {
+      return res.status(404).json({ success: false, message: "Data tidak ditemukan" });
+    }
+
+    if (record.user_id !== userId && userRole !== 'tim-akreditasi') {
+      return res.status(403).json({ success: false, message: "Tidak memiliki akses untuk mengubah data ini" });
+    }
 
     const updated = await prisma.relevansi_penelitian.update({
       where: { id },
@@ -93,6 +114,22 @@ export const updateData = async (req, res) => {
 export const deleteData = async (req, res) => {
   try {
     const id = Number(req.params.id);
+    const userId = req.user.id;
+    const userRole = req.user.role;
+
+    // Cek kepemilikan data
+    const record = await prisma.relevansi_penelitian.findUnique({
+      where: { id },
+      select: { user_id: true },
+    });
+
+    if (!record) {
+      return res.status(404).json({ success: false, message: "Data tidak ditemukan" });
+    }
+
+    if (record.user_id !== userId && userRole !== 'tim-akreditasi') {
+      return res.status(403).json({ success: false, message: "Tidak memiliki akses untuk menghapus data ini" });
+    }
 
     const deleted = await prisma.relevansi_penelitian.delete({
       where: { id },

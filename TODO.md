@@ -1,10 +1,7 @@
-# TODO: Integrate relevansiPendidikanService into page.tsx
+# TODO: Simplify relevansi_pkm schema like relevansi_penelitian
 
-- [ ] Import relevansiPendidikanService and types from service file
-- [ ] Remove local API_BASE and type definitions
-- [ ] Replace fetchData function to use service.fetchData(activeSubTab)
-- [ ] Update handleSave to use service.createData() and service.updateData()
-- [ ] Update handleDelete to use service.deleteData(id)
-- [ ] Update handleImport to use service.importExcel(file, activeSubTab)
-- [ ] Adjust error handling for service methods
-- [ ] Test all CRUD operations
+## Steps:
+- [x] Edit backend/prisma/schema.prisma: Change relevansi_pkm model to use `data Json` instead of specific fields, matching relevansi_penelitian.
+- [x] Update backend/controllers/relevansiPkmController.js: Modify getData to return { id, ...data }, add updateData and deleteData methods like relevansiPenelitianController.js.
+- [ ] Run Prisma migration: `npx prisma migrate dev --name simplify_relevansi_pkm_schema` (failed due to DATABASE_URL not set)
+- [ ] Verify the changes work correctly.

@@ -6,22 +6,23 @@ import {
   deleteData,
   importExcel
 } from '../controllers/relevansiPkmController.js'; // pastikan ini controller PKM
+import { authenticateToken } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-// GET data per subtab ?type=subtab
-router.get('/', getData);
+// POST — import Excel (HARUS PALING ATAS sebelum "/:id")
+router.post('/import', authenticateToken, importExcel);
+
+// GET data per subtab ?subtab=xxx
+router.get('/', authenticateToken, getData);
 
 // POST — tambah data baru
-router.post('/', createData);
+router.post('/', authenticateToken, createData);
 
 // PUT — update data by ID
-router.put('/:id', updateData);
+router.put('/:id', authenticateToken, updateData);
 
 // DELETE — hapus data by ID
-router.delete('/:id', deleteData);
-
-// POST — import Excel
-router.post('/import', importExcel);
+router.delete('/:id', authenticateToken, deleteData);
 
 export default router;
