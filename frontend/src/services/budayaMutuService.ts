@@ -164,6 +164,29 @@ export const updateBudayaMutuLED = async (id: string, data: any) => {
   }
 };
 
+export const deleteBudayaMutuLED = async (id: string | number) => {
+  try {
+    const res = await fetch(`${API_BASE_LED}/${id}`, {
+      method: 'DELETE',
+    });
+
+    const text = await res.text();
+    let json;
+    try {
+      json = JSON.parse(text);
+    } catch {
+      json = null;
+    }
+
+    if (!res.ok) throw new Error(`Delete failed: ${res.status} ${text}`);
+
+    return json; // expected { success: true }
+  } catch (err) {
+    console.error('deleteBudayaMutuLED error:', err);
+    return null;
+  }
+};
+
 // Draft di localStorage
 export const saveDraftBudayaMutuLED = (data: any) => {
   localStorage.setItem('draftBudayaMutuLED', JSON.stringify(data));
