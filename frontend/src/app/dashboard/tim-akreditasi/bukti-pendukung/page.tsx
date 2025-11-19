@@ -199,7 +199,7 @@ export default function BuktiPendukungPage() {
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+            className="border border-gray-300 rounded-md px-3 py-2 text-sm w-44"
           >
             <option value="Semua Status">Semua Status</option>
             <option value="Diterima">Diterima</option>
@@ -213,7 +213,7 @@ export default function BuktiPendukungPage() {
           <select
             value={filterKategori}
             onChange={(e) => setFilterKategori(e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+            className="border border-gray-300 rounded-md px-3 py-2 text-sm w-44"
           >
             <option value="Semua Kategori">Semua Kategori</option>
             <option value="Umum">Umum</option>

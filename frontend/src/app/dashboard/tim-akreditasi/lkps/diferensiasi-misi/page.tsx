@@ -159,20 +159,21 @@ export default function DiferensiasiMisiPage() {
 
           {/* Tabs utama */}
           <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
-            {tabs.map((tab) => (
-              <Link
-                key={tab.href}
-                href={tab.href}
-                className={`px-4 py-2 rounded-lg text-sm transition ${
-                  pathname === tab.href
-                    ? 'bg-blue-100 text-blue-900 font-medium'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {tab.label}
-              </Link>
-            ))}
-          </div>
+              {tabs.map(tab => (
+                <Link
+                  key={tab.href}
+                  href={tab.href}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                    pathname === tab.href
+                      ? 'bg-[#183A64] text-[#ADE7F7]' // aktif
+                      : 'bg- text-[#183A64] hover:bg-[#90d8ee]'
+                  }`}
+                >
+                  {tab.label}
+                </Link>
+              ))}
+            </div>
+
 
           {/* Konten */}
           <div className="bg-white rounded-lg shadow p-6">

@@ -137,6 +137,17 @@ model relevansi_pkm {
   @@index([subtab], map: "idx_relevansi_pkm_subtab")
 }
 
+model diferensiasi_misi {
+  id         Int      @id @default(autoincrement())
+  tipe_data  String?
+  unit_kerja String?
+  konten     String?
+  type       String?  @db.VarChar(50)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+
 // =========================
 // USERS (AUTH)
 // =========================

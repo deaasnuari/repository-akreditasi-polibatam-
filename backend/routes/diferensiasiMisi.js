@@ -8,7 +8,7 @@ import {
 
 const router = express.Router();
 
-router.get('/', getDiferensiasiMisi); // ✅ penting: path '/'
+router.get("/", getDiferensiasiMisi);
 router.post("/", addDiferensiasiMisi);
 router.put("/:id", updateDiferensiasiMisi);
 router.delete("/:id", deleteDiferensiasiMisi);

@@ -35,7 +35,7 @@ const tabs = [
   ['budaya-mutu', 'C.1 Budaya Mutu'],
   ['relevansi-pendidikan', 'C.2 Relevansi Pendidikan'],
   ['relevansi-penelitian', 'C.3 Relevansi Penelitian'],
-  ['relevansi-pkm', 'C.4 Relevansi PkM'],
+  ['relevansi-pkm', 'C.4 Relevansi PKM'],
   ['akuntabilitas', 'C.5 Akuntabilitas'],
   ['diferensiasi-misi', 'C.6 Diferensiasi Misi'],
 ];
