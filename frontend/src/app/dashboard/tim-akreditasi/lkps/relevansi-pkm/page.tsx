@@ -4,6 +4,7 @@ import React, { useEffect, useState, ChangeEvent } from 'react';
 import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { getRelevansiPkm, saveRelevansiPkm, updateRelevansiPkm, deleteRelevansiPkm } from '@/services/relevansiPkmService';
 
 export default function RelevansiPkmPage() {
   const pathname = usePathname();
@@ -83,15 +84,8 @@ export default function RelevansiPkmPage() {
   const fetchData = async () => {
     try {
       setErrorMsg(null);
-      const res = await fetch(`${API_BASE}?type=${activeSubTab}`);
-      
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => null);
-        throw new Error(errorData?.message || `HTTP ${res.status}`);
-      }
-      
-      const json = await res.json();
-      setData(json.data ?? json ?? []);
+      const result = await getRelevansiPkm(activeSubTab);
+      setData(result);
     } catch (err: any) {
       console.error('fetchData error', err);
       setErrorMsg(err?.message || String(err));
@@ -120,25 +114,14 @@ export default function RelevansiPkmPage() {
       setSaving(true);
       setErrorMsg(null);
 
-      const method = editIndex ? 'PUT' : 'POST';
-      const url = editIndex ? `${API_BASE}/${editIndex}` : `${API_BASE}`;
+      const payload = { ...formData };
 
-      const payload = { ...formData, type: activeSubTab };
-      
       console.log('🚀 Sending data:', payload); // Debug log
 
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      // Parse response body terlebih dahulu
-      const json = await res.json();
-
-      // Cek status response
-      if (!res.ok) {
-        throw new Error(json.message || json.error || `HTTP ${res.status}: ${res.statusText}`);
+      if (editIndex) {
+        await updateRelevansiPkm(activeSubTab, editIndex, payload);
+      } else {
+        await saveRelevansiPkm(activeSubTab, payload);
       }
 
       showPopup('Data berhasil disimpan', 'success');
@@ -160,17 +143,11 @@ export default function RelevansiPkmPage() {
       showPopup('ID tidak ditemukan', 'error');
       return;
     }
-    
+
     if (!confirm('Hapus data ini?')) return;
 
     try {
-      const res = await fetch(`${API_BASE}/${item.id}`, { method: 'DELETE' });
-      const json = await res.json();
-
-      if (!res.ok) {
-        throw new Error(json.message || `HTTP ${res.status}`);
-      }
-
+      await deleteRelevansiPkm(activeSubTab, item.id);
       showPopup('Data berhasil dihapus', 'success');
       await fetchData();
     } catch (err: any) {

@@ -104,6 +104,18 @@ export default function LayoutTataUsaha({
     return () => { mounted = false; };
   }, [router]);
 
+  // Listen for storage changes to update user data across tabs
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'browserAuth' && e.newValue !== 'true') {
+        // Browser-wide logout detected, redirect to auth
+        router.push('/auth');
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [router]);
+
   const menuItems = [
     { name: 'Dashboard', href: '/dashboard/tata-usaha', icon: <Home size={18} /> },
     { name: 'LKPS', href: '/dashboard/tata-usaha/lkps', icon: <FileText size={18} /> },

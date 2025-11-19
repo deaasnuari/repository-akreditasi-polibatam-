@@ -36,7 +36,6 @@ export default function AuthPage() {
     try {
       const data = await loginUser(loginEmail, loginPassword, loginRole);
       if (data.success && data.user) {
-        sessionStorage.setItem('tabAuth', 'true');
         const role = data.user.role;
         if (role === 'tim-akreditasi') router.push('/dashboard/tim-akreditasi');
         else if (role === 'p4m') router.push('/dashboard/p4m');

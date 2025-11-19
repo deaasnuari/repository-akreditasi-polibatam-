@@ -101,6 +101,22 @@ export default function LayoutTimAkreditasi({
     return () => { mounted = false; };
   }, [router]);
 
+  // Listen for storage changes to update user data across tabs
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key && e.key.startsWith('user_') && e.newValue) {
+        try {
+          const userData = JSON.parse(e.newValue);
+          if (userData.role === 'tim-akreditasi') {
+            setUser({ username: userData.username, role: userData.role });
+          }
+        } catch {}
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
   const menuItems = [
     { name: 'Dashboard', href: '/dashboard/tim-akreditasi', icon: <Home size={18} /> },
     { name: 'LKPS', href: '/dashboard/tim-akreditasi/lkps', icon: <FileText size={18} /> },

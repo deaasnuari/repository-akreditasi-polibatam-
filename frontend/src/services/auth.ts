@@ -53,17 +53,30 @@ export const loginUser = async (
 
     const data = await res.json();
     if (!res.ok) throw new Error(data.msg || 'Login gagal.');
-    // Mark this tab as authenticated for the requested role only
-    if (typeof window !== 'undefined') {
+
+    // Store user data in sessionStorage per tab
+    if (typeof window !== 'undefined' && data.success && data.user) {
       try {
+        const tabId = sessionStorage.getItem('tabId') || generateTabId();
+        sessionStorage.setItem('tabId', tabId);
         sessionStorage.setItem('tabAuth', 'true');
         sessionStorage.setItem('tabRole', role);
+        sessionStorage.setItem('user', JSON.stringify({
+          id: data.user.id,
+          username: data.user.username,
+          role: data.user.role
+        }));
       } catch {}
     }
     return data;
   } catch (err: any) {
     throw new Error(err.message || 'Login gagal.');
   }
+};
+
+// Generate unique tab ID
+const generateTabId = () => {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2);
 };
 
 // ===== GET CURRENT USER =====
@@ -118,7 +131,14 @@ export const logout = async (redirectTo: string = (typeof window !== 'undefined'
     });
   } catch {}
   // Clear per-tab flag as well
-  if (typeof window !== 'undefined') sessionStorage.removeItem('tabAuth');
-  if (typeof window !== 'undefined') sessionStorage.removeItem('tabRole');
+  if (typeof window !== 'undefined') {
+    const tabId = sessionStorage.getItem('tabId');
+    if (tabId) {
+      localStorage.removeItem(`user_${tabId}`);
+    }
+    sessionStorage.removeItem('tabAuth');
+    sessionStorage.removeItem('tabRole');
+    sessionStorage.removeItem('tabId');
+  }
   window.location.href = redirectTo;
 };

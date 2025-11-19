@@ -95,6 +95,20 @@ export default function LayoutP4M({ children }: { children: React.ReactNode }) {
     return () => { mounted = false; };
   }, [router]);
 
+  // Listen for storage changes to update user data across tabs
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'browserAuth' && e.newValue !== 'true') {
+        // Browser-wide logout detected, redirect to auth
+        router.push('/auth');
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [router]);
+
+
+
   // === MENU UNTUK ROLE P4M ===
   const menuItems = [
     { name: 'Dashboard', href: '/dashboard/p4m', icon: <Home size={18} /> },
