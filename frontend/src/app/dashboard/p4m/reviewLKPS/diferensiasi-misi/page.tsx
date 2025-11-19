@@ -2,6 +2,8 @@
 
 import React, { useEffect, useState, ChangeEvent } from 'react';
 import { FileText, Download, Save, Edit, Trash2, X } from 'lucide-react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 // --- Data item ---
 interface DataItem {
@@ -12,7 +14,7 @@ interface DataItem {
 }
 
 export default function DiferensiasiMisiPage() {
-  const [activeTab, setActiveTab] = useState('/dashboard/tim-akreditasi/lkps/diferensiasi-misi');
+  const pathname = usePathname();
   const [data, setData] = useState<DataItem[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editIndex, setEditIndex] = useState<number | null>(null);
@@ -30,26 +32,22 @@ export default function DiferensiasiMisiPage() {
 
   // --- Fetch Data ---
   const fetchData = async () => {
-  try {
-    const res = await fetch(`${API_BASE}?type=visi-misi`);
-    if (!res.ok) throw new Error('Gagal fetch data');
-    const json = await res.json();
-    console.log('RESPON DARI BACKEND:', json);
-    setData(json.data || json || []); // ✅ fallback ke json langsung
-  } catch (err) {
-    console.error('Fetch error:', err);
-    setData([]);
-  }
-};
-
+    try {
+      const res = await fetch(`${API_BASE}?type=visi-misi`);
+      if (!res.ok) throw new Error('Gagal fetch data');
+      const json = await res.json();
+      setData(json.data || json || []);
+    } catch (err) {
+      console.error('Fetch error:', err);
+      setData([]);
+    }
+  };
 
   useEffect(() => {
     fetchData();
   }, []);
 
-  // --- Form & CRUD ---
-  // fungsi tambah data dihilangkan (UI & trigger dihapus). Edit tetap tersedia.
-
+  // --- CRUD ---
   const handleSave = async () => {
     try {
       const method = formData.id ? 'PUT' : 'POST';
@@ -60,7 +58,9 @@ export default function DiferensiasiMisiPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...formData, type: 'visi-misi' }),
       });
+
       const json = await res.json();
+
       if (res.ok) {
         alert('✅ Data berhasil disimpan');
         setShowForm(false);
@@ -104,13 +104,12 @@ export default function DiferensiasiMisiPage() {
     });
   };
 
-  // Import Excel handler dihilangkan (fungsi UI terkait dihapus)
-
-  // --- Render utama ---
+  // ========== RENDER ==========
   return (
     <div className="flex w-full bg-gray-100">
       <div className="flex-1 w-full">
         <main className="w-full p-4 md:p-6 max-w-full overflow-x-hidden">
+
           {/* Header LKPS */}
           <div className="bg-white rounded-lg shadow p-6 mb-6 flex justify-between items-start">
             <div className="flex items-center gap-3 mb-2">
@@ -120,6 +119,7 @@ export default function DiferensiasiMisiPage() {
                 <p className="text-sm text-gray-600">Kelola data kuantitatif berdasarkan kriteria akreditasi</p>
               </div>
             </div>
+
             <div className="flex gap-2">
               <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
                 <Download size={16} /> Export PDF
@@ -133,11 +133,11 @@ export default function DiferensiasiMisiPage() {
           {/* Tabs utama */}
           <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
             {tabs.map((tab) => {
-              const isActive = activeTab === tab.href; 
+              const isActive = pathname === tab.href;
               return (
-                <button
+                <Link
                   key={tab.href}
-                  onClick={() => setActiveTab(tab.href)}
+                  href={tab.href}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                     isActive
                       ? 'bg-[#183A64] text-[#ADE7F7] shadow-md scale-105'
@@ -145,20 +145,19 @@ export default function DiferensiasiMisiPage() {
                   }`}
                 >
                   {tab.label}
-                </button>
+                </Link>
               );
             })}
           </div>
 
           {/* Konten */}
           <div className="bg-white rounded-lg shadow p-6">
-            {/* Judul Tabel */}
+
+            {/* Judul */}
             <div className="mb-4">
               <h2 className="text-lg font-semibold text-gray-800 mb-1">Data Visi/Misi</h2>
               <p className="text-sm text-gray-600">Tabel Visi dan Misi</p>
             </div>
-
-            {/* Tombol Tambah / Import dihilangkan sesuai permintaan */}
 
             {/* Tabel */}
             <div className="overflow-x-auto bg-white rounded-lg shadow-md">
@@ -206,6 +205,7 @@ export default function DiferensiasiMisiPage() {
             {showForm && (
               <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-start md:items-center overflow-auto z-50 p-4">
                 <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-xl">
+
                   {/* Header Form */}
                   <div className="flex justify-between items-center mb-6">
                     <h2 className="text-lg font-semibold text-gray-800">
@@ -216,7 +216,9 @@ export default function DiferensiasiMisiPage() {
                     </button>
                   </div>
 
-                  <p className="text-sm text-gray-600 mb-4">Isi form di bawah untuk menambahkan data visi atau misi baru ke tabel</p>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Isi form di bawah untuk menambahkan data visi atau misi baru ke tabel
+                  </p>
 
                   <div className="grid grid-cols-1 gap-4">
                     <div>
@@ -254,7 +256,6 @@ export default function DiferensiasiMisiPage() {
                         name="konten"
                         value={formData.konten || ''}
                         onChange={handleChange}
-                        placeholder="Tulis konten di sini..."
                         rows={6}
                         className="border p-3 rounded-lg w-full bg-gray-50"
                       />
@@ -262,20 +263,25 @@ export default function DiferensiasiMisiPage() {
                   </div>
 
                   <div className="mt-6 flex justify-end gap-2">
-                    <button 
+                    <button
                       onClick={() => setShowForm(false)}
                       className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
                     >
                       Batal
                     </button>
 
-                    <button onClick={handleSave} className="px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800">
+                    <button
+                      onClick={handleSave}
+                      className="px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800"
+                    >
                       Simpan
                     </button>
                   </div>
+
                 </div>
               </div>
             )}
+
           </div>
         </main>
       </div>

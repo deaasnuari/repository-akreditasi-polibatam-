@@ -2,8 +2,12 @@
 
 import React, { useEffect, useState } from 'react';
 import { FileText, Download, Save, Edit, Trash2, X, CheckCircle, AlertCircle, Info } from 'lucide-react';
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export default function LKPSPage() {
+  const pathname = usePathname();
+
   type SubTab = 'tupoksi' | 'pendanaan' | 'penggunaan-dana' | 'ewmp' | 'ktk' | 'spmi';
 
   const tableTitles: Record<SubTab, string> = {
@@ -550,9 +554,19 @@ export default function LKPSPage() {
           </div>
 
           {/* Tabs utama */}
-          <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
-            {tabs.map(tab => (
-              <a key={tab.href} href={tab.href} className="px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-gray-100 text-gray-700 hover:bg-[#ADE7F7] hover:text-[#183A64]">{tab.label}</a>
+         <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
+            {tabs.map((tab) => (
+              <Link
+                key={tab.href}
+                href={tab.href}
+                className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                  pathname === tab.href
+                    ? 'bg-[#183A64] text-[#ADE7F7]'
+                    : 'bg-gray-100 text-gray-700 hover:bg-[#ADE7F7] hover:text-[#183A64]'
+                }`}
+              >
+                {tab.label}
+              </Link>
             ))}
           </div>
 
