@@ -1,15 +1,13 @@
 'use client';
-
 import React, { useEffect, useState } from 'react';
-import { FileText, Download, Save, Edit, Trash2, X, CheckCircle, AlertCircle, Info } from 'lucide-react';
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { FileText, Download, Save, Eye, X, CheckCircle, AlertCircle, Info } from 'lucide-react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
-export default function LKPSPage() {
-  const pathname = usePathname();
-
+export default function P4MReviewBudayaMutuPage() {
   type SubTab = 'tupoksi' | 'pendanaan' | 'penggunaan-dana' | 'ewmp' | 'ktk' | 'spmi';
 
+  const pathname = usePathname();
   const tableTitles: Record<SubTab, string> = {
     tupoksi: 'Tabel 1.A.1 Tabel Pimpinan dan Tupoksi UPPS dan PS',
     pendanaan: 'Tabel 1.A.2 Sumber Pendanaan UPPS/PS',
@@ -19,6 +17,7 @@ export default function LKPSPage() {
     spmi: 'Tabel 1.B Tabel Unit SPMI dan SDM',
   };
 
+  const [activeTab, setActiveTab] = useState('/dashboard/p4m/reviewLKPS');
   const [activeSubTab, setActiveSubTab] = useState<SubTab>('tupoksi');
   const [tabData, setTabData] = useState<Record<SubTab, any[]>>({
     tupoksi: [],
@@ -28,9 +27,9 @@ export default function LKPSPage() {
     ktk: [],
     spmi: [],
   });
-  const [showForm, setShowForm] = useState(false);
-  const [editIndex, setEditIndex] = useState<number | null>(null);
-  const [formData, setFormData] = useState<any>({});
+  const [showDetail, setShowDetail] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [reviewNote, setReviewNote] = useState('');
 
   // State untuk popup notifikasi
   const [popup, setPopup] = useState<{ 
@@ -43,20 +42,9 @@ export default function LKPSPage() {
     type: 'success',
   });
 
-  // State untuk modal konfirmasi
-  const [modal, setModal] = useState<{
-    show: boolean;
-    title: string;
-    message: string;
-    onConfirm: () => void;
-  }>({
-    show: false,
-    title: '',
-    message: '',
-    onConfirm: () => {},
-  });
-
-  // Struktur organisasi upload/display removed
+  // State untuk struktur organisasi
+  const [strukturFileUrl, setStrukturFileUrl] = useState('');
+  const [strukturFileName, setStrukturFileName] = useState('');
 
   const API_BASE = 'http://localhost:5000/api/budaya-mutu';
 
@@ -73,20 +61,6 @@ export default function LKPSPage() {
   const showPopup = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     setPopup({ show: true, message, type });
     setTimeout(() => setPopup({ show: false, message: '', type: 'success' }), 3000);
-  };
-
-  // Fungsi untuk menampilkan modal konfirmasi
-  const showModal = (title: string, message: string, onConfirm: () => void) => {
-    setModal({ show: true, title, message, onConfirm });
-  };
-
-  const closeModal = () => {
-    setModal({ show: false, title: '', message: '', onConfirm: () => {} });
-  };
-
-  const handleModalConfirm = () => {
-    modal.onConfirm();
-    closeModal();
   };
 
   // Komponen Popup
@@ -128,62 +102,13 @@ export default function LKPSPage() {
     );
   };
 
-  // Komponen Modal Konfirmasi
-  const ConfirmModal = () => {
-    if (!modal.show) return null;
-
-    const isDeleteAction = modal.title.includes('Hapus');
-    const isImportAction = modal.title.includes('Import');
-
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[70] animate-fadeIn">
-        <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4 animate-scaleIn">
-          <div className="flex items-start gap-4 mb-4">
-            <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${
-              isDeleteAction ? 'bg-red-100' : isImportAction ? 'bg-blue-100' : 'bg-yellow-100'
-            }`}>
-              <AlertCircle className={`${
-                isDeleteAction ? 'text-red-600' : isImportAction ? 'text-blue-600' : 'text-yellow-600'
-              }`} size={24} />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                {modal.title}
-              </h3>
-              <p className="text-gray-600 text-sm">
-                {modal.message}
-              </p>
-            </div>
-          </div>
-          <div className="flex gap-3 justify-end mt-6">
-            <button
-              onClick={closeModal}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
-            >
-              Batal
-            </button>
-            <button
-              onClick={handleModalConfirm}
-              className={`px-4 py-2 text-white rounded-lg transition ${
-                isDeleteAction 
-                  ? 'bg-red-600 hover:bg-red-700' 
-                  : isImportAction 
-                  ? 'bg-blue-600 hover:bg-blue-700'
-                  : 'bg-yellow-600 hover:bg-yellow-700'
-              }`}
-            >
-              {isDeleteAction ? 'Hapus' : isImportAction ? 'Import' : 'Ya, Lanjutkan'}
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   useEffect(() => {
     fetchData();
   }, [activeSubTab]);
 
+  useEffect(() => {
+    fetchStrukturOrganisasi();
+  }, []);
 
   const fetchData = async () => {
     try {
@@ -221,134 +146,31 @@ export default function LKPSPage() {
     }
   };
 
-
-  // Import Excel handler removed (import UI removed)
-
-  // Struktur organisasi upload handlers removed
-
-  // openAdd (tambah data) dihilangkan — UI tombol tambah sudah dihapus
-
-  const handleCloseForm = () => {
-    setShowForm(false);
-    setEditIndex(null);
-    setFormData({});
-  };
-
-  const handleSave = async () => {
+  const fetchStrukturOrganisasi = async () => {
     try {
-      const { id: itemId, ...dataToSave } = formData;
-      
-      const method = editIndex !== null && itemId ? 'PUT' : 'POST';
-      const url = editIndex !== null && itemId ? `${API_BASE}/${itemId}` : API_BASE;
-
-      const body = JSON.stringify({ type: activeSubTab, data: dataToSave });
-      
-      console.log('Saving data:', { method, url, body });
-      
-      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body });
-      
-      const contentType = res.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const responseText = await res.text();
-        showPopup('Server error - response bukan JSON', 'error');
-        console.error('Response:', responseText);
-        console.error('Status:', res.status);
-        console.error('URL:', url);
-        return;
-      }
-
+      const res = await fetch(`${API_BASE}/struktur`);
       const json = await res.json();
 
-      if (!res.ok || !json.success) {
-        showPopup(json.message || 'Gagal menyimpan data', 'error');
-        return;
+      if (json.success && json.file) {
+        setStrukturFileName(json.file.fileName);
+        setStrukturFileUrl(`http://localhost:5000${json.file.fileUrl}`);
       }
-
-      setTabData(prev => {
-        const prevData = prev[activeSubTab] || [];
-        let newData;
-        
-        if (editIndex !== null) {
-          newData = prevData.map((d, i) => 
-            i === editIndex ? { ...d, id: itemId, data: dataToSave } : d
-          );
-        } else {
-          newData = [...prevData, { id: json.data.id, data: dataToSave }];
-        }
-        
-        return { ...prev, [activeSubTab]: newData };
-      });
-
-      showPopup('Data berhasil disimpan', 'success');
-      setShowForm(false);
-      setEditIndex(null);
-      setFormData({});
     } catch (err) {
-      console.error('Save error:', err);
-      showPopup('Gagal menyimpan data', 'error');
+      console.error('Fetch struktur error:', err);
     }
   };
 
-  const handleEdit = (item: any) => {
-    setFormData({ ...item.data, id: item.id });
-    const idx = tabData[activeSubTab].findIndex(d => d.id === item.id);
-    setEditIndex(idx !== -1 ? idx : null);
-    setShowForm(true);
+  const handleViewDetail = (item: any) => {
+    setSelectedItem(item);
+    setReviewNote('');
+    setShowDetail(true);
   };
 
-  const handleDelete = async (id: string) => {
-    showModal(
-      'Konfirmasi Hapus',
-      'Apakah Anda yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.',
-      async () => {
-        try {
-          const res = await fetch(`${API_BASE}/${id}`, { method: 'DELETE' });
-          
-          const contentType = res.headers.get('content-type');
-          if (!contentType || !contentType.includes('application/json')) {
-            showPopup('Server error - response bukan JSON', 'error');
-            console.error('Response:', await res.text());
-            return;
-          }
-
-          const json = await res.json();
-
-          if (res.ok) {
-            setTabData(prev => {
-              const prevData = prev[activeSubTab] || [];
-              return { ...prev, [activeSubTab]: prevData.filter(d => d.id !== id) };
-            });
-            showPopup('Data berhasil dihapus', 'success');
-          } else {
-            showPopup(json.message || 'Gagal menghapus', 'error');
-          }
-        } catch (err) {
-          console.error('Delete error:', err);
-          showPopup('Gagal menghapus data', 'error');
-        }
-      }
-    );
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const getEmptyFormData = (subTab: SubTab) => {
-    switch (subTab) {
-      case 'tupoksi':
-        return { unitKerja: '', namaKetua: '', periode: '', pendidikanTerakhir: '', jabatanFungsional: '', tugasPokokDanFungsi: '' };
-      case 'pendanaan':
-        return { sumberPendanaan: '', ts2: '', ts1: '', ts: '', linkBukti: '' };
-      case 'penggunaan-dana':
-        return { penggunaanDana: '', ts2: '', ts1: '', ts: '', linkBukti: '' };
-      case 'ewmp':
-        return { namaDTPR: '', psSendiri: '', psLainPTSendiri: '', ptLain: '', sksPenelitian: '', sksPengabdian: '', manajemenPTSendiri: '', manajemenPTLain: '', totalSKS: '' };
-      case 'ktk':
-        return { jenisTenagaKependidikan: '', s3: '', s2: '', s1: '', d4: '', d3: '', d2: '', d1: '', sma: '', unitKerja: '' };
-      case 'spmi':
-        return { unitSPMI: '', namaUnitSPMI: '', dokumenSPMI: '', jumlahAuditorMutuInternal: '', certified: '', nonCertified: '', frekuensiAudit: '', buktiCertifiedAuditor: '', laporanAudit: '' };
-    }
+  const handleSaveReview = () => {
+    showPopup('Catatan review berhasil disimpan', 'success');
+    setShowDetail(false);
+    setSelectedItem(null);
+    setReviewNote('');
   };
 
   const subTabFields: Record<SubTab, { label: string; key: string }[]> = {
@@ -412,10 +234,6 @@ export default function LKPSPage() {
     ],
   };
 
-  const getFormFields = (subTab: SubTab) => {
-    return subTabFields[subTab].filter(field => field.key !== 'no');
-  };
-
   const data = tabData[activeSubTab];
 
   const renderColumns = () => (
@@ -434,7 +252,7 @@ export default function LKPSPage() {
       return (
         <tr>
           <td colSpan={subTabFields[activeSubTab].length + 1} className="text-center py-6 text-gray-500">
-            Belum ada data
+            Belum ada data untuk direview
           </td>
         </tr>
       );
@@ -454,39 +272,28 @@ export default function LKPSPage() {
                 '-'
               )
             ) : (
-              item.data?.[col.key] ?? '-'
+              <div className="max-w-xs truncate">
+                {item.data?.[col.key] ?? '-'}
+              </div>
             )}
           </td>
         ))}
         <td className="px-6 py-4 text-center">
-          <div className="flex gap-2 justify-center">
-            <button 
-              onClick={() => handleEdit(item)} 
-              className="text-blue-600 hover:text-blue-800 transition"
-              title="Edit"
-            >
-              <Edit size={16} />
-            </button>
-            <button 
-              onClick={() => handleDelete(item.id)} 
-              className="text-red-600 hover:text-red-800 transition"
-              title="Hapus"
-            >
-              <Trash2 size={16} />
-            </button>
-          </div>
+          <button 
+            onClick={() => handleViewDetail(item)} 
+            className="text-blue-700 hover:text-blue-900 inline-flex items-center gap-1"
+            title="Lihat Detail"
+          >
+            <Eye size={16} />
+          </button>
         </td>
       </tr>
     ));
   };
 
   return (
-    <div className="flex w-full bg-gray-100">
-      {/* Popup Notification */}
+    <div className="flex w-full bg-gray-100 min-h-screen">
       <PopupNotification />
-      
-      {/* Modal Konfirmasi */}
-      <ConfirmModal />
 
       <style>{`
         @keyframes slideDown {
@@ -502,30 +309,6 @@ export default function LKPSPage() {
         .animate-slideDown {
           animation: slideDown 0.3s ease-out;
         }
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
-        }
-        .animate-fadeIn {
-          animation: fadeIn 0.2s ease-out;
-        }
-        @keyframes scaleIn {
-          from {
-            transform: scale(0.9);
-            opacity: 0;
-          }
-          to {
-            transform: scale(1);
-            opacity: 1;
-          }
-        }
-        .animate-scaleIn {
-          animation: scaleIn 0.25s ease-out;
-        }
       `}</style>
 
       <div className="flex-1 w-full">
@@ -536,8 +319,8 @@ export default function LKPSPage() {
             <div className="flex items-center gap-3">
               <FileText className="text-blue-900" size={32} />
               <div>
-                <h1 className="text-2xl font-bold text-gray-800">Laporan Kinerja Program Studi (LKPS)</h1>
-                <p className="text-sm text-gray-600">Kelola data kuantitatif berdasarkan kriteria akreditasi</p>
+                <h1 className="text-2xl font-bold text-gray-800">Review LKPS - P4M</h1>
+                <p className="text-sm text-gray-600">Review data kuantitatif berdasarkan kriteria akreditasi</p>
               </div>
             </div>
             <div className="flex gap-2">
@@ -545,50 +328,85 @@ export default function LKPSPage() {
                 <Download size={16} /> Export PDF
               </button>
               <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-                <Save size={16} /> Save Draft
-              </button>
-              <button className="flex items-center gap-2 px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800">
-                <FileText size={16} /> Submit
+                <Save size={16} /> Save Review
               </button>
             </div>
           </div>
 
           {/* Tabs utama */}
-         <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
-            {tabs.map((tab) => (
-              <Link
-                key={tab.href}
-                href={tab.href}
-                className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                  pathname === tab.href
-                    ? 'bg-[#183A64] text-[#ADE7F7]'
-                    : 'bg-gray-100 text-gray-700 hover:bg-[#ADE7F7] hover:text-[#183A64]'
-                }`}
-              >
-                {tab.label}
-              </Link>
-            ))}
+          <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
+            {tabs.map((tab) => {
+              const isActive = pathname === tab.href;
+              return (
+                <Link
+                  key={tab.href}
+                  href={tab.href}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                    isActive
+                      ? 'bg-[#183A64] text-[#ADE7F7] shadow-md scale-105'
+                      : 'bg-gray-100 text-gray-700 hover:bg-[#ADE7F7] hover:text-[#183A64]'
+                  }`}
+                >
+                  {tab.label}
+                </Link>
+              );
+            })}
+          </div>
+
+          {/* Info P4M */}
+          <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4 rounded">
+            <p className="text-sm text-blue-800">
+              <strong>Mode Review P4M:</strong> Anda dapat melihat dan mengevaluasi data yang diinput oleh Tim Akreditasi
+            </p>
           </div>
 
           {/* Budaya Mutu Tab */}
           <div className="bg-white rounded-lg shadow-md p-6 space-y-6">
             
-            {/* Struktur Organisasi */}
+            {/* Struktur Organisasi - View Only */}
             <div className="bg-white rounded-lg shadow p-4">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="font-bold text-gray-800">Struktur Organisasi</h3>
               </div>
 
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center relative">
-                <p className="text-gray-500">Belum ada file struktur organisasi yang diupload.</p>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                {strukturFileUrl ? (
+                  <div>
+                    {strukturFileUrl.endsWith('.pdf') ? (
+                      <iframe
+                        src={strukturFileUrl}
+                        className="w-full h-96 border rounded-lg"
+                        title="Struktur Organisasi PDF"
+                      />
+                    ) : (
+                      <img
+                        src={strukturFileUrl}
+                        alt="Struktur Organisasi"
+                        className="mx-auto max-h-96 object-contain rounded-lg shadow"
+                      />
+                    )}
+                    <p className="mt-2 text-sm text-gray-600 italic">
+                      {strukturFileName}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-gray-500">Belum ada file struktur organisasi yang diupload.</p>
+                )}
               </div>
             </div>
 
             {/* Sub-tabs */}
             <div className="flex gap-2 border-b pb-2 mb-4 overflow-x-auto">
               {['tupoksi','pendanaan','penggunaan-dana','ewmp','ktk','spmi'].map(sub => (
-                <button key={sub} onClick={() => setActiveSubTab(sub as SubTab)}
-                  className={`px-4 py-2 text-sm rounded-t-lg whitespace-nowrap ${activeSubTab === sub ? 'bg-blue-100 text-blue-900 font-semibold' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
+                <button
+                  key={sub}
+                  onClick={() => setActiveSubTab(sub as SubTab)}
+                  className={`px-4 py-2 text-sm rounded-t-lg whitespace-nowrap font-medium transition ${
+                    activeSubTab === sub
+                      ? 'bg-[#183A64] text-[#ADE7F7]'
+                      : 'bg-[#ADE7F7] text-[#183A64] hover:bg-[#90d8ee]'
+                  }`}
+                >
                   {sub.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase())}
                 </button>
               ))}
@@ -597,10 +415,8 @@ export default function LKPSPage() {
             {/* Table Section */}
             <div className="bg-white rounded-lg shadow-md overflow-hidden">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center px-6 py-4 border-b bg-gray-50 gap-2 md:gap-0">
-                <h3 className="text-lg font-semibold text-gray-900 capitalize">Data {activeSubTab}</h3>
+                <h3 className="text-lg font-semibold text-gray-900 capitalize">Review Data {activeSubTab}</h3>
                 <h2 className="text-sm text-gray-600">{tableTitles[activeSubTab]}</h2>
-
-                {/* Tombol Tambah / Import dihilangkan sesuai permintaan */}
               </div>
 
               <div className="overflow-x-auto px-4 py-2">
@@ -615,53 +431,81 @@ export default function LKPSPage() {
               </div>
             </div>
 
-            {/* Form Input */}
-            {showForm && (
+            {/* Modal Detail */}
+            {showDetail && selectedItem && (
               <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-start md:items-center overflow-auto z-50 p-4">
-                <div className="bg-white p-5 md:p-6 rounded-xl shadow-lg w-full max-w-xl md:max-w-lg max-h-[85vh] overflow-y-auto transition-transform">
-                  <div className="flex justify-between items-center mb-5">
+                <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+                  <div className="flex justify-between items-center mb-6">
                     <h2 className="text-lg font-semibold text-gray-800">
-                      {editIndex !== null ? 'Edit Data' : 'Tambah Data Baru'}
+                      Detail Data {activeSubTab.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase())}
                     </h2>
-                    <button onClick={() => setShowForm(false)} className="text-gray-500 hover:text-gray-700">
+                    <button 
+                      onClick={() => setShowDetail(false)} 
+                      className="text-gray-500 hover:text-gray-700"
+                    >
                       <X size={24} />
                     </button>
                   </div>
 
-                  {/* Form Fields */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {getFormFields(activeSubTab).map(field => (
-                      <div
-                        key={field.key}
-                        className={field.key === 'tugasPokokDanFungsi' || field.key === 'dokumenSPMI' ? 'md:col-span-2' : ''}
-                      >
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          {field.label}
-                        </label>
-                        <input
-                          type="text"
-                          name={field.key}
-                          value={formData[field.key] || ''}
-                          onChange={handleChange}
-                          placeholder={`Masukkan ${field.label}`}
-                          className="border border-gray-300 p-2.5 rounded-lg w-full text-gray-800 focus:ring-2 focus:ring-blue-300 focus:border-blue-300"
-                        />
-                      </div>
-                    ))}
+                  <div className="space-y-4">
+                    {subTabFields[activeSubTab]
+                      .filter(field => field.key !== 'no')
+                      .map(field => (
+                        <div key={field.key} className="bg-gray-50 p-4 rounded-lg">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            {field.label}
+                          </label>
+                          <p className="text-gray-900">
+                            {field.key === 'linkBukti' || 
+                             field.key === 'dokumenSPMI' || 
+                             field.key === 'buktiCertifiedAuditor' || 
+                             field.key === 'laporanAudit' ? (
+                              selectedItem.data?.[field.key] ? (
+                                <a 
+                                  href={selectedItem.data[field.key]} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer" 
+                                  className="text-blue-600 hover:underline"
+                                >
+                                  Buka Link
+                                </a>
+                              ) : (
+                                '-'
+                              )
+                            ) : (
+                              selectedItem.data?.[field.key] || '-'
+                            )}
+                          </p>
+                        </div>
+                      ))}
+
+                    {/* Area Catatan Review */}
+                    <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Catatan Review (Optional)
+                      </label>
+                      <textarea
+                        value={reviewNote}
+                        onChange={(e) => setReviewNote(e.target.value)}
+                        placeholder="Tambahkan catatan atau komentar review di sini..."
+                        rows={4}
+                        className="border p-3 rounded-lg w-full bg-white"
+                      />
+                    </div>
                   </div>
 
-                  <div className="flex justify-end mt-6 gap-2">
-                    <button
-                      onClick={() => setShowForm(false)}
-                      className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100"
+                  <div className="mt-6 flex justify-end gap-2">
+                    <button 
+                      onClick={() => setShowDetail(false)}
+                      className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
                     >
-                      Batal
+                      Tutup
                     </button>
-                    <button
-                      onClick={handleSave}
-                      className="px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800"
+                    <button 
+                      onClick={handleSaveReview}
+                      className="px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800"
                     >
-                      Simpan
+                      Simpan Catatan
                     </button>
                   </div>
                 </div>
@@ -672,4 +516,4 @@ export default function LKPSPage() {
       </div>
     </div>
   );
-};
+}
