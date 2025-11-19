@@ -15,7 +15,7 @@ model struktur_files {
 }
 
 model budaya_mutu {
-  id         Int       @id @default(autoincrement())
+  id         Int      @id @default(autoincrement())
   type       String
   data       Json
   created_at DateTime @default(now())
@@ -79,7 +79,7 @@ model relevansi_penelitian {
   id         Int      @id @default(autoincrement())
   user_id    Int
   subtab     String   @db.VarChar(100)
-  data       Json     // semua data FE masuk ke sini
+  data       Json // semua data FE masuk ke sini
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
@@ -89,12 +89,11 @@ model relevansi_penelitian {
   @@index([user_id], map: "idx_relevansi_penelitian_user")
 }
 
-
 model relevansi_pkm {
   id         Int      @id @default(autoincrement())
   user_id    Int
   subtab     String   @db.VarChar(100)
-  data       Json     // semua data FE masuk ke sini
+  data       Json // semua data FE masuk ke sini
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
@@ -114,7 +113,6 @@ model diferensiasi_misi {
   updated_at DateTime @updatedAt
 }
 
-
 // =========================
 // USERS (AUTH)
 // =========================
@@ -129,7 +127,7 @@ model users {
 
   // Relasi balik
   relevansi_penelitian relevansi_penelitian[]
-  relevansi_pkm relevansi_pkm[]
+  relevansi_pkm        relevansi_pkm[]
 }
 
 // =========================

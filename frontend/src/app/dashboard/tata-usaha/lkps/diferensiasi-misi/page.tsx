@@ -2,6 +2,8 @@
 
 import React, { useEffect, useState, ChangeEvent } from 'react';
 import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X } from 'lucide-react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 // --- Data item ---
 interface DataItem {
@@ -12,7 +14,7 @@ interface DataItem {
 }
 
 export default function DiferensiasiMisiPage() {
-  const [activeTab, setActiveTab] = useState('/dashboard/tim-akreditasi/lkps/diferensiasi-misi');
+  const pathname = usePathname();
   const [data, setData] = useState<DataItem[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editIndex, setEditIndex] = useState<number | null>(null);
@@ -23,11 +25,10 @@ export default function DiferensiasiMisiPage() {
     { label: 'Budaya Mutu', href: '/dashboard/tata-usaha/lkps' },
     { label: 'Relevansi Pendidikan', href: '/dashboard/tata-usaha/lkps/relevansi-pendidikan' },
     { label: 'Relevansi Penelitian', href: '/dashboard/tata-usaha/lkps/relevansi-penelitian' },
-    { label: 'Relevansi Pkm', href: '/dashboard/tata-usaha/lkps/relevansi-pkm' },
+    { label: 'Relevansi PKM', href: '/dashboard/tata-usaha/lkps/relevansi-pkm' },
     { label: 'Akuntabilitas', href: '/dashboard/tata-usaha/lkps/akuntabilitas' },
     { label: 'Diferensiasi Misi', href: '/dashboard/tata-usaha/lkps/diferensiasi-misi' },
   ];
-
 
   // --- Fetch Data ---
   const fetchData = async () => {
@@ -158,23 +159,21 @@ export default function DiferensiasiMisiPage() {
 
           {/* Tabs utama */}
           <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
-            {tabs.map((tab) => {
-              const isActive = activeTab === tab.href; 
-              return (
-                <button
+              {tabs.map(tab => (
+                <Link
                   key={tab.href}
-                  onClick={() => setActiveTab(tab.href)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                    isActive
-                      ? 'bg-[#183A64] text-[#ADE7F7] shadow-md scale-105'
-                      : 'bg-gray-100 text-gray-700 hover:bg-[#ADE7F7] hover:text-[#183A64]'
+                  href={tab.href}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                    pathname === tab.href
+                      ? 'bg-[#183A64] text-[#ADE7F7]' // aktif
+                      : 'bg- text-[#183A64] hover:bg-[#90d8ee]'
                   }`}
                 >
                   {tab.label}
-                </button>
-              );
-            })}
-          </div>
+                </Link>
+              ))}
+            </div>
+
 
           {/* Konten */}
           <div className="bg-white rounded-lg shadow p-6">
