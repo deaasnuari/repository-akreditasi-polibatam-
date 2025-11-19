@@ -40,6 +40,30 @@ const tabs = [
   ['diferensiasi-misi', 'C.6 Diferensiasi Misi'],
 ];
 
+// Pemetaan alias untuk kompatibilitas nama key dari server
+const TAB_ALIASES: Record<string, string[]> = {
+  'budaya-mutu': ['budayaMutu', 'BudayaMutu', 'C1', 'c1'],
+  'relevansi-pendidikan': ['relevansiPendidikan', 'RelevansiPendidikan', 'C2', 'c2'],
+  'relevansi-penelitian': ['relevansiPenelitian', 'RelevansiPenelitian', 'C3', 'c3'],
+  'relevansi-pkm': ['relevansiPkm', 'RelevansiPkm', 'C4', 'c4'],
+  'akuntabilitas': ['Akuntabilitas', 'akuntabilitasLed', 'C5', 'c5'],
+  'diferensiasi-misi': ['diferensiasiMisi', 'DiferensiasiMisi', 'C6', 'c6'],
+};
+
+function normalizeTabs(source: any): Record<string, any> {
+  if (!source || typeof source !== 'object') return {};
+  const out: Record<string, any> = {};
+  Object.entries(TAB_ALIASES).forEach(([stdKey, aliases]) => {
+    for (const k of [stdKey, ...aliases]) {
+      if (source && source[k]) {
+        out[stdKey] = source[k];
+        break;
+      }
+    }
+  });
+  return out;
+}
+
 const createEmptyTab = (): TabData => ({
   penetapanA: [{ id: uid('pa-'), pernyataan: '', keterlaksanaan: '' }],
   penetapanB: [{ id: uid('pb-'), pernyataan: '', keterlaksanaan: '' }],
@@ -59,7 +83,14 @@ const createEmptyTab = (): TabData => ({
 
 export default function BudayaMutuLEDPage() {
   const [isClient, setIsClient] = useState(false);
-  const [activeTab, setActiveTab] = useState('budaya-mutu');
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const param = new URLSearchParams(window.location.search).get('tab');
+      const valid = tabs.map(([k]) => k);
+      if (param && valid.includes(param)) return param;
+    }
+    return 'budaya-mutu';
+  });
   const [loading, setLoading] = useState(true);
   const [serverId, setServerId] = useState<string | null>(null);
   const [tabData, setTabData] = useState<Record<string, TabData>>({});
@@ -67,6 +98,20 @@ export default function BudayaMutuLEDPage() {
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  // Sinkronkan tab aktif ke URL (?tab=...)
+  useEffect(() => {
+    if (!isClient) return;
+    try {
+      const url = new URL(window.location.href);
+      if (url.searchParams.get('tab') !== activeTab) {
+        url.searchParams.set('tab', activeTab);
+        window.history.replaceState({}, '', url.toString());
+      }
+    } catch (e) {
+      // abaikan jika environment tidak mendukung URL API
+    }
+  }, [activeTab, isClient]);
 
   useEffect(() => {
     if (!isClient) return;
@@ -81,22 +126,23 @@ export default function BudayaMutuLEDPage() {
           // Pastikan setiap tab memiliki data yang valid
           const validatedTabs: Record<string, TabData> = {};
           tabs.forEach(([key]) => {
-            if (latest.tabs && latest.tabs[key]) {
+            const tabsSrc = normalizeTabs(latest.tabs);
+            if (tabsSrc && tabsSrc[key]) {
               validatedTabs[key] = {
-                penetapanA: Array.isArray(latest.tabs[key].penetapanA) && latest.tabs[key].penetapanA.length > 0 
-                  ? latest.tabs[key].penetapanA 
+                penetapanA: Array.isArray(tabsSrc[key].penetapanA) && tabsSrc[key].penetapanA.length > 0 
+                  ? tabsSrc[key].penetapanA 
                   : [{ id: uid('pa-'), pernyataan: '', keterlaksanaan: '' }],
-                penetapanB: Array.isArray(latest.tabs[key].penetapanB) && latest.tabs[key].penetapanB.length > 0
-                  ? latest.tabs[key].penetapanB
+                penetapanB: Array.isArray(tabsSrc[key].penetapanB) && tabsSrc[key].penetapanB.length > 0
+                  ? tabsSrc[key].penetapanB
                   : [{ id: uid('pb-'), pernyataan: '', keterlaksanaan: '' }],
-                pelaksanaanA: Array.isArray(latest.tabs[key].pelaksanaanA) && latest.tabs[key].pelaksanaanA.length > 0
-                  ? latest.tabs[key].pelaksanaanA
+                pelaksanaanA: Array.isArray(tabsSrc[key].pelaksanaanA) && tabsSrc[key].pelaksanaanA.length > 0
+                  ? tabsSrc[key].pelaksanaanA
                   : [{ id: uid('la-'), pernyataan: '', keterlaksanaan: '' }],
-                pelaksanaanB: Array.isArray(latest.tabs[key].pelaksanaanB) && latest.tabs[key].pelaksanaanB.length > 0
-                  ? latest.tabs[key].pelaksanaanB
+                pelaksanaanB: Array.isArray(tabsSrc[key].pelaksanaanB) && tabsSrc[key].pelaksanaanB.length > 0
+                  ? tabsSrc[key].pelaksanaanB
                   : [{ id: uid('lb-'), pernyataan: '', keterlaksanaan: '' }],
-                evalRows: Array.isArray(latest.tabs[key].evalRows) && latest.tabs[key].evalRows.length > 0
-                  ? latest.tabs[key].evalRows
+                evalRows: Array.isArray(tabsSrc[key].evalRows) && tabsSrc[key].evalRows.length > 0
+                  ? tabsSrc[key].evalRows
                   : [{ id: uid('ev-'), pernyataan: '', keterlaksanaan: '', evaluasi: '', tindak_lanjut: '', hasil_optimalisasi: '' }],
               };
             } else {
@@ -133,6 +179,7 @@ export default function BudayaMutuLEDPage() {
   }, [isClient]);
 
   const handleSave = useCallback(async (notify = true, auto = false) => {
+    const activeLabel = tabs.find(([k]) => k === activeTab)?.[1] || activeTab;
     try {
       saveDraftBudayaMutuLED({ tabs: tabData });
 
@@ -146,15 +193,15 @@ export default function BudayaMutuLEDPage() {
       }
 
       if (notify && !auto) {
-        toast.success('✅ Data Budaya Mutu berhasil disimpan ke server!');
+        toast.success(`✅ Data ${activeLabel} berhasil disimpan ke server!`);
       }
     } catch (error) {
       console.error('Error saving:', error);
       if (notify) {
-        toast.warning('💾 Disimpan ke draft (offline mode). Server tidak merespons.');
+        toast.warning(`💾 Disimpan ke draft (offline mode). Server tidak merespons. (Tab: ${activeLabel})`);
       }
     }
-  }, [tabData, serverId]);
+  }, [tabData, serverId, activeTab]);
 
   useEffect(() => {
     if (!isClient || loading) return;
