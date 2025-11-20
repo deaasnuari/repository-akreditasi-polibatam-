@@ -1,69 +1,69 @@
-import pool from "../db.js";  
+import { PrismaClient } from "@prisma/client";
+import xlsx from "xlsx";
+import fs from "fs";
+import path from "path";
 
-// ambil semua data berdasarkan type (tataKelola / sarana)
+const prisma = new PrismaClient();
+
+// ======================
+// GET DATA BY TYPE
+// ======================
 export const getData = async (req, res) => {
+  const { type } = req.query;
   try {
-    const { type } = req.query;
-    const result = await pool.query(
-      "SELECT * FROM akuntabilitas WHERE type = $1 ORDER BY id ASC",
-      [type]
-    );
+    const data = await prisma.akuntabilitas.findMany({
+      where: { type },
+      orderBy: { id: "asc" },
+    });
 
-    // ubah kolom indikator dari string JSON ke objek JS
-    const formatted = result.rows.map((row) => ({
-      id: row.id,
-      data: JSON.parse(row.indikator || "{}"), // amanin kalau null
-    }));
-
-    res.json(formatted);
+    res.json({ success: true, data });
   } catch (err) {
     console.error("GET ERROR:", err);
-    res.status(500).json({ message: "Gagal mengambil data" });
+    res.status(500).json({ success: false, message: "Gagal mengambil data" });
   }
 };
 
-// buat data baru
+// ======================
+// CREATE DATA
+// ======================
 export const createData = async (req, res) => {
+  const { type, data } = req.body;
+
   try {
-    console.log("📩 BODY DITERIMA:", req.body);
-
-    // ambil data sesuai struktur frontend
-    const { type, data } = req.body;
-    const cleanData = data || {}; // amanin kalau undefined/null
-
-    // simpan langsung data ke kolom indikator
-    const result = await pool.query(
-      "INSERT INTO akuntabilitas (type, indikator, nilai, created_at, updated_at) VALUES ($1, $2, $3, NOW(), NOW()) RETURNING *",
-      [type, JSON.stringify(cleanData), 0]
-    );
-
-    res.json({
-      success: true,
-      data: { id: result.rows[0].id, data: cleanData },
-      message: "Data berhasil disimpan",
+    const created = await prisma.akuntabilitas.create({
+      data: {
+        type,
+        data,
+      },
     });
+
+    res.json({ success: true, data: created });
   } catch (err) {
     console.error("CREATE ERROR:", err);
-    res.status(500).json({ success: false, message: "Gagal menyimpan data" });
+    res
+      .status(500)
+      .json({ success: false, message: "Gagal menyimpan data" });
   }
 };
 
-// update data
+// ======================
+// UPDATE DATA
+// ======================
 export const updateData = async (req, res) => {
+  const { id } = req.params;
+  const { type, data } = req.body;
+
   try {
-    const { id } = req.params;
-    const { data } = req.body;
-
-    const result = await pool.query(
-      "UPDATE akuntabilitas SET indikator = $1, updated_at = NOW() WHERE id = $2 RETURNING *",
-      [JSON.stringify(data), id]
-    );
-
-    res.json({
-      success: true,
-      data: { id: result.rows[0].id, data },
-      message: "Data berhasil diperbarui",
+    const updated = await prisma.akuntabilitas.update({
+      where: { id: Number(id) },
+      data: {
+        type,
+        data,
+        updated_at: new Date(),
+      },
     });
+
+    res.json({ success: true, data: updated });
   } catch (err) {
     console.error("UPDATE ERROR:", err);
     res
@@ -72,16 +72,65 @@ export const updateData = async (req, res) => {
   }
 };
 
-// hapus data
+// ======================
+// DELETE DATA
+// ======================
 export const deleteData = async (req, res) => {
+  const { id } = req.params;
+
   try {
-    const { id } = req.params;
-    await pool.query("DELETE FROM akuntabilitas WHERE id = $1", [id]);
+    await prisma.akuntabilitas.delete({
+      where: { id: Number(id) },
+    });
+
     res.json({ success: true, message: "Data berhasil dihapus" });
   } catch (err) {
     console.error("DELETE ERROR:", err);
     res
       .status(500)
       .json({ success: false, message: "Gagal menghapus data" });
+  }
+};
+
+// ======================
+// IMPORT EXCEL
+// ======================
+export const importExcel = async (req, res) => {
+  const { type } = req.params;
+
+  if (!req.file) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Tidak ada file yang diupload" });
+  }
+
+  try {
+    const filePath = path.resolve(req.file.path);
+    const workbook = xlsx.readFile(filePath);
+    const sheet = xlsx.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+
+    const rows = sheet.map((row) => ({
+      ...row, // semua kolom dimasukkan
+    }));
+
+    for (const r of rows) {
+      await prisma.akuntabilitas.create({
+        data: {
+          type,
+          data: r,
+        },
+      });
+    }
+
+    fs.unlinkSync(filePath);
+
+    res.json({
+      success: true,
+      message: "Data berhasil diimport",
+      count: rows.length,
+    });
+  } catch (err) {
+    console.error("IMPORT ERROR:", err);
+    res.status(500).json({ success: false, message: "Gagal import data" });
   }
 };

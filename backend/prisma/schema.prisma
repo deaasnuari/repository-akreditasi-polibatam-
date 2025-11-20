@@ -103,6 +103,16 @@ model relevansi_pkm {
   @@index([user_id], map: "idx_relevansi_pkm_user")
 }
 
+model akuntabilitas {
+  id         Int      @id @default(autoincrement())
+  type       String   @db.VarChar(100)
+  data       Json
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("akuntabilitas")
+}
+
 model diferensiasi_misi {
   id         Int      @id @default(autoincrement())
   tipe_data  String?
