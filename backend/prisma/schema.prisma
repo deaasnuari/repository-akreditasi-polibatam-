@@ -23,56 +23,17 @@ model budaya_mutu {
 }
 
 model relevansi_pendidikan {
-  id                     Int       @id @default(autoincrement())
-  type                   String    @db.VarChar(100)
-  tahun                  String?   @db.VarChar(10)
-  ts2                    String?   @db.VarChar(100)
-  ts1                    String?   @db.VarChar(100)
-  ts                     String?   @db.VarChar(100)
-  linkbukti              String?
-  daya_tampung           Int?
-  pendaftar              Int?
-  diterima               Int?
-  aktif                  Int?
-  asalmahasiswa          String?   @db.VarChar(255)
-  alasan                 String?
-  jumlah                 Int?
-  mata_kuliah            String?   @db.VarChar(255)
-  sks                    Int?
-  semester               String?   @db.VarChar(20)
-  profil_lulusan         String?
-  pl1                    String?
-  pl2                    String?
-  cpl                    String?
-  cpmk                   String?
-  semester1              String?
-  semester2              String?
-  semester3              String?
-  semester4              String?
-  semester5              String?
-  semester6              String?
-  semester7              String?
-  semester8              String?
-  jumlah_lulusan         Int?
-  jumlah_terlacak        Int?
-  rata_rata_waktu_tunggu Decimal?  @db.Decimal(5, 2)
-  profesi_infokom        String?
-  profesi_noninfokom     String?
-  lingkup_internasional  String?
-  lingkup_nasional       String?
-  lingkup_wirausaha      String?
-  no                     Int?
-  jenis_kemampuan        String?
-  sangat_baik            Int?
-  baik                   Int?
-  cukup                  Int?
-  kurang                 Int?
-  rencana_tindak_lanjut  String?
-  tahun_akademik         String?   @db.VarChar(20)
-  sumber_rekognisi       String?
-  jenis_pengakuan        String?
-  created_at             DateTime? @default(now()) @db.Timestamp(6)
-  updated_at             DateTime? @default(now()) @db.Timestamp(6)
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  subtab     String   @db.VarChar(100)
+  data       Json // semua data FE masuk ke sini
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  user users @relation(fields: [user_id], references: [id])
+
+  @@index([subtab], map: "idx_relevansi_pendidikan_subtab")
+  @@index([user_id], map: "idx_relevansi_pendidikan_user")
 }
 
 model relevansi_penelitian {
@@ -138,6 +99,7 @@ model users {
   // Relasi balik
   relevansi_penelitian relevansi_penelitian[]
   relevansi_pkm        relevansi_pkm[]
+  relevansi_pendidikan relevansi_pendidikan[]
 }
 
 // =========================

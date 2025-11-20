@@ -1,6 +1,10 @@
-# TODO: Update Modal Form Validation for Relevansi Penelitian and PKM
+# TODO: Samakan Relevansi Pendidikan dengan Relevansi Penelitian
 
-## Tasks
-- [ ] Update relevansi-penelitian/page.tsx: Add 'type' property to subtabFields, change input types, add validation in handleSave
-- [ ] Update relevansi-pkm/page.tsx: Add 'type' property to subtabFields, change input types, add validation in handleSave
-- [ ] Test the forms to ensure validation works (numbers only for number fields, all fields required)
+## Progress
+- [ ] Update Prisma schema: Ubah model relevansi_pendidikan ke struktur seperti relevansi_penelitian (id, user_id, subtab, data Json, timestamps)
+- [ ] Update backend/controllers/relevansiPendidikanController.js: Gunakan Prisma, tambah autentikasi JWT, ubah 'type' ke 'subtab'
+- [ ] Update backend/routes/relevansiPendidikan.js: Tambah middleware autentikasi
+- [ ] Update frontend/src/services/relevansiPendidikanService.ts: Tambah handling user_id, ubah 'type' ke 'subtab'
+- [ ] Update frontend/src/app/dashboard/tim-akreditasi/lkps/relevansi-pendidikan/page.tsx: Ubah penggunaan 'type' ke 'subtab'
+- [ ] Jalankan migration Prisma: `npx prisma migrate dev`
+- [ ] Test CRUD dan autentikasi

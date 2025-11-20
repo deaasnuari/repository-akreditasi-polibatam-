@@ -184,9 +184,11 @@ class RelevansiPenelitianService {
    */
   async importExcel(file: File, subtab: SubTab): Promise<ApiResponse> {
     try {
+      const user_id = getUserId();
       const formData = new FormData();
       formData.append('file', file);
       formData.append('subtab', subtab);
+      formData.append('user_id', user_id.toString());
 
       const response = await fetch(`${API_BASE}/import`, {
         method: 'POST',
@@ -213,9 +215,11 @@ class RelevansiPenelitianService {
    */
   async previewImport(file: File, subtab: SubTab): Promise<any> {
     try {
+      const user_id = getUserId();
       const fd = new FormData();
       fd.append('file', file);
       fd.append('subtab', subtab);
+      fd.append('user_id', user_id.toString());
       fd.append('preview', 'true');
 
       const response = await fetch(`${API_BASE}/import`, { method: 'POST', body: fd, credentials: 'include' });
@@ -233,9 +237,11 @@ class RelevansiPenelitianService {
    */
   async commitImport(file: File, subtab: SubTab, mapping: Record<string, string>): Promise<any> {
     try {
+      const user_id = getUserId();
       const fd = new FormData();
       fd.append('file', file);
       fd.append('subtab', subtab);
+      fd.append('user_id', user_id.toString());
       fd.append('mapping', JSON.stringify(mapping));
 
       const response = await fetch(`${API_BASE}/import`, { method: 'POST', body: fd, credentials: 'include' });

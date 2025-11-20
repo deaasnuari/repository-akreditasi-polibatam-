@@ -1,143 +1,199 @@
-import pool from "../db.js";
+import prisma from "../prismaClient.js";
+import multer from "multer";
+import xlsx from "xlsx";
 
-// GET: ambil data berdasarkan type (misalnya ?type=mahasiswa)
-export const getRelevansiPendidikan = async (req, res) => {
+const upload = multer({ storage: multer.memoryStorage() });
+
+/* =============================================
+   NORMALIZATION & FILTER
+============================================= */
+function normalizeValue(value) {
+  if (value === undefined || value === null || value === "") return null;
+  return value;
+}
+
+function normalizeRow(row = {}) {
+  const result = {};
+  for (const key of Object.keys(row)) {
+    result[key] = normalizeValue(row[key]);
+  }
+  return result;
+}
+
+/* =============================================
+   GET DATA
+============================================= */
+export const getData = async (req, res) => {
   try {
-    const { type } = req.query;
-    const query = type
-      ? "SELECT * FROM relevansi_pendidikan WHERE type = $1 ORDER BY id ASC"
-      : "SELECT * FROM relevansi_pendidikan ORDER BY id ASC";
-    const values = type ? [type] : [];
-    const result = await pool.query(query, values);
-    res.json({ data: result.rows });
+    const subtab = req.query.subtab;
+    const userId = req.user.id;
+    const userRole = req.user.role;
+
+    // Jika role tim-akreditasi, bisa lihat semua data, jika tidak, hanya data milik sendiri
+    const whereClause = userRole === 'tim-akreditasi' ? { subtab } : { subtab, user_id: userId };
+
+    const rows = await prisma.relevansi_pendidikan.findMany({
+      where: whereClause,
+      orderBy: { id: "asc" },
+    });
+
+    // kembalikan field `data` saja plus id
+    const data = rows.map(r => ({ id: r.id, ...r.data }));
+
+    res.json({ success: true, data });
   } catch (err) {
-    console.error("Error GET:", err);
-    res.status(500).json({ success: false, message: "Gagal mengambil data" });
+    console.error(err);
+    res.status(500).json({ success: false, message: "Gagal mengambil data", error: err.message });
   }
 };
 
-export const getRelevansiPendidikanById = async (req, res) => {
+/* =============================================
+   CREATE DATA
+============================================= */
+export const createData = async (req, res) => {
   try {
-    const { id } = req.params;
-    const result = await pool.query("SELECT * FROM relevansi_pendidikan WHERE id = $1", [id]);
-    if (result.rowCount === 0) return res.status(404).json({ success: false, message: "Data tidak ditemukan" });
-    res.json({ success: true, data: result.rows[0] });
+    const { subtab, ...body } = req.body;
+    const userId = req.user.id; // Ambil user_id dari token JWT
+
+    const cleanData = normalizeRow(body);
+
+    const created = await prisma.relevansi_pendidikan.create({
+      data: {
+        subtab,
+        user_id: userId,
+        data: cleanData,
+      },
+    });
+
+    res.json({ success: true, message: "Data berhasil ditambahkan", data: created });
   } catch (err) {
-    console.error("Error GET by ID:", err);
-    res.status(500).json({ success: false, message: "Gagal mengambil data" });
+    console.error("POST ERROR:", err);
+    res.status(500).json({ success: false, message: "Gagal menambahkan data", error: err.message });
   }
 };
 
-// POST: tambah data baru
-export const addRelevansiPendidikan = async (req, res) => {
+/* =============================================
+   UPDATE DATA
+============================================= */
+export const updateData = async (req, res) => {
   try {
-    console.log("📥 Request body:", req.body); // Cek data masuk
+    const id = Number(req.params.id);
+    const userId = req.user.id;
+    const userRole = req.user.role;
+    const cleanData = normalizeRow(req.body);
 
-    const {
-      type,
-      tahun,
-      daya_tampung,
-      pendaftar,
-      diterima,
-      aktif,
-      asalMahasiswa,
-      ts2,
-      ts1,
-      ts,
-      jumlah,
-      linkBukti,
-    } = req.body;
+    // Cek kepemilikan data
+    const record = await prisma.relevansi_pendidikan.findUnique({
+      where: { id },
+      select: { user_id: true },
+    });
 
-    const result = await pool.query(
-      `INSERT INTO relevansi_pendidikan 
-      (type, tahun, daya_tampung, pendaftar, diterima, aktif, asalMahasiswa, ts2, ts1, ts, jumlah, linkBukti)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
-      RETURNING *`,
-      [type, tahun, daya_tampung, pendaftar, diterima, aktif, asalMahasiswa, ts2, ts1, ts, jumlah, linkBukti]
-    );
-
-    console.log("✅ Data tersimpan:", result.rows[0]);
-    res.json({ success: true, message: "Data berhasil ditambahkan", item: result.rows[0] });
-  } catch (err) {
-    console.error("❌ Error POST:", err.message);
-    res.status(500).json({ success: false, message: "Gagal menambahkan data" });
-  }
-};
-
-
-// PUT: update data berdasarkan ID
-export const updateRelevansiPendidikan = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const fields = Object.keys(req.body);
-    const values = Object.values(req.body);
-
-    if (fields.length === 0) {
-      return res.status(400).json({ success: false, message: "Tidak ada data untuk diperbarui" });
-    }
-
-    // Buat dynamic SET clause
-    const setClause = fields.map((field, idx) => `${field} = $${idx + 1}`).join(", ");
-
-    const query = `UPDATE relevansi_pendidikan SET ${setClause}, updated_at = NOW() WHERE id = $${fields.length + 1} RETURNING *`;
-    const result = await pool.query(query, [...values, id]);
-
-    if (result.rowCount === 0) return res.status(404).json({ success: false, message: "Data tidak ditemukan" });
-
-    res.json({ success: true, message: "Data berhasil diupdate", item: result.rows[0] });
-  } catch (err) {
-    console.error("Error PUT:", err);
-    res.status(500).json({ success: false, message: "Gagal memperbarui data" });
-  }
-};
-
-// DELETE: hapus data berdasarkan ID
-export const deleteRelevansiPendidikan = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const result = await pool.query("DELETE FROM relevansi_pendidikan WHERE id = $1", [id]);
-    if (result.rowCount === 0)
+    if (!record) {
       return res.status(404).json({ success: false, message: "Data tidak ditemukan" });
+    }
 
-    res.json({ success: true, message: "Data berhasil dihapus" });
+    if (record.user_id !== userId && userRole !== 'tim-akreditasi') {
+      return res.status(403).json({ success: false, message: "Tidak memiliki akses untuk mengubah data ini" });
+    }
+
+    const updated = await prisma.relevansi_pendidikan.update({
+      where: { id },
+      data: { data: cleanData },
+    });
+
+    res.json({ success: true, message: "Data berhasil diperbarui", data: updated });
   } catch (err) {
-    console.error("Error DELETE:", err);
-    res.status(500).json({ success: false, message: "Gagal menghapus data" });
+    console.error("PUT ERROR:", err);
+    res.status(500).json({ success: false, message: "Gagal memperbarui data", error: err.message });
   }
 };
 
-// IMPORT: dari Excel (array)
-export const importRelevansiPendidikan = async (req, res) => {
+/* =============================================
+   DELETE DATA
+============================================= */
+export const deleteData = async (req, res) => {
   try {
-    const items = req.body;
-    if (!Array.isArray(items)) {
-      return res.status(400).json({ success: false, message: "Format salah" });
+    const id = Number(req.params.id);
+    const userId = req.user.id;
+    const userRole = req.user.role;
+
+    // Cek kepemilikan data
+    const record = await prisma.relevansi_pendidikan.findUnique({
+      where: { id },
+      select: { user_id: true },
+    });
+
+    if (!record) {
+      return res.status(404).json({ success: false, message: "Data tidak ditemukan" });
     }
 
-    const client = await pool.connect();
-    try {
-      await client.query("BEGIN");
+    if (record.user_id !== userId && userRole !== 'tim-akreditasi') {
+      return res.status(403).json({ success: false, message: "Tidak memiliki akses untuk menghapus data ini" });
+    }
 
-      for (const item of items) {
-        const { type, tahun, daya_tampung, pendaftar, diterima, aktif } = item;
-        await client.query(
-          `INSERT INTO relevansi_pendidikan (type, tahun, daya_tampung, pendaftar, diterima, aktif)
-           VALUES ($1,$2,$3,$4,$5,$6)`,
-          [type, tahun, daya_tampung, pendaftar, diterima, aktif]
-        );
+    const deleted = await prisma.relevansi_pendidikan.delete({
+      where: { id },
+    });
+
+    res.json({ success: true, message: "Data berhasil dihapus", data: deleted });
+  } catch (err) {
+    console.error("DELETE ERROR:", err);
+    res.status(500).json({ success: false, message: "Gagal menghapus data", error: err.message });
+  }
+};
+
+/* =============================================
+   IMPORT EXCEL
+============================================= */
+export const importExcel = [
+  upload.single("file"),
+  async (req, res) => {
+    try {
+      const subtab = req.body.subtab;
+      const userId = req.user.id; // Ambil user_id dari token JWT
+      const mapping = req.body.mapping ? JSON.parse(req.body.mapping) : {};
+
+      const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = xlsx.utils.sheet_to_json(sheet, { defval: "" });
+
+      let added = 0;
+      let errors = [];
+
+      for (let i = 0; i < rows.length; i++) {
+        try {
+          const raw = rows[i];
+          const obj = {};
+          for (const header of Object.keys(mapping)) {
+            const dbField = mapping[header];
+            if (dbField) obj[dbField] = raw[header];
+          }
+
+          const cleanData = normalizeRow(obj);
+
+          await prisma.relevansi_pendidikan.create({
+            data: {
+              subtab,
+              user_id: userId,
+              data: cleanData,
+            },
+          });
+          added++;
+        } catch (e) {
+          errors.push({ row: i + 1, error: e.message });
+        }
       }
 
-      await client.query("COMMIT");
-      res.json({ success: true, message: `Berhasil impor ${items.length} data.` });
+      res.json({
+        success: true,
+        message: `Import selesai: ${added} berhasil, ${errors.length} gagal`,
+        added,
+        failed: errors.length,
+        errors,
+      });
     } catch (err) {
-      await client.query("ROLLBACK");
-      console.error("Import error:", err);
-      res.status(500).json({ success: false, message: "Gagal impor data" });
-    } finally {
-      client.release();
+      console.error("IMPORT ERROR:", err);
+      res.status(500).json({ success: false, message: "Gagal import", error: err.message });
     }
-  } catch (err) {
-    console.error("Error IMPORT:", err);
-    res.status(500).json({ success: false, message: "Terjadi kesalahan server" });
-  }
-};
+  },
+];

@@ -45,17 +45,44 @@ export interface ApiResponse<T = any> {
   error?: string;
 }
 
+/**
+ * Ambil user_id dari localStorage. Hanya bisa di client-side.
+ */
+function getUserId() {
+  if (typeof window === "undefined") {
+    throw new Error("Harus di client-side. Tunggu sampai browser mount.");
+  }
+
+  // Coba ambil dari localStorage dulu
+  const idStr = localStorage.getItem("user_id");
+  if (idStr) {
+    const id = Number(idStr);
+    if (!Number.isNaN(id)) return id;
+  }
+
+  // Jika tidak ada, coba ambil dari sessionStorage (untuk sementara)
+  const sessionIdStr = sessionStorage.getItem("user_id");
+  if (sessionIdStr) {
+    const id = Number(sessionIdStr);
+    if (!Number.isNaN(id)) return id;
+  }
+
+  throw new Error("User ID tidak ditemukan. Pastikan sudah login.");
+}
+
 class RelevansiPendidikanService {
   /**
    * Fetch data berdasarkan tipe subtab
    */
-  async fetchData(type: SubTab): Promise<DataItem[]> {
+  async fetchData(subtab: SubTab): Promise<DataItem[]> {
     try {
-      const response = await fetch(`${API_BASE}?type=${type}`, {
+      const user_id = getUserId();
+      const response = await fetch(`${API_BASE}?subtab=${subtab}&user_id=${user_id}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -80,7 +107,8 @@ class RelevansiPendidikanService {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ ...data, type }),
+        body: JSON.stringify({ ...data, subtab: type }),
+        credentials: 'include',
       });
 
       const result: ApiResponse = await response.json();
@@ -99,18 +127,19 @@ class RelevansiPendidikanService {
   /**
    * Update data yang sudah ada
    */
-  async updateData(id: number, data: DataItem, type: SubTab): Promise<ApiResponse> {
+  async updateData(id: number, data: DataItem, subtab: SubTab): Promise<ApiResponse> {
     try {
       const response = await fetch(`${API_BASE}/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ ...data, type }),
+        body: JSON.stringify(data),
+        credentials: 'include',
       });
 
       const result: ApiResponse = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(result.message || 'Gagal mengupdate data');
       }
@@ -132,10 +161,11 @@ class RelevansiPendidikanService {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
       });
 
       const result: ApiResponse = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(result.message || 'Gagal menghapus data');
       }
@@ -152,18 +182,21 @@ class RelevansiPendidikanService {
    */
   async importExcel(file: File, type: SubTab): Promise<ApiResponse> {
     try {
+      const user_id = getUserId();
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('type', type);
+      formData.append('subtab', type);
+      formData.append('user_id', user_id.toString());
 
       const response = await fetch(`${API_BASE}/import`, {
         method: 'POST',
         body: formData,
+        credentials: 'include',
         // Tidak perlu set Content-Type, browser akan set otomatis untuk FormData
       });
 
       const result: ApiResponse = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(result.message || 'Gagal import data');
       }

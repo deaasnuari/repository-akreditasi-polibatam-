@@ -143,9 +143,11 @@ export async function deleteRelevansiPkm(subtab: string, id: number | string) {
 // 🔹 PREVIEW import Excel
 // =======================
 export async function previewImport(file: File, subtab: string) {
+  const user_id = getUserId();
   const fd = new FormData();
   fd.append("file", file);
   fd.append("subtab", subtab);
+  fd.append("user_id", user_id.toString());
   fd.append("preview", "true");
 
   const res = await fetch(`${API_BASE}/import`, {
@@ -167,9 +169,11 @@ export async function previewImport(file: File, subtab: string) {
 // 🔹 COMMIT import Excel
 // =======================
 export async function commitImport(file: File, subtab: string, mapping?: Record<string, string>) {
+  const user_id = getUserId();
   const fd = new FormData();
   fd.append("file", file);
   fd.append("subtab", subtab);
+  fd.append("user_id", user_id.toString());
 
   if (mapping) {
     fd.append("mapping", JSON.stringify(mapping));
