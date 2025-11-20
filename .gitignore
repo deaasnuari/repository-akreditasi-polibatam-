@@ -47,8 +47,6 @@ coverage/
 *.dump
 database/*.bak
 backend/database/*.bak
-# NOTE: Kalau kamu mau simpan schema.sql, migration.sql, seed.sql -> biarkan tidak di-ignore
-# Tapi kalau ada file database hasil export langsung, bisa tambahkan di sini
 
 # =========================================
 # 🪄 MISC / CACHE
@@ -76,3 +74,8 @@ next-env.d.ts
 # =========================================
 .vercel/
 .netlify/
+
+# =========================================
+# 📤 UPLOAD FILES (JANGAN MASUK GIT)
+# =========================================
+backend/uploads/
