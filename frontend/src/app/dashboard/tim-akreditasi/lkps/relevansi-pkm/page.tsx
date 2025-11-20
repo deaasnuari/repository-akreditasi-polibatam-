@@ -110,6 +110,20 @@ export default function RelevansiPkmPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
 
   const handleSubmit = async () => {
+    // Validation: Check if all fields are filled and numbers are valid
+    const fields = subtabFields[activeSubTab] || [];
+    for (const field of fields) {
+      const value = formData[field.key];
+      if (!value || value.toString().trim() === '') {
+        showPopup(`Field "${field.label}" harus diisi`, 'error');
+        return;
+      }
+      if (field.type === 'number' && isNaN(Number(value))) {
+        showPopup(`Field "${field.label}" harus berupa angka`, 'error');
+        return;
+      }
+    }
+
     try {
       setSaving(true);
       setErrorMsg(null);
@@ -156,45 +170,45 @@ export default function RelevansiPkmPage() {
     }
   };
 
-  const subtabFields: Record<string, Array<{ key: string; label: string }>> = {
+  const subtabFields: Record<string, Array<{ key: string; label: string; type: string }>> = {
     'sarana-prasarana': [
-      { key: 'namaPrasarana', label: 'Nama Sarana/Prasarana' },
-      { key: 'dayaTampung', label: 'Daya Tampung' },
-      { key: 'luasRuang', label: 'Luas Ruang (m²)' },
-      { key: 'status', label: 'Status (M/W)' },
-      { key: 'lisensi', label: 'Lisensi (L/P/T)' },
-      { key: 'perangkat', label: 'Perangkat' },
-      { key: 'linkBukti', label: 'Link Bukti' },
+      { key: 'namaPrasarana', label: 'Nama Sarana/Prasarana', type: 'text' },
+      { key: 'dayaTampung', label: 'Daya Tampung', type: 'number' },
+      { key: 'luasRuang', label: 'Luas Ruang (m²)', type: 'number' },
+      { key: 'status', label: 'Status (M/W)', type: 'text' },
+      { key: 'lisensi', label: 'Lisensi (L/P/T)', type: 'text' },
+      { key: 'perangkat', label: 'Perangkat', type: 'text' },
+      { key: 'linkBukti', label: 'Link Bukti', type: 'text' },
     ],
     'pkm-hibah': [
-      { key: 'no', label: 'No' },
-      { key: 'namaDtpr', label: 'Nama DTPR (Ketua)' },
-      { key: 'judulPkm', label: 'Judul PkM' },
-      { key: 'jumlahMahasiswa', label: 'Jumlah Mahasiswa Terlibat' },
-      { key: 'jenisHibah', label: 'Jenis Hibah / Jenis Kegiatan' },
-      { key: 'sumberDana', label: 'Sumber Dana' },
-      { key: 'durasi', label: 'Durasi (tahun)' },
-      { key: 'pendanaan', label: 'Pendanaan (Rp Juta)' },
-      { key: 'tahun', label: 'Tahun' },
-      { key: 'linkBukti', label: 'Link Bukti' },
+      { key: 'no', label: 'No', type: 'number' },
+      { key: 'namaDtpr', label: 'Nama DTPR (Ketua)', type: 'text' },
+      { key: 'judulPkm', label: 'Judul PkM', type: 'text' },
+      { key: 'jumlahMahasiswa', label: 'Jumlah Mahasiswa Terlibat', type: 'number' },
+      { key: 'jenisHibah', label: 'Jenis Hibah / Jenis Kegiatan', type: 'text' },
+      { key: 'sumberDana', label: 'Sumber Dana', type: 'text' },
+      { key: 'durasi', label: 'Durasi (tahun)', type: 'number' },
+      { key: 'pendanaan', label: 'Pendanaan (Rp Juta)', type: 'number' },
+      { key: 'tahun', label: 'Tahun', type: 'number' },
+      { key: 'linkBukti', label: 'Link Bukti', type: 'text' },
     ],
     'kerjasama-pkm': [
-      { key: 'no', label: 'No' },
-      { key: 'judulKerjasama', label: 'Judul Kerjasama' },
-      { key: 'mitra', label: 'Mitra' },
-      { key: 'sumber', label: 'Sumber (L/N/I)' },
-      { key: 'durasi', label: 'Durasi (tahun)' },
-      { key: 'pendanaan', label: 'Pendanaan (Rp Juta)' },
-      { key: 'tahun', label: 'Tahun' },
-      { key: 'linkBukti', label: 'Link Bukti' },
+      { key: 'no', label: 'No', type: 'number' },
+      { key: 'judulKerjasama', label: 'Judul Kerjasama', type: 'text' },
+      { key: 'mitra', label: 'Mitra', type: 'text' },
+      { key: 'sumber', label: 'Sumber (L/N/I)', type: 'text' },
+      { key: 'durasi', label: 'Durasi (tahun)', type: 'number' },
+      { key: 'pendanaan', label: 'Pendanaan (Rp Juta)', type: 'number' },
+      { key: 'tahun', label: 'Tahun', type: 'number' },
+      { key: 'linkBukti', label: 'Link Bukti', type: 'text' },
     ],
     'hki-pkm': [
-      { key: 'no', label: 'No' },
-      { key: 'judul', label: 'Judul' },
-      { key: 'jenisHki', label: 'Jenis HKI' },
-      { key: 'namaDtpr', label: 'Nama DTPR' },
-      { key: 'tahun', label: 'Tahun Perolehan' },
-      { key: 'linkBukti', label: 'Link Bukti' },
+      { key: 'no', label: 'No', type: 'number' },
+      { key: 'judul', label: 'Judul', type: 'text' },
+      { key: 'jenisHki', label: 'Jenis HKI', type: 'text' },
+      { key: 'namaDtpr', label: 'Nama DTPR', type: 'text' },
+      { key: 'tahun', label: 'Tahun Perolehan', type: 'number' },
+      { key: 'linkBukti', label: 'Link Bukti', type: 'text' },
     ],
   };
 
@@ -370,6 +384,7 @@ export default function RelevansiPkmPage() {
                         name={f.key}
                         value={formData[f.key] ?? ''}
                         onChange={handleChange}
+                        type={f.type}
                         className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder={f.label}
                       />

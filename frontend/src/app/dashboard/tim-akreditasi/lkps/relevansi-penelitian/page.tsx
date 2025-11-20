@@ -79,58 +79,56 @@ export default function RelevansiPenelitianPage() {
     { label: 'Diferensiasi Misi', href: '/dashboard/tim-akreditasi/lkps/diferensiasi-misi' },
   ];
 
-  const subtabFields: Record<string, Array<{ key: string; label: string }>> = {
+  const subtabFields: Record<string, Array<{ key: string; label: string; type: string }>> = {
     'sarana-prasarana': [
-      { key: 'namaprasarana', label: 'Nama Prasarana' },
-      { key: 'dayatampung', label: 'Daya Tampung' },
-      { key: 'luasruang', label: 'Luas Ruang (m²)' },
-      { key: 'status', label: 'Status (M/W)' },
-      { key: 'lisensi', label: 'Lisensi (L/P/T)' },
-      { key: 'perangkat', label: 'Perangkat' },
-      { key: 'linkbukti', label: 'Link Bukti' },
+      { key: 'namaprasarana', label: 'Nama Prasarana', type: 'text' },
+      { key: 'dayatampung', label: 'Daya Tampung', type: 'number' },
+      { key: 'luasruang', label: 'Luas Ruang (m²)', type: 'number' },
+      { key: 'status', label: 'Status (M/W)', type: 'text' },
+      { key: 'lisensi', label: 'Lisensi (L/P/T)', type: 'text' },
+      { key: 'perangkat', label: 'Perangkat', type: 'text' },
+      { key: 'linkbukti', label: 'Link Bukti', type: 'text' },
     ],
     'hibah-dan-pembiayaan': [
-      { key: 'namadtpr', label: 'Nama DTPR' },
-      { key: 'judulpenelitian', label: 'Judul Penelitian' },
-      { key: 'jumlahmahasiswaterlibat', label: 'Jumlah Mahasiswa Terlibat' },
-      { key: 'jenishibah', label: 'Jenis Hibah' },
-      { key: 'sumber', label: 'Sumber' },
-      { key: 'durasi', label: 'Durasi (tahun)' },
-      { key: 'pendanaan', label: 'Pendanaan (Rp Juta)' },
-      { key: 'tahun', label: 'Tahun' },
+      { key: 'namadtpr', label: 'Nama DTPR', type: 'text' },
+      { key: 'judulpenelitian', label: 'Judul Penelitian', type: 'text' },
+      { key: 'jumlahmahasiswaterlibat', label: 'Jumlah Mahasiswa Terlibat', type: 'number' },
+      { key: 'jenishibah', label: 'Jenis Hibah', type: 'text' },
+      { key: 'sumber', label: 'Sumber', type: 'text' },
+      { key: 'durasi', label: 'Durasi (tahun)', type: 'number' },
+      { key: 'pendanaan', label: 'Pendanaan (Rp Juta)', type: 'number' },
+      { key: 'tahun', label: 'Tahun', type: 'number' },
     ],
     'pengembangan-dtpr': [
-      { key: 'namadtpr', label: 'Nama DTPR' },
-      { key: 'jenispengembangan', label: 'Jenis Pengembangan' },
-      { key: 'tahunakademik', label: 'Tahun Akademik' },
-      { key: 'linkbukti', label: 'Link Bukti' },
+      { key: 'namadtpr', label: 'Nama DTPR', type: 'text' },
+      { key: 'jenispengembangan', label: 'Jenis Pengembangan', type: 'text' },
+      { key: 'tahunakademik', label: 'Tahun Akademik', type: 'text' },
+      { key: 'linkbukti', label: 'Link Bukti', type: 'text' },
     ],
     'kerjasama-penelitian': [
-      { key: 'judulkerjasama', label: 'Judul Kerjasama' },
-      { key: 'mitra', label: 'Mitra' },
-      { key: 'sumber', label: 'Sumber' },
-      { key: 'durasi', label: 'Durasi (tahun)' },
-      { key: 'pendanaan', label: 'Pendanaan (Rp Juta)' },
-      { key: 'tahun', label: 'Tahun' },
-      { key: 'linkbukti', label: 'Link Bukti' },
+      { key: 'judulkerjasama', label: 'Judul Kerjasama', type: 'text' },
+      { key: 'mitra', label: 'Mitra', type: 'text' },
+      { key: 'sumber', label: 'Sumber', type: 'text' },
+      { key: 'durasi', label: 'Durasi (tahun)', type: 'number' },
+      { key: 'pendanaan', label: 'Pendanaan (Rp Juta)', type: 'number' },
+      { key: 'tahun', label: 'Tahun', type: 'number' },
+      { key: 'linkbukti', label: 'Link Bukti', type: 'text' },
     ],
     'publikasi-penelitian': [
-      { key: 'namadtpr', label: 'Nama DTPR' },
-      { key: 'judulpublikasi', label: 'Judul Publikasi' },
-      { key: 'jenispublikasi', label: 'Jenis Publikasi' },
-      { key: 'tahun', label: 'Tahun' },
-      { key: 'linkbukti', label: 'Link Bukti' },
+      { key: 'namadtpr', label: 'Nama DTPR', type: 'text' },
+      { key: 'judulpublikasi', label: 'Judul Publikasi', type: 'text' },
+      { key: 'jenispublikasi', label: 'Jenis Publikasi', type: 'text' },
+      { key: 'tahun', label: 'Tahun', type: 'number' },
+      { key: 'linkbukti', label: 'Link Bukti', type: 'text' },
     ],
     'perolehan-hki': [
-      { key: 'judul', label: 'Judul' },
-      { key: 'jenishki', label: 'Jenis HKI' },
-      { key: 'namadtpr', label: 'Nama DTPR' },
-      { key: 'tahun', label: 'Tahun' },
-      { key: 'linkbukti', label: 'Link Bukti' },
+      { key: 'judul', label: 'Judul', type: 'text' },
+      { key: 'jenishki', label: 'Jenis HKI', type: 'text' },
+      { key: 'namadtpr', label: 'Nama DTPR', type: 'text' },
+      { key: 'tahun', label: 'Tahun', type: 'number' },
+      { key: 'linkbukti', label: 'Link Bukti', type: 'text' },
     ],
   };
-
-  const orderedFields = subtabFields;
 
   // --- Fetch data ---
   useEffect(() => {
@@ -154,6 +152,20 @@ export default function RelevansiPenelitianPage() {
   const openEdit = (item: any) => { setFormData(item); setEditIndex(item.id ?? null); setShowForm(true); };
 
   const handleSave = async () => {
+    // Validation: Check if all fields are filled and numbers are valid
+    const fields = subtabFields[activeSubTab] || [];
+    for (const field of fields) {
+      const value = formData[field.key];
+      if (!value || value.toString().trim() === '') {
+        showPopup(`Field "${field.label}" harus diisi`, 'error');
+        return;
+      }
+      if (field.type === 'number' && isNaN(Number(value))) {
+        showPopup(`Field "${field.label}" harus berupa angka`, 'error');
+        return;
+      }
+    }
+
     try {
       setSaving(true);
       setErrorMsg(null);
@@ -242,7 +254,7 @@ export default function RelevansiPenelitianPage() {
   // --- Render Table ---
   const renderColumns = () => (
     <tr>
-      {(orderedFields[activeSubTab] || []).map(c => (
+      {(subtabFields[activeSubTab] || []).map(c => (
         <th key={c.key} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
           {c.label}
         </th>
@@ -252,7 +264,7 @@ export default function RelevansiPenelitianPage() {
   );
 
   const renderRows = () => {
-    const cols = orderedFields[activeSubTab] || [];
+    const cols = subtabFields[activeSubTab] || [];
     if (data.length === 0) return (
       <tr>
         <td colSpan={cols.length + 1} className="text-center py-6 text-gray-500">Belum ada data</td>
@@ -357,7 +369,7 @@ export default function RelevansiPenelitianPage() {
                   {(subtabFields[activeSubTab]||[]).map(f => (
                     <div key={f.key}>
                       <label className="block text-sm text-gray-700 mb-1">{f.label}</label>
-                      <input name={f.key} value={formData[f.key]??''} onChange={handleChange} className="w-full px-3 py-2 border rounded" />
+                      <input name={f.key} value={formData[f.key]??''} onChange={handleChange} type={f.type} className="w-full px-3 py-2 border rounded" />
                     </div>
                   ))}
                 </div>
@@ -386,7 +398,7 @@ export default function RelevansiPenelitianPage() {
                       <div className="min-w-[160px] text-sm font-medium">{h}</div>
                       <select value={mapping[h]??''} onChange={e=>setMapping({...mapping,[h]:e.target.value})} className="border px-2 py-1">
                         <option value="">-- tidak dipetakan --</option>
-                        {(orderedFields[activeSubTab]||[]).map(f=> <option key={f.key} value={f.key}>{f.key}</option>)}
+                        {(subtabFields[activeSubTab]||[]).map(f=> <option key={f.key} value={f.key}>{f.key}</option>)}
                       </select>
                     </div>
                   ))}
