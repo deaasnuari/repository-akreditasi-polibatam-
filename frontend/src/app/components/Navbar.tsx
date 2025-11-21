@@ -58,7 +58,7 @@ export default function Navbar() {
 
       {/* === MENU === */}
       {!hideMenu && (
-        <div className="flex gap-4 items-center">
+        <div className="flex gap-2 md:gap-3 lg:gap-4 items-center">
           {[
             { label: 'Beranda', id: undefined },
             { label: 'Fitur', id: 'fitur' },
@@ -69,8 +69,9 @@ export default function Navbar() {
               key={item.label}
               onClick={() => handleScrollTo(item.id)}
               className="
-                bg-[#183A64] text-[#ADE7F7] px-4 py-1.5 rounded-md font-semibold
-                hover:bg-[#FF7F00] hover:text-white transition-all duration-300
+                px-4 py-2 rounded-md font-semibold text-white/90 hover:text-white
+                hover:bg-[#FF7F00] transition-all duration-200
+                focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7F00]/70
               "
             >
               {item.label}
@@ -80,8 +81,9 @@ export default function Navbar() {
           <Link
             href="/login"
             className="
-              bg-[#183A64] text-[#ADE7F7] px-4 py-1.5 rounded-md font-semibold
-              hover:bg-[#FF7F00] hover:text-white transition-all duration-300
+              px-4 py-2 rounded-md font-semibold text-white/90 hover:text-white
+              hover:bg-[#FF7F00] transition-all duration-200
+              focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7F00]/70
             "
           >
             Login

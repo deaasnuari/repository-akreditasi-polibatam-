@@ -1,11 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Home, FileText, BookOpen, Upload, BarChart3, Download, Menu, X, Bell, User, Search, LogOut } from 'lucide-react';
 
+
 export default function DashboardAkreditasi() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [lastLogin, setLastLogin] = useState<string | null>(null);
 
   const menuItems = [
     { icon: Home, label: 'Dashboard', active: true },
@@ -26,6 +28,31 @@ export default function DashboardAkreditasi() {
     { title: 'Revisi Dokumen', desc: 'Dokumen LKPS Bagian 1 harus direvisi karena data kurang lengkap' },
     { title: 'Upload Berhasil', desc: 'Dokumen bukti pendukung berhasil diupload' }
   ];
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const me = await getMyProfile();
+        if (me?.lastLogin) setLastLogin(me.lastLogin);
+      } catch (e) {
+        // ignore for now
+      }
+    })();
+  }, []);
+
+  const lastLoginText = useMemo(() => {
+    if (!lastLogin) return null;
+    try {
+      const d = new Date(lastLogin);
+      const formatter = new Intl.DateTimeFormat('id-ID', {
+        weekday: 'long', day: '2-digit', month: 'long', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Jakarta'
+      });
+      return formatter.format(d) + ' WIB';
+    } catch {
+      return null;
+    }
+  }, [lastLogin]);
 
   return (
     <div className="flex w-full bg-gray-100">
@@ -49,8 +76,11 @@ export default function DashboardAkreditasi() {
               </div>
               <div className="text-right">
                 <p className="text-xs text-blue-800">Terakhir Login</p>
-                <p className="font-semibold text-blue-900">Kamis, 25</p>
-                <p className="text-sm text-blue-900">september 2025</p>
+                {lastLoginText ? (
+                  <p className="font-semibold text-blue-900">{lastLoginText}</p>
+                ) : (
+                  <p className="text-sm text-blue-900">-</p>
+                )}
               </div>
             </div>
           </div>
