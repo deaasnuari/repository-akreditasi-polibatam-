@@ -350,23 +350,23 @@ export default function RelevansiPkmPage() {
 
 
           {/* Modal Tambah/Edit */}
-          {showForm && (
-            <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
-              <div className="bg-white p-6 sm:p-8 rounded-lg shadow-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-lg font-semibold text-gray-800">
-                    {editIndex !== null ? 'Edit Data' : 'Tambah Data Baru'}
-                  </h2>
-                  <button
-                    onClick={() => {
-                      setShowForm(false);
-                      setErrorMsg(null);
-                    }}
-                    className="text-gray-500 hover:text-gray-700"
-                  >
-                    <X size={24} />
-                  </button>
-                </div>
+{showForm && (
+  <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
+    <div className="bg-white p-6 sm:p-8 rounded-lg shadow-lg w-full max-w-xl max-h-[90vh] overflow-y-auto">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-lg font-semibold text-gray-800">
+          {editIndex !== null ? 'Edit Data' : 'Tambah Data Baru'}
+        </h2>
+        <button
+          onClick={() => {
+            setShowForm(false);
+            setErrorMsg(null);
+          }}
+          className="text-gray-500 hover:text-gray-700"
+        >
+          <X size={24} />
+        </button>
+      </div>
 
                 {errorMsg && (
                   <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">

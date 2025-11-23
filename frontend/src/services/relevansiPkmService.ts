@@ -43,7 +43,24 @@ function getUserId() {
     if (!Number.isNaN(id)) return id;
   }
 
-  // Jika tidak ada, coba ambil dari sessionStorage (untuk sementara)
+  // Jika tidak ada, coba ambil dari sessionStorage (mengambil key user yang berisi JSON user)
+  const userJson = sessionStorage.getItem("user");
+  if (userJson) {
+    try {
+      const userObj = JSON.parse(userJson);
+      if (userObj && typeof userObj.id === 'number') {
+        return userObj.id;
+      }
+      // Also try if id is string number
+      if (userObj && typeof userObj.id === 'string' && !isNaN(Number(userObj.id))) {
+        return Number(userObj.id);
+      }
+    } catch {
+      // JSON parsing error - ignore and fallback
+    }
+  }
+
+  // Jika tidak ada, coba ambil dari sessionStorage "user_id" secara khusus masih fallback lama
   const sessionIdStr = sessionStorage.getItem("user_id");
   if (sessionIdStr) {
     const id = Number(sessionIdStr);
