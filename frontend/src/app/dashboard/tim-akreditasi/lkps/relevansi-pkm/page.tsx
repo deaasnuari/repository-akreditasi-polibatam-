@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, ChangeEvent } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -21,52 +21,43 @@ export default function RelevansiPkmPage() {
     type: 'success',
   });
 
-  // Fungsi untuk menampilkan popup
   const showPopup = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     setPopup({ show: true, message, type });
     setTimeout(() => setPopup({ show: false, message: '', type: 'success' }), 3000);
   };
 
-  // Komponen Popup Notification
   const PopupNotification = () => {
     if (!popup.show) return null;
-
-    const bgColor = popup.type === 'success' ? 'bg-green-50 border-green-500' : 
-                    popup.type === 'error' ? 'bg-red-50 border-red-500' : 
+    const bgColor = popup.type === 'success' ? 'bg-green-50 border-green-500' :
+                    popup.type === 'error' ? 'bg-red-50 border-red-500' :
                     'bg-blue-50 border-blue-500';
-    const textColor = popup.type === 'success' ? 'text-green-800' : 
-                      popup.type === 'error' ? 'text-red-800' : 
+    const textColor = popup.type === 'success' ? 'text-green-800' :
+                      popup.type === 'error' ? 'text-red-800' :
                       'text-blue-800';
-    const Icon = popup.type === 'success' ? CheckCircle : 
-                 popup.type === 'error' ? AlertCircle : 
+    const Icon = popup.type === 'success' ? CheckCircle :
+                 popup.type === 'error' ? AlertCircle :
                  Info;
-
     return (
       <div className="fixed top-0 left-0 right-0 flex justify-center z-[60] pt-4">
         <div className={`${bgColor} ${textColor} border-l-4 rounded-lg shadow-2xl p-5 flex items-center gap-4 min-w-[350px] max-w-md animate-slideDown`}>
-          <Icon size={28} className={popup.type === 'success' ? 'text-green-500' : 
-                                     popup.type === 'error' ? 'text-red-500' : 
+          <Icon size={28} className={popup.type === 'success' ? 'text-green-500' :
+                                     popup.type === 'error' ? 'text-red-500' :
                                      'text-blue-500'} />
           <div className="flex-1">
             <p className="font-bold text-base mb-1">
-              {popup.type === 'success' ? 'Berhasil!' : 
-               popup.type === 'error' ? 'Error!' : 
+              {popup.type === 'success' ? 'Berhasil!' :
+               popup.type === 'error' ? 'Error!' :
                'Info'}
             </p>
             <p className="text-sm">{popup.message}</p>
           </div>
-          <button 
-            onClick={() => setPopup({ show: false, message: '', type: 'success' })}
-            className="hover:opacity-70 transition-opacity"
-          >
+          <button onClick={() => setPopup({ show: false, message: '', type: 'success' })} className="hover:opacity-70 transition-opacity">
             <X size={20} />
           </button>
         </div>
       </div>
     );
   };
-
-  const API_BASE = 'http://localhost:5000/api/relevansi-pkm';
 
   const tabs = [
     { label: 'Budaya Mutu', href: '/dashboard/tim-akreditasi/lkps' },
@@ -76,6 +67,62 @@ export default function RelevansiPkmPage() {
     { label: 'Akuntabilitas', href: '/dashboard/tim-akreditasi/lkps/akuntabilitas' },
     { label: 'Diferensiasi Misi', href: '/dashboard/tim-akreditasi/lkps/diferensiasi-misi' },
   ];
+
+  const subtabFields: Record<string, Array<{ key: string; label: string; type: string }>> = {
+    'sarana-prasarana': [
+      { key: 'namaprasarana', label: 'Nama Prasarana', type: 'text' },
+      { key: 'dayatampung', label: 'Daya Tampung', type: 'number' },
+      { key: 'luasruang', label: 'Luas Ruang (m²)', type: 'number' },
+      { key: 'miliksendiri', label: 'Milik Sendiri (M)/Sewa (W)', type: 'text' },
+      { key: 'berlisensi', label: 'Berlisensi (L)/Public Domain (P)/Tidak Berlisensi (T)', type: 'text' },
+      { key: 'perangkat', label: 'Perangkat', type: 'text' },
+      { key: 'linkbukti', label: 'Link Bukti', type: 'text' },
+    ],
+    'pkm-hibah': [
+      { key: 'no', label: 'No', type: 'number' },
+      { key: 'namadtpr', label: 'Nama DTPR (Sebagai Ketua PkM)', type: 'text' },
+      { key: 'judulpkm', label: 'Judul PkM', type: 'text' },
+      { key: 'jumlahmahasiswa', label: 'Jumlah Mahasiswa yang Terlibat', type: 'number' },
+      { key: 'jenishibah', label: 'Jenis Hibah PkM', type: 'text' },
+      { key: 'sumberdana', label: 'Sumber Dana L/N/I', type: 'text' },
+      { key: 'durasi', label: 'Durasi (tahun)', type: 'number' },
+      { key: 'pendanaants2', label: 'Pendanaan TS-2 (Rp Juta)', type: 'number' },
+      { key: 'pendanaants1', label: 'Pendanaan TS-1 (Rp Juta)', type: 'number' },
+      { key: 'pendanaants', label: 'Pendanaan TS (Rp Juta)', type: 'number' },
+      { key: 'linkbukti', label: 'Link Bukti', type: 'text' },
+    ],
+    'kerjasama-pkm': [
+      { key: 'no', label: 'No', type: 'number' },
+      { key: 'judulkerjasama', label: 'Judul Kerjasama', type: 'text' },
+      { key: 'mitrakerjasama', label: 'Mitra kerja sama', type: 'text' },
+      { key: 'sumber', label: 'Sumber L/N/I', type: 'text' },
+      { key: 'durasi', label: 'Durasi (tahun)', type: 'number' },
+      { key: 'pendanaants2', label: 'Pendanaan TS-2 (Rp Juta)', type: 'number' },
+      { key: 'pendanaants1', label: 'Pendanaan TS-1 (Rp Juta)', type: 'number' },
+      { key: 'pendanaants', label: 'Pendanaan TS (Rp Juta)', type: 'number' },
+      { key: 'linkbukti', label: 'Link Bukti', type: 'text' },
+    ],
+    'diseminasi-pkm': [
+      { key: 'no', label: 'No', type: 'number' },
+      { key: 'namadtpr', label: 'Nama DTPR', type: 'text' },
+      { key: 'juduldiseminasi', label: 'Judul Diseminasi', type: 'text' },
+      { key: 'jenisdiseminasi', label: 'Jenis Diseminasi', type: 'text' },
+      { key: 'tahunts2', label: 'Tahun TS-2', type: 'text' },
+      { key: 'tahunts1', label: 'Tahun TS-1', type: 'text' },
+      { key: 'tahunts', label: 'Tahun TS', type: 'text' },
+      { key: 'linkbukti', label: 'Link Bukti', type: 'text' },
+    ],
+    'hki-pkm': [
+      { key: 'no', label: 'No', type: 'number' },
+      { key: 'judul', label: 'Judul', type: 'text' },
+      { key: 'jenishki', label: 'Jenis HKI', type: 'text' },
+      { key: 'namadtpr', label: 'Nama DTPR', type: 'text' },
+      { key: 'tahunts2', label: 'Tahun Perolehan TS-2', type: 'text' },
+      { key: 'tahunts1', label: 'Tahun Perolehan TS-1', type: 'text' },
+      { key: 'tahunts', label: 'Tahun Perolehan TS', type: 'text' },
+      { key: 'linkbukti', label: 'Link Bukti', type: 'text' },
+    ],
+  };
 
   useEffect(() => {
     fetchData();
@@ -93,7 +140,6 @@ export default function RelevansiPkmPage() {
     }
   };
 
-  // =============== FORM ===============
   const openAdd = () => {
     setFormData({});
     setEditIndex(null);
@@ -109,8 +155,7 @@ export default function RelevansiPkmPage() {
   const handleChange = (e: any) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
 
-  const handleSubmit = async () => {
-    // Validation: Check if all fields are filled and numbers are valid
+  const handleSave = async () => {
     const fields = subtabFields[activeSubTab] || [];
     for (const field of fields) {
       const value = formData[field.key];
@@ -128,14 +173,10 @@ export default function RelevansiPkmPage() {
       setSaving(true);
       setErrorMsg(null);
 
-      const payload = { ...formData };
-
-      console.log('🚀 Sending data:', payload); // Debug log
-
       if (editIndex) {
-        await updateRelevansiPkm(activeSubTab, editIndex, payload);
+        await updateRelevansiPkm(activeSubTab, editIndex, formData);
       } else {
-        await saveRelevansiPkm(activeSubTab, payload);
+        await saveRelevansiPkm(activeSubTab, formData);
       }
 
       showPopup('Data berhasil disimpan', 'success');
@@ -144,7 +185,7 @@ export default function RelevansiPkmPage() {
       setEditIndex(null);
       await fetchData();
     } catch (err: any) {
-      console.error('❌ handleSubmit error:', err);
+      console.error('❌ handleSave error:', err);
       setErrorMsg(err?.message || String(err));
       showPopup(err?.message || 'Gagal menyimpan data', 'error');
     } finally {
@@ -152,69 +193,23 @@ export default function RelevansiPkmPage() {
     }
   };
 
-  const handleDelete = async (item: any) => {
-    if (!item.id) {
-      showPopup('ID tidak ditemukan', 'error');
-      return;
-    }
-
+  const handleDelete = async (id: number) => {
     if (!confirm('Hapus data ini?')) return;
-
     try {
-      await deleteRelevansiPkm(activeSubTab, item.id);
-      showPopup('Data berhasil dihapus', 'success');
+      setErrorMsg(null);
+      await deleteRelevansiPkm(activeSubTab, id);
       await fetchData();
+      showPopup('Data berhasil dihapus', 'success');
     } catch (err: any) {
       console.error('❌ Delete error:', err);
+      setErrorMsg(err?.message || String(err));
       showPopup(err?.message || 'Gagal menghapus data', 'error');
     }
   };
 
-  const subtabFields: Record<string, Array<{ key: string; label: string; type: string }>> = {
-    'sarana-prasarana': [
-      { key: 'namaPrasarana', label: 'Nama Sarana/Prasarana', type: 'text' },
-      { key: 'dayaTampung', label: 'Daya Tampung', type: 'number' },
-      { key: 'luasRuang', label: 'Luas Ruang (m²)', type: 'number' },
-      { key: 'status', label: 'Status (M/W)', type: 'text' },
-      { key: 'lisensi', label: 'Lisensi (L/P/T)', type: 'text' },
-      { key: 'perangkat', label: 'Perangkat', type: 'text' },
-      { key: 'linkBukti', label: 'Link Bukti', type: 'text' },
-    ],
-    'pkm-hibah': [
-      { key: 'no', label: 'No', type: 'number' },
-      { key: 'namaDtpr', label: 'Nama DTPR (Ketua)', type: 'text' },
-      { key: 'judulPkm', label: 'Judul PkM', type: 'text' },
-      { key: 'jumlahMahasiswa', label: 'Jumlah Mahasiswa Terlibat', type: 'number' },
-      { key: 'jenisHibah', label: 'Jenis Hibah / Jenis Kegiatan', type: 'text' },
-      { key: 'sumberDana', label: 'Sumber Dana', type: 'text' },
-      { key: 'durasi', label: 'Durasi (tahun)', type: 'number' },
-      { key: 'pendanaan', label: 'Pendanaan (Rp Juta)', type: 'number' },
-      { key: 'tahun', label: 'Tahun', type: 'number' },
-      { key: 'linkBukti', label: 'Link Bukti', type: 'text' },
-    ],
-    'kerjasama-pkm': [
-      { key: 'no', label: 'No', type: 'number' },
-      { key: 'judulKerjasama', label: 'Judul Kerjasama', type: 'text' },
-      { key: 'mitra', label: 'Mitra', type: 'text' },
-      { key: 'sumber', label: 'Sumber (L/N/I)', type: 'text' },
-      { key: 'durasi', label: 'Durasi (tahun)', type: 'number' },
-      { key: 'pendanaan', label: 'Pendanaan (Rp Juta)', type: 'number' },
-      { key: 'tahun', label: 'Tahun', type: 'number' },
-      { key: 'linkBukti', label: 'Link Bukti', type: 'text' },
-    ],
-    'hki-pkm': [
-      { key: 'no', label: 'No', type: 'number' },
-      { key: 'judul', label: 'Judul', type: 'text' },
-      { key: 'jenisHki', label: 'Jenis HKI', type: 'text' },
-      { key: 'namaDtpr', label: 'Nama DTPR', type: 'text' },
-      { key: 'tahun', label: 'Tahun Perolehan', type: 'number' },
-      { key: 'linkBukti', label: 'Link Bukti', type: 'text' },
-    ],
-  };
-
   const renderColumns = () => (
     <tr>
-      {(subtabFields[activeSubTab] ?? []).map((c) => (
+      {(subtabFields[activeSubTab] || []).map(c => (
         <th key={c.key} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
           {c.label}
         </th>
@@ -224,24 +219,19 @@ export default function RelevansiPkmPage() {
   );
 
   const renderRows = () => {
-    const cols = subtabFields[activeSubTab] ?? [];
-    if (data.length === 0) {
-      return (
-        <tr>
-          <td colSpan={cols.length + 1} className="text-center py-6 text-gray-500">Belum ada data</td>
-        </tr>
-      );
-    }
-
-    return data.map((item: any, index: number) => (
+    const cols = subtabFields[activeSubTab] || [];
+    if (data.length === 0) return (
+      <tr>
+        <td colSpan={cols.length + 1} className="text-center py-6 text-gray-500">Belum ada data</td>
+      </tr>
+    );
+    return data.map((item, index) => (
       <tr key={item.id ?? index} className="bg-white hover:bg-gray-50 border-b">
-        {cols.map((c) => (
-          <td key={c.key} className="px-6 py-4 text-gray-800">{item[c.key] ?? ''}</td>
-        ))}
+        {cols.map(c => <td key={c.key} className="px-6 py-4 text-gray-800">{item[c.key] ?? ''}</td>)}
         <td className="px-6 py-4 text-center">
           <div className="flex gap-2 justify-center">
-            <button onClick={() => openEdit(item)} className="text-blue-600 hover:text-blue-800 transition" title="Edit"><Edit size={16} /></button>
-            <button onClick={() => handleDelete(item)} className="text-red-600 hover:text-red-800 transition" title="Hapus"><Trash2 size={16} /></button>
+            <button onClick={()=>openEdit(item)} className="text-blue-600 hover:text-blue-800 transition" title="Edit"><Edit size={16} /></button>
+            <button onClick={()=>item.id && handleDelete(item.id)} className="text-red-600 hover:text-red-800 transition" title="Hapus"><Trash2 size={16} /></button>
           </div>
         </td>
       </tr>
@@ -253,7 +243,7 @@ export default function RelevansiPkmPage() {
       <PopupNotification />
       <div className="flex-1 w-full">
         <main className="w-full p-4 md:p-6 max-w-full overflow-x-hidden">
-          {/* Header LKPS */}
+          {/* Header */}
           <div className="bg-white rounded-lg shadow p-6 mb-6 flex justify-between items-start">
             <div className="flex items-center gap-3 mb-2">
               <FileText className="text-blue-900" size={32} />
@@ -263,12 +253,8 @@ export default function RelevansiPkmPage() {
               </div>
             </div>
             <div className="flex gap-2">
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-                <Download size={16} /> Export PDF
-              </button>
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-                <Save size={16} /> Save Draft
-              </button>
+              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"><Download size={16} /> Export PDF</button>
+              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"><Save size={16} /> Save Draft</button>
             </div>
           </div>
 
@@ -279,9 +265,7 @@ export default function RelevansiPkmPage() {
                 key={tab.href}
                 href={tab.href}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                  pathname === tab.href
-                    ? 'bg-[#183A64] text-[#ADE7F7]'
-                    : 'bg- text-[#183A64] hover:bg-[#90d8ee]'
+                  pathname === tab.href ? 'bg-[#183A64] text-[#ADE7F7]' : 'bg- text-[#183A64] hover:bg-[#90d8ee]'
                 }`}
               >
                 {tab.label}
@@ -289,125 +273,63 @@ export default function RelevansiPkmPage() {
             ))}
           </div>
 
-
           {/* Subtabs */}
           <div className="flex gap-2 border-b pb-2 mb-4 overflow-x-auto">
-        {[
-          { key: 'sarana-prasarana', label: 'Sarana & Prasarana PkM' },
-          { key: 'pkm-hibah', label: 'PkM DTPR, Hibah & Pembiayaan' },
-          { key: 'kerjasama-pkm', label: 'Kerjasama PkM' },
-          { key: 'hki-pkm', label: 'Perolehan HKI PkM' },
-        ].map((sub) => (
-          <button
-            key={sub.key}
-            onClick={() => setActiveSubTab(sub.key)}
-            className={`px-4 py-2 text-sm rounded-t-lg font-semibold transition-all duration-200
-              ${
-                activeSubTab === sub.key
-                  ? 'bg-[#183A64] text-[#ADE7F7]' // aktif
-                  : 'bg-[#ADE7F7] text-[#183A64] hover:bg-[#90d8ee]' // tidak aktif
-              }`}
-          >
-            {sub.label}
-          </button>
-        ))}
-      </div>
-      
-          {/* Table Section */}
-          <div className="bg-[#ADE7F7]/20 rounded-lg shadow overflow-hidden">
-  {/* Header */}
-  <div className="flex justify-between items-center p-4 border-b bg-[#183A64]">
-    <h3 className="font-semibold text-[#ADE7F7] capitalize">
-      Data {activeSubTab.replace('-', ' ')}
-    </h3>
-    <div className="flex gap-2">
-      <button
-        onClick={openAdd}
-        className="flex items-center gap-2 px-3 py-2 text-xs sm:text-sm font-semibold text-[#183A64] bg-[#ADE7F7] rounded-lg hover:bg-[#90d8ee] transition-all duration-200"
-      >
-        <Plus size={16} /> Tambah Data
-      </button>
-    </div>
-  </div>
+            {Object.keys(subtabFields).map((key) => (
+              <button
+                key={key}
+                onClick={() => setActiveSubTab(key)}
+                className={`px-4 py-2 text-sm rounded-t-lg font-medium transition whitespace-nowrap ${
+                  activeSubTab === key
+                    ? 'bg-[#183A64] text-[#ADE7F7]'
+                    : 'bg-[#ADE7F7] text-[#183A64] hover:bg-[#90d8ee]'
+                }`}
+              >
+                {key.replace(/-/g, ' ')}
+              </button>
+            ))}
+          </div>
 
-  {/* Table Section */}
-  <div className="overflow-x-auto px-4 py-2 bg-white">
-    {errorMsg && (
-      <div className="p-4 bg-red-50 text-red-700 border-t border-red-100 rounded">
-        ❌ Error: {errorMsg}
-      </div>
-    )}
-    <table className="min-w-full divide-y divide-gray-200">
-      <thead className="bg-[#ADE7F7]/40 text-[#183A64] font-semibold">
-        {renderColumns()}
-      </thead>
-      <tbody className="bg-white divide-y divide-gray-200">
-        {renderRows()}
-      </tbody>
-    </table>
-  </div>
-</div>
+          {/* Table */}
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            <div className="flex justify-between items-center p-4 border-b bg-gray-50">
+              <h3 className="font-semibold text-gray-900 capitalize">Data {activeSubTab.replace('-', ' ')}</h3>
+              <div className="flex gap-2">
+                <button onClick={openAdd} className="flex items-center gap-2 px-3 py-2 text-xs sm:text-sm text-white bg-blue-700 rounded-lg hover:bg-blue-800"><Plus size={16} /> Tambah Data</button>
+                <label className="flex items-center gap-2 px-4 py-2 text-sm bg-white border rounded-lg hover:bg-gray-100 cursor-pointer">
+                  <Upload size={16} /> Import Excel
+                  <input type="file" accept=".xlsx,.xls" className="hidden" />
+                </label>
+              </div>
+            </div>
+            <div className="overflow-x-auto px-4 py-2">
+              {errorMsg && <div className="p-4 bg-red-50 text-red-700 border-t border-red-100">Error: {errorMsg}</div>}
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">{renderColumns()}</thead>
+                <tbody className="bg-white divide-y divide-gray-200">{renderRows()}</tbody>
+              </table>
+            </div>
+          </div>
 
-
-          {/* Modal Tambah/Edit */}
-{showForm && (
-  <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
-    <div className="bg-white p-6 sm:p-8 rounded-lg shadow-lg w-full max-w-xl max-h-[90vh] overflow-y-auto">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-lg font-semibold text-gray-800">
-          {editIndex !== null ? 'Edit Data' : 'Tambah Data Baru'}
-        </h2>
-        <button
-          onClick={() => {
-            setShowForm(false);
-            setErrorMsg(null);
-          }}
-          className="text-gray-500 hover:text-gray-700"
-        >
-          <X size={24} />
-        </button>
-      </div>
-
-                {errorMsg && (
-                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
-                    ❌ {errorMsg}
-                  </div>
-                )}
-
+          {/* Form Modal */}
+          {showForm && (
+            <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
+              <div className="bg-white p-6 sm:p-8 rounded-lg shadow-lg w-full max-w-xl sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-lg font-semibold text-gray-800">{editIndex!==null?'Edit Data':'Tambah Data Baru'}</h2>
+                  <button onClick={()=>setShowForm(false)} className="text-gray-500 hover:text-gray-700"><X size={24} /></button>
+                </div>
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {(subtabFields[activeSubTab] || []).map((f) => (
+                  {(subtabFields[activeSubTab]||[]).map(f => (
                     <div key={f.key}>
-                      <label className="block text-sm text-gray-700 mb-1">
-                        {f.label}
-                      </label>
-                      <input
-                        name={f.key}
-                        value={formData[f.key] ?? ''}
-                        onChange={handleChange}
-                        type={f.type}
-                        className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder={f.label}
-                      />
+                      <label className="block text-sm text-gray-700 mb-1">{f.label}</label>
+                      <input name={f.key} value={formData[f.key]??''} onChange={handleChange} type={f.type} className="w-full px-3 py-2 border rounded" />
                     </div>
                   ))}
                 </div>
-                <div className="flex justify-end gap-2 mt-6">
-                  <button
-                    onClick={() => {
-                      setShowForm(false);
-                      setErrorMsg(null);
-                    }}
-                    className="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300"
-                  >
-                    Batal
-                  </button>
-                  <button
-                    onClick={handleSubmit}
-                    disabled={saving}
-                    className="px-4 py-2 bg-blue-700 text-white rounded hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {saving ? 'Menyimpan...' : 'Simpan'}
-                  </button>
+                <div className="flex flex-col sm:flex-row justify-end gap-2 mt-6">
+                  <button onClick={()=>setShowForm(false)} className="w-full sm:w-auto px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300">Batal</button>
+                  <button onClick={handleSave} className="w-full sm:w-auto px-4 py-2 bg-blue-700 text-white rounded hover:bg-blue-800">{saving?'Menyimpan...':'Simpan'}</button>
                 </div>
               </div>
             </div>
@@ -416,18 +338,10 @@ export default function RelevansiPkmPage() {
 
         <style>{`
           @keyframes slideDown {
-            from {
-              transform: translateY(-100%);
-              opacity: 0;
-            }
-            to {
-              transform: translateY(0);
-              opacity: 1;
-            }
+            from { transform: translateY(-100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
           }
-          .animate-slideDown {
-            animation: slideDown 0.3s ease-out;
-          }
+          .animate-slideDown { animation: slideDown 0.3s ease-out; }
         `}</style>
       </div>
     </div>
