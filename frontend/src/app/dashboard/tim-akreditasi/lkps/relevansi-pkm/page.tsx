@@ -290,19 +290,31 @@ export default function RelevansiPkmPage() {
             ))}
           </div>
 
-          {/* Table */}
-          <div className="bg-white rounded-lg shadow overflow-hidden">
-            <div className="flex justify-between items-center p-4 border-b bg-gray-50">
-              <h3 className="font-semibold text-gray-900 capitalize">Data {activeSubTab.replace('-', ' ')}</h3>
-              <div className="flex gap-2">
-                <button onClick={openAdd} className="flex items-center gap-2 px-3 py-2 text-xs sm:text-sm text-white bg-blue-700 rounded-lg hover:bg-blue-800"><Plus size={16} /> Tambah Data</button>
-                <label className="flex items-center gap-2 px-4 py-2 text-sm bg-white border rounded-lg hover:bg-gray-100 cursor-pointer">
-                  <Upload size={16} /> Import Excel
+          {/* Konten */}
+          <div className="bg-white rounded-lg shadow p-3 sm:p-4 md:p-6">
+            {/* Judul Subtab & Tabel */}
+            <div className="mb-3 sm:mb-4">
+              <h2 className="text-base sm:text-lg font-semibold text-gray-800 mb-1">Data {activeSubTab.replace('-', ' ')}</h2>
+            </div>
+
+            {/* Tombol Aksi */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+              <div className="flex gap-1.5 sm:gap-2 flex-wrap">
+                <button
+                  onClick={openAdd}
+                  className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm text-white bg-blue-700 rounded-lg hover:bg-blue-800"
+                >
+                  <Plus size={14} className="sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Tambah</span> Data
+                </button>
+                <label className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-100 cursor-pointer">
+                  <Upload size={14} className="sm:w-4 sm:h-4" /> Import Excel
                   <input type="file" accept=".xlsx,.xls" className="hidden" />
                 </label>
               </div>
             </div>
-            <div className="overflow-x-auto px-4 py-2">
+
+            {/* Tabel */}
+            <div className="overflow-x-auto bg-white rounded-lg shadow-md">
               {errorMsg && <div className="p-4 bg-red-50 text-red-700 border-t border-red-100">Error: {errorMsg}</div>}
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">{renderColumns()}</thead>
