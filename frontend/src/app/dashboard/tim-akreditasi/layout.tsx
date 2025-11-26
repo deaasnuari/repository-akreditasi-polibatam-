@@ -251,7 +251,7 @@ export default function LayoutTimAkreditasi({
       </div>
 
       {/* === MAIN CONTENT === */}
-      <div className="flex-1 relative w-full">
+      <div className="flex-1 relative w-full overflow-x-auto max-w-full">
         {/* Toggle Button */}
         <button
           onClick={toggleSidebar}
