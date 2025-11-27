@@ -143,6 +143,69 @@ export const deleteData = async (req, res) => {
 };
 
 /* =============================================
+   SUBTAB FIELDS DEFINITION
+============================================= */
+const subtabFields = {
+  'sarana-prasarana': [
+    { key: 'namaPrasarana', label: 'Nama Prasarana' },
+    { key: 'dayaTampung', label: 'Daya Tampung' },
+    { key: 'luasRuang', label: 'Luas Ruang (m²)' },
+    { key: 'status', label: 'Milik sendiri (M)/Sewa (W)' },
+    { key: 'lisensi', label: 'Berlisensi (L)/Public Domain (P)/Tidak Berlisensi (T)' },
+    { key: 'perangkat', label: 'Perangkat' },
+    { key: 'linkBukti', label: 'Link Bukti' },
+  ],
+  'hibah-dan-pembiayaan': [
+    { key: 'no', label: 'No' },
+    { key: 'namadtpr', label: 'Nama DTPR (Ketua)' },
+    { key: 'judulpenelitian', label: 'Judul Penelitian' },
+    { key: 'jumlahmahasiswa', label: 'Jumlah Mahasiswa yang Terlibat' },
+    { key: 'jenishibah', label: 'Jenis Hibah Penelitian' },
+    { key: 'sumber', label: 'Sumber L/N/I' },
+    { key: 'durasi', label: 'Durasi (tahun)' },
+    { key: 'pendanaants2', label: 'Pendanaan TS-2 (Rp juta)' },
+    { key: 'pendanaants1', label: 'Pendanaan TS-1 (Rp juta)' },
+    { key: 'pendanaants', label: 'Pendanaan TS (Rp juta)' },
+    { key: 'linkbukti', label: 'Link Bukti' },
+  ],
+  'pengembangan-dtpr': [
+    { key: 'namaDTPR', label: 'Nama DTPR' },
+    { key: 'jenisPengembangan', label: 'Jenis Pengembangan DTPR' },
+    { key: 'tahunAkademik', label: 'Tahun Akademik' },
+    { key: 'linkBukti', label: 'Link Bukti' },
+  ],
+  'kerjasama-penelitian': [
+    { key: 'no', label: 'No' },
+    { key: 'judulkerjasama', label: 'Judul Kerjasama' },
+    { key: 'mitrakerjasama', label: 'Mitra Kerja Sama' },
+    { key: 'sumber', label: 'Sumber L/N/I' },
+    { key: 'durasi', label: 'Durasi (Tahun)' },
+    { key: 'pendanaants2', label: 'Pendanaan TS-2 (Rp Juta)' },
+    { key: 'pendanaants1', label: 'Pendanaan TS-1 (Rp Juta)' },
+    { key: 'pendanaants', label: 'Pendanaan TS (Rp Juta)' },
+    { key: 'linkbukti', label: 'Link Bukti' },
+  ],
+  'publikasi-penelitian': [
+    { key: 'no', label: 'No' },
+    { key: 'namaDTPR', label: 'Nama DTPR' },
+    { key: 'judulPublikasi', label: 'Judul Publikasi' },
+    { key: 'jenisPublikasi', label: 'Jenis Publikasi (IB/I/S1,S2,S3,S4,T)' },
+    { key: 'tahun', label: 'Tahun' },
+    { key: 'linkBukti', label: 'Link Bukti' },
+  ],
+  'perolehan-hki': [
+    { key: 'no', label: 'No' },
+    { key: 'judul', label: 'Judul' },
+    { key: 'jenishki', label: 'Jenis HKI' },
+    { key: 'namadtpr', label: 'Nama DTPR' },
+    { key: 'tahunts2', label: 'Tahun Perolehan TS-2' },
+    { key: 'tahunts1', label: 'Tahun Perolehan TS-1' },
+    { key: 'tahunts', label: 'Tahun Perolehan TS' },
+    { key: 'linkbukti', label: 'Link Bukti' },
+  ],
+};
+
+/* =============================================
    IMPORT EXCEL
 ============================================= */
 export const importExcel = [
@@ -152,11 +215,40 @@ export const importExcel = [
       const subtab = req.body.subtab;
       const userId = req.user.id; // Ambil user_id dari token JWT
       const mapping = req.body.mapping ? JSON.parse(req.body.mapping) : {};
+      const isPreview = req.body.preview === 'true';
 
       const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       const rows = xlsx.utils.sheet_to_json(sheet, { defval: "" });
 
+      if (isPreview) {
+        // Handle preview: return headers, preview rows, and suggestions
+        const headers = rows.length > 0 ? Object.keys(rows[0]) : [];
+        const previewRows = rows.slice(0, 5); // First 5 rows for preview
+        const suggestions = {};
+
+        const fields = subtabFields[subtab] || [];
+        for (const header of headers) {
+          const lowerHeader = header.toLowerCase().replace(/\s+/g, '');
+          for (const field of fields) {
+            const lowerKey = field.key.toLowerCase();
+            const lowerLabel = field.label.toLowerCase().replace(/\s+/g, '').replace(/[()]/g, '');
+            if (lowerHeader.includes(lowerKey) || lowerLabel.includes(lowerHeader) || lowerHeader === lowerKey) {
+              suggestions[header] = field.key;
+              break;
+            }
+          }
+        }
+
+        return res.json({
+          success: true,
+          headers,
+          previewRows,
+          suggestions,
+        });
+      }
+
+      // Proceed with actual import
       let added = 0;
       let errors = [];
 
