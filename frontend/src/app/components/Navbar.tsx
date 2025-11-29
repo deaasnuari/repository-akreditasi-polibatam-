@@ -3,6 +3,16 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Poppins } from 'next/font/google';
+import { useState, useEffect } from 'react';
+import { User } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -18,6 +28,37 @@ export default function Navbar() {
     pathname.startsWith('/dashboard') ||
     pathname === '/login' ||
     pathname === '/register';
+
+  const isDashboard = pathname.startsWith('/dashboard');
+
+  // Profile states
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    username: '',
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
+  const [user, setUser] = useState<{ username: string; role: string } | null>(null);
+
+  useEffect(() => {
+    if (isDashboard) {
+      let mounted = true;
+      (async () => {
+        try {
+          const { getCurrentUser } = await import('@/services/auth');
+          const current = await getCurrentUser();
+          if (!mounted) return;
+          setUser(current);
+        } catch (err) {
+          // Handle error
+        }
+      })();
+      return () => { mounted = false; };
+    }
+  }, [isDashboard]);
 
   // === Scroll Helper ===
   const handleScrollTo = (targetId?: string) => {
@@ -88,6 +129,40 @@ export default function Navbar() {
           >
             Login
           </Link>
+        </div>
+      )}
+
+      {/* === PROFILE SECTION FOR DASHBOARD === */}
+      {isDashboard && user && (
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <button
+              onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+              className="flex items-center gap-2 p-2 rounded-md hover:bg-[#ADE7F7]/20 transition"
+            >
+              <div className="w-8 h-8 bg-[#ADE7F7] rounded-full flex items-center justify-center text-[#183A64] font-bold shadow-md overflow-hidden">
+                {profilePhoto ? (
+                  <img src={profilePhoto} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  'R'
+                )}
+              </div>
+              <span className="text-sm font-medium">Halo, {user.username}</span>
+            </button>
+            {profileDropdownOpen && (
+              <div className="absolute right-0 mt-2 w-32 bg-white rounded-md shadow-lg z-50">
+                <button
+                  onClick={() => {
+                    setProfileDropdownOpen(false);
+                    setProfileModalOpen(true);
+                  }}
+                  className="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+                >
+                  Profile
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </nav>

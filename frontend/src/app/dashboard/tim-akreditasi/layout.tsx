@@ -14,6 +14,8 @@ import {
   Menu,
   ChevronLeft,
   LogOut,
+  User,
+  ChevronDown,
 } from 'lucide-react';
 import { logout } from '@/services/auth';
 import {
@@ -29,6 +31,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 
+
 const poppins = Poppins({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
@@ -42,6 +45,7 @@ export default function LayoutTimAkreditasi({
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [open, setOpen] = useState(false);
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
   const [user, setUser] = useState<{ username: string; role: string } | null>(null);
   const pathname = usePathname();
   const router = useRouter();
@@ -156,19 +160,20 @@ export default function LayoutTimAkreditasi({
       >
         {/* Sidebar Header */}
         <div className="p-4 border-b border-[#ADE7F7]/30 flex items-center gap-3">
-          <div className="w-12 h-12 bg-[#ADE7F7] rounded-full flex items-center justify-center text-[#183A64] font-bold shadow-md flex-shrink-0">
-            R
+          <div className="w-12 h-12 bg-[#ADE7F7] rounded-full flex items-center justify-center text-[#183A64] font-bold shadow-md flex-shrink-0 overflow-hidden">
+            {profilePhoto ? (
+              <img src={profilePhoto} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
+              'R'
+            )}
           </div>
 
           {sidebarOpen && (
-            <div>
+            <div className="flex-1">
               <h2 className="text-[#ADE7F7] text-base font-bold leading-tight">
                 Repository Akreditasi
               </h2>
               <p className="text-[#ADE7F7]/80 text-xs font-bold">POLIBATAM</p>
-              {user && (
-                <p className="text-sm text-[#ADE7F7]/90 mt-2 font-medium">Halo, {user.username}</p>
-              )}
             </div>
           )}
         </div>
@@ -266,6 +271,8 @@ export default function LayoutTimAkreditasi({
         {/* Page Content */}
         <main className="w-full p-2 sm:p-4 md:p-6">{children}</main>
       </div>
+
+
     </div>
   );
 }

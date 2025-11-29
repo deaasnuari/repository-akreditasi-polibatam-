@@ -1,10 +1,15 @@
-# TODO: Samakan Relevansi Pendidikan dengan Relevansi Penelitian
+# TODO: Add Profile Icon and Edit Profile Feature for Tim Akreditasi
 
-## Progress
-- [ ] Update Prisma schema: Ubah model relevansi_pendidikan ke struktur seperti relevansi_penelitian (id, user_id, subtab, data Json, timestamps)
-- [ ] Update backend/controllers/relevansiPendidikanController.js: Gunakan Prisma, tambah autentikasi JWT, ubah 'type' ke 'subtab'
-- [ ] Update backend/routes/relevansiPendidikan.js: Tambah middleware autentikasi
-- [ ] Update frontend/src/services/relevansiPendidikanService.ts: Tambah handling user_id, ubah 'type' ke 'subtab'
-- [ ] Update frontend/src/app/dashboard/tim-akreditasi/lkps/relevansi-pendidikan/page.tsx: Ubah penggunaan 'type' ke 'subtab'
-- [ ] Jalankan migration Prisma: `npx prisma migrate dev`
-- [ ] Test CRUD dan autentikasi
+## Backend Changes
+- [ ] Add PUT /auth/profile endpoint in authController.js to update username and password
+- [ ] Add route for /auth/profile in authRoutes.js
+- [ ] Test backend endpoint
+
+## Frontend Changes
+- [ ] Add updateProfile function in frontend/src/services/auth.ts
+- [ ] Modify frontend/src/app/dashboard/tim-akreditasi/layout.tsx to add profile icon, dropdown, and modal
+- [ ] Test frontend integration
+
+## Testing
+- [ ] Test profile edit functionality
+- [ ] Ensure proper validation and error handling
