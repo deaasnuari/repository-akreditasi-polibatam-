@@ -14,6 +14,13 @@ export default function RelevansiPkmPage() {
   const [showForm, setShowForm] = useState(false);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [formData, setFormData] = useState<any>({});
+  const [importing, setImporting] = useState(false);
+  const [previewFile, setPreviewFile] = useState<File | null>(null);
+  const [previewHeaders, setPreviewHeaders] = useState<string[]>([]);
+  const [previewRows, setPreviewRows] = useState<any[]>([]);
+  const [suggestions, setSuggestions] = useState<Record<string, string>>({});
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [mapping, setMapping] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [popup, setPopup] = useState<{ show: boolean; message: string; type: 'success' | 'error' | 'info' }>({
     show: false,
@@ -207,6 +214,54 @@ export default function RelevansiPkmPage() {
     }
   };
 
+  // --- Import Excel ---
+  const handleFileChange = async (e: any) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    try {
+      const { previewImport } = await import('@/services/relevansiPkmService');
+      const json = await previewImport(file, activeSubTab);
+      setPreviewFile(file);
+      setPreviewHeaders(json.headers || []);
+      setPreviewRows(json.previewRows || []);
+      setSuggestions(json.suggestions || {});
+      const initMap: Record<string,string> = {};
+      (json.headers || []).forEach(h => { initMap[h] = json.suggestions?.[h] ?? ''; });
+      setMapping(initMap);
+      setShowPreviewModal(true);
+    } catch(err:any) {
+      console.error(err);
+      setErrorMsg(err.message || String(err));
+    } finally {
+      setImporting(false);
+      try { e.target.value = ''; } catch {}
+    }
+  };
+
+  const handleCommitImport = async () => {
+    if (!previewFile) return;
+    try {
+      setImporting(true);
+      const { commitImport } = await import('@/services/relevansiPkmService');
+      await commitImport(previewFile, activeSubTab, mapping);
+      await fetchData();
+      setShowPreviewModal(false);
+      setPreviewFile(null);
+      showPopup('Import berhasil', 'success');
+    } catch(err:any) {
+      console.error(err);
+      setErrorMsg(err.message || String(err));
+      showPopup(err.message || 'Gagal import data', 'error');
+    } finally { setImporting(false); }
+  };
+
+  const applySuggestions = () => {
+    const newMap: Record<string,string> = { ...mapping };
+    previewHeaders.forEach(h => { if(suggestions[h]) newMap[h] = suggestions[h]; });
+    setMapping(newMap);
+  };
+
   const renderColumns = () => (
     <tr>
       {(subtabFields[activeSubTab] || []).map(c => (
@@ -306,10 +361,21 @@ export default function RelevansiPkmPage() {
                 >
                   <Plus size={14} className="sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Tambah</span> Data
                 </button>
-                <label className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-100 cursor-pointer">
-                  <Upload size={14} className="sm:w-4 sm:h-4" /> Import Excel
-                  <input type="file" accept=".xlsx,.xls" className="hidden" />
-                </label>
+                <form onSubmit={(e) => e.preventDefault()} className="relative">
+                  <input
+                    type="file"
+                    accept=".xlsx, .xls"
+                    id="importExcel"
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                    onChange={handleFileChange}
+                  />
+                  <label
+                    htmlFor="importExcel"
+                    className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-100 cursor-pointer"
+                  >
+                    <Upload size={14} className="sm:w-4 sm:h-4" /> Import Excel
+                  </label>
+                </form>
               </div>
             </div>
 
@@ -346,6 +412,36 @@ export default function RelevansiPkmPage() {
               </div>
             </div>
           )}
+
+          {/* Preview Modal */}
+          {showPreviewModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
+              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-semibold">Preview Import — mapping kolom</h3>
+                  <button onClick={()=>setShowPreviewModal(false)} className="text-gray-500">Tutup</button>
+                </div>
+                <div className="grid grid-cols-1 gap-3">
+                  <div className="flex gap-2 mb-2">
+                    <button onClick={applySuggestions} className="px-3 py-1 bg-green-600 text-white rounded text-sm">Auto Map</button>
+                  </div>
+                  {previewHeaders.map(h => (
+                    <div key={h} className="flex gap-3 items-center">
+                      <div className="min-w-[160px] text-sm font-medium">{h}</div>
+                      <select value={mapping[h]??''} onChange={e=>setMapping({...mapping,[h]:e.target.value})} className="border px-2 py-1">
+                        <option value="">-- tidak dipetakan --</option>
+                        {(subtabFields[activeSubTab]||[]).map(f=> <option key={f.key} value={f.key}>{f.key}</option>)}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-6">
+                  <button onClick={handleCommitImport} className="px-4 py-2 bg-blue-700 text-white rounded hover:bg-blue-800">{importing?'Menyimpan...':'Simpan Import'}</button>
+                </div>
+              </div>
+            </div>
+          )}
+
         </main>
 
         <style>{`

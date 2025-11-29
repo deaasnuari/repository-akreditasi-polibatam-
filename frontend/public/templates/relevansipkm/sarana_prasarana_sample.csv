@@ -1,0 +1,4 @@
+No,Nama Prasarana,Daya Tampung,Luas Ruang (m),Milik Sendiri (M)/Sewa (W),Berlisensi (L)/Public Domain (P)/Tidak Berlisensi (T),Perangkat,Link Bukti
+1,Lab Komputer,50,100,M,L,Komputer dan Proyektor,https://example.com/bukti1
+2,Perpustakaan Digital,200,500,W,P,Server dan Database,https://example.com/bukti2
+3,Ruang Seminar,100,200,M,T,Sound System,https://example.com/bukti3
