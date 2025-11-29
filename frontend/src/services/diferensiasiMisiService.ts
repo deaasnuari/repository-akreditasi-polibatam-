@@ -1,10 +1,10 @@
 import { fetchData } from "./api";
 
 export interface DiferensiasiItem {
+  id?: number;
   tipe_data: string;
   unit_kerja: string;
   konten: string;
-  type: string;
 }
 
 export async function getAllDiferensiasiMisi() {

@@ -1,19 +1,20 @@
-import { PrismaClient } from "@prisma/client";
+import prisma from "../prismaClient.js";
 import multer from "multer";
 import xlsx from "xlsx";
 import path from "path";
 import fs from "fs";
 
-const prisma = new PrismaClient();
+const upload = multer({ storage: multer.memoryStorage() });
 
 // ======================
 // 🟦 GET DATA BY TYPE
 // ======================
 export const getData = async (req, res) => {
   const { type } = req.query;
+  const user_id = req.user.id;
   try {
     const data = await prisma.budaya_mutu.findMany({
-      where: { type },
+      where: { type, user_id },
       orderBy: { id: "asc" },
     });
 
@@ -29,15 +30,23 @@ export const getData = async (req, res) => {
 // ======================
 export const createData = async (req, res) => {
   const { type, data } = req.body;
+  const user_id = req.user.id;
+
+  console.log("CREATE DATA - Received:", { type, data, user_id });
 
   try {
+    const cleanData = normalizeRow(data);
+    console.log("CREATE DATA - Cleaned data:", cleanData);
+
     const created = await prisma.budaya_mutu.create({
       data: {
+        user_id,
         type,
-        data,
+        data: cleanData,
       },
     });
 
+    console.log("CREATE DATA - Created successfully:", created);
     res.json({ success: true, data: created });
   } catch (err) {
     console.error("CREATE ERROR:", err);
@@ -53,11 +62,13 @@ export const updateData = async (req, res) => {
   const { type, data } = req.body;
 
   try {
+    const cleanData = normalizeRow(data);
+
     const updated = await prisma.budaya_mutu.update({
       where: { id: Number(id) },
       data: {
         type,
-        data,
+        data: cleanData,
         updated_at: new Date(),
       },
     });
@@ -87,52 +98,168 @@ export const deleteData = async (req, res) => {
   }
 };
 
-// ======================
-// 📤 IMPORT EXCEL
-// ======================
-export const importExcel = async (req, res) => {
-  const { type } = req.params;
-
-  if (!req.file) {
-    return res.status(400).json({ success: false, message: "Tidak ada file diupload" });
-  }
-
-  try {
-    const filePath = path.resolve(req.file.path);
-    const workbook = xlsx.readFile(filePath);
-    const sheet = xlsx.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
-
-    const rows = sheet.map(row => ({
-      namaKetua: row.__EMPTY || row["Nama Ketua"] || "",
-      periode: row.__EMPTY_1 || row["Periode Jabatan"] || "",
-      pendidikanTerakhir: row.__EMPTY_2 || row["Pendidikan Terakhir"] || "",
-      jabatanFungsional: row.__EMPTY_3 || row["Jabatan Fungsional"] || "",
-      tugasPokokDanFungsi: row.__EMPTY_4 || row["Tugas Pokok dan Fungsi"] || "",
-      unitKerja: row["Tabel 1.A.1 - Pimpinan dan Tupoksi UPPS dan PS"] || row["Unit Kerja"] || "",
-    })).filter(r => r.namaKetua.toLowerCase() !== "nama ketua");
-
-    // insert menggunakan prisma
-    for (const row of rows) {
-      await prisma.budaya_mutu.create({
-        data: {
-          type,
-          data: row,
-        },
-      });
-    }
-
-    fs.unlinkSync(filePath);
-
-    res.json({
-      success: true,
-      message: "Data berhasil diimport",
-      count: rows.length,
-    });
-  } catch (err) {
-    console.error("IMPORT ERROR:", err);
-    res.status(500).json({ success: false, message: "Gagal import data" });
-  }
+/* =============================================
+   SUBTAB FIELDS DEFINITION
+============================================= */
+const subtabFields = {
+  'tupoksi': [
+    { key: 'unitKerja', label: 'Unit Kerja' },
+    { key: 'namaKetua', label: 'Nama Ketua' },
+    { key: 'periode', label: 'Periode' },
+    { key: 'pendidikanTerakhir', label: 'Pendidikan Terakhir' },
+    { key: 'jabatanFungsional', label: 'Jabatan Fungsional' },
+    { key: 'tugasPokokDanFungsi', label: 'Tugas Pokok dan Fungsi' },
+  ],
+  'pendanaan': [
+    { key: 'sumberPendanaan', label: 'Sumber Pendanaan' },
+    { key: 'ts2', label: 'TS-2' },
+    { key: 'ts1', label: 'TS-1' },
+    { key: 'ts', label: 'TS' },
+    { key: 'linkBukti', label: 'Link Bukti' },
+  ],
+  'penggunaan-dana': [
+    { key: 'penggunaanDana', label: 'Penggunaan Dana' },
+    { key: 'ts2', label: 'TS-2' },
+    { key: 'ts1', label: 'TS-1' },
+    { key: 'ts', label: 'TS' },
+    { key: 'linkBukti', label: 'Link Bukti' },
+  ],
+  'ewmp': [
+    { key: 'namaDTPR', label: 'Nama DTPR' },
+    { key: 'psSendiri', label: 'PS Sendiri' },
+    { key: 'psLainPTSendiri', label: 'PS Lain PT Sendiri' },
+    { key: 'ptLain', label: 'PT Lain' },
+    { key: 'sksPenelitian', label: 'SKS Penelitian' },
+    { key: 'sksPengabdian', label: 'SKS Pengabdian' },
+    { key: 'manajemenPTSendiri', label: 'Manajemen PT Sendiri' },
+    { key: 'manajemenPTLain', label: 'Manajemen PT Lain' },
+    { key: 'totalSKS', label: 'Total SKS' },
+  ],
+  'ktk': [
+    { key: 'jenisTenagaKependidikan', label: 'Jenis Tenaga Kependidikan' },
+    { key: 's3', label: 'S3' },
+    { key: 's2', label: 'S2' },
+    { key: 's1', label: 'S1' },
+    { key: 'd4', label: 'D4' },
+    { key: 'd3', label: 'D3' },
+    { key: 'd2', label: 'D2' },
+    { key: 'd1', label: 'D1' },
+    { key: 'sma', label: 'SMA' },
+    { key: 'unitKerja', label: 'Unit Kerja' },
+  ],
+  'spmi': [
+    { key: 'unitSPMI', label: 'Unit SPMI' },
+    { key: 'namaUnitSPMI', label: 'Nama Unit SPMI' },
+    { key: 'dokumenSPMI', label: 'Dokumen SPMI' },
+    { key: 'jumlahAuditorMutuInternal', label: 'Jumlah Auditor Mutu Internal' },
+    { key: 'certified', label: 'Certified' },
+    { key: 'nonCertified', label: 'Non Certified' },
+    { key: 'frekuensiAudit', label: 'Frekuensi Audit' },
+    { key: 'buktiCertifiedAuditor', label: 'Bukti Certified Auditor' },
+    { key: 'laporanAudit', label: 'Laporan Audit' },
+  ],
 };
+
+/* =============================================
+   IMPORT EXCEL
+============================================= */
+export const importExcel = [
+  upload.single("file"),
+  async (req, res) => {
+    try {
+      const type = req.params.type;
+      const user_id = req.user.id;
+      const mapping = req.body.mapping ? JSON.parse(req.body.mapping) : {};
+      const isPreview = req.body.preview === 'true';
+
+      const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = xlsx.utils.sheet_to_json(sheet, { defval: "" });
+
+      if (isPreview) {
+        // Handle preview: return headers, preview rows, and suggestions
+        const headers = rows.length > 0 ? Object.keys(rows[0]) : [];
+        const previewRows = rows.slice(0, 5); // First 5 rows for preview
+        const suggestions = {};
+
+        const fields = subtabFields[type] || [];
+        for (const header of headers) {
+          const lowerHeader = header.toLowerCase().replace(/\s+/g, '');
+          for (const field of fields) {
+            const lowerKey = field.key.toLowerCase();
+            const lowerLabel = field.label.toLowerCase().replace(/\s+/g, '').replace(/[()]/g, '');
+            if (lowerHeader.includes(lowerKey) || lowerLabel.includes(lowerHeader) || lowerHeader === lowerKey) {
+              suggestions[header] = field.key;
+              break;
+            }
+          }
+        }
+
+        return res.json({
+          success: true,
+          headers,
+          previewRows,
+          suggestions,
+        });
+      }
+
+      // Proceed with actual import
+      let added = 0;
+      let errors = [];
+
+      for (let i = 0; i < rows.length; i++) {
+        try {
+          const raw = rows[i];
+          const obj = {};
+          for (const header of Object.keys(mapping)) {
+            const dbField = mapping[header];
+            if (dbField) obj[dbField] = raw[header];
+          }
+
+          const cleanData = normalizeRow(obj);
+
+          await prisma.budaya_mutu.create({
+            data: {
+              user_id,
+              type,
+              data: cleanData,
+            },
+          });
+          added++;
+        } catch (e) {
+          errors.push({ row: i + 1, error: e.message });
+        }
+      }
+
+      res.json({
+        success: true,
+        message: `Import selesai: ${added} berhasil, ${errors.length} gagal`,
+        added,
+        failed: errors.length,
+        errors,
+      });
+    } catch (err) {
+      console.error("IMPORT ERROR:", err);
+      res.status(500).json({ success: false, message: "Gagal import", error: err.message });
+    }
+  },
+];
+
+/* =============================================
+   NORMALIZATION & FILTER
+============================================= */
+function normalizeValue(value) {
+  if (value === undefined || value === null || value === "") return null;
+  return value;
+}
+
+function normalizeRow(row = {}) {
+  const result = {};
+  for (const key of Object.keys(row)) {
+    result[key] = normalizeValue(row[key]);
+  }
+  return result;
+}
 
 // ======================================================
 // 🏗 STRUKTUR ORGANISASI (CRUD FILE)

@@ -6,13 +6,19 @@ import path from "path";
 const prisma = new PrismaClient();
 
 // ======================
-// GET DATA BY TYPE
+// GET DATA BY SUBTAB
 // ======================
 export const getData = async (req, res) => {
-  const { type } = req.query;
+  const { subtab } = req.query;
+  const userId = req.user?.id; // Assuming auth middleware sets req.user
+
+  if (!userId) {
+    return res.status(401).json({ success: false, message: "Unauthorized" });
+  }
+
   try {
     const data = await prisma.akuntabilitas.findMany({
-      where: { type },
+      where: { subtab, user_id: userId },
       orderBy: { id: "asc" },
     });
 
@@ -27,13 +33,19 @@ export const getData = async (req, res) => {
 // CREATE DATA
 // ======================
 export const createData = async (req, res) => {
-  const { type, data } = req.body;
+  const { subtab, data } = req.body;
+  const userId = req.user?.id;
+
+  if (!userId) {
+    return res.status(401).json({ success: false, message: "Unauthorized" });
+  }
 
   try {
     const created = await prisma.akuntabilitas.create({
       data: {
-        type,
+        subtab,
         data,
+        user_id: userId,
       },
     });
 
@@ -51,13 +63,18 @@ export const createData = async (req, res) => {
 // ======================
 export const updateData = async (req, res) => {
   const { id } = req.params;
-  const { type, data } = req.body;
+  const { subtab, data } = req.body;
+  const userId = req.user?.id;
+
+  if (!userId) {
+    return res.status(401).json({ success: false, message: "Unauthorized" });
+  }
 
   try {
     const updated = await prisma.akuntabilitas.update({
-      where: { id: Number(id) },
+      where: { id: Number(id), user_id: userId },
       data: {
-        type,
+        subtab,
         data,
         updated_at: new Date(),
       },
@@ -77,10 +94,15 @@ export const updateData = async (req, res) => {
 // ======================
 export const deleteData = async (req, res) => {
   const { id } = req.params;
+  const userId = req.user?.id;
+
+  if (!userId) {
+    return res.status(401).json({ success: false, message: "Unauthorized" });
+  }
 
   try {
     await prisma.akuntabilitas.delete({
-      where: { id: Number(id) },
+      where: { id: Number(id), user_id: userId },
     });
 
     res.json({ success: true, message: "Data berhasil dihapus" });
@@ -97,6 +119,11 @@ export const deleteData = async (req, res) => {
 // ======================
 export const importExcel = async (req, res) => {
   const { type } = req.params;
+  const userId = req.user?.id;
+
+  if (!userId) {
+    return res.status(401).json({ success: false, message: "Unauthorized" });
+  }
 
   if (!req.file) {
     return res
@@ -116,8 +143,9 @@ export const importExcel = async (req, res) => {
     for (const r of rows) {
       await prisma.akuntabilitas.create({
         data: {
-          type,
+          subtab: type,
           data: r,
+          user_id: userId,
         },
       });
     }

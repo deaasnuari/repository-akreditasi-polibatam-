@@ -10,6 +10,7 @@ import {
   deleteData,
   importExcel
 } from "../controllers/akuntabilitasController.js";
+import { authenticateToken } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
@@ -22,12 +23,12 @@ const storageExcel = multer.diskStorage({
 const uploadExcel = multer({ storage: storageExcel });
 
 // === CRUD ROUTES ===
-router.get("/", getData);
-router.post("/", createData);
-router.put("/:id", updateData);
-router.delete("/:id", deleteData);
+router.get("/", authenticateToken, getData);
+router.post("/", authenticateToken, createData);
+router.put("/:id", authenticateToken, updateData);
+router.delete("/:id", authenticateToken, deleteData);
 
 // === IMPORT EXCEL ===
-router.post("/import/:type", uploadExcel.single("file"), importExcel);
+router.post("/import/:type", authenticateToken, uploadExcel.single("file"), importExcel);
 
 export default router;

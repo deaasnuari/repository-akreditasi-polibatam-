@@ -2,6 +2,7 @@ import express from "express";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import { authenticateToken } from "../middleware/authMiddleware.js";
 import {
   getData,
   createData,
@@ -38,18 +39,18 @@ const storageExcel = multer.diskStorage({
 const uploadExcel = multer({ storage: storageExcel });
 
 // === ROUTES CRUD Utama ===
-router.get("/", getData);
-router.post("/", createData);
-router.put("/:id", updateData);
-router.delete("/:id", deleteData);
+router.get("/", authenticateToken, getData);
+router.post("/", authenticateToken, createData);
+router.put("/:id", authenticateToken, updateData);
+router.delete("/:id", authenticateToken, deleteData);
 
 // === Import Excel ===
-router.post("/import/:type", uploadExcel.single("file"), importExcel);
+router.post("/import/:type", authenticateToken, uploadExcel.single("file"), importExcel);
 
 // === STRUKTUR ORGANISASI ROUTES ===
-router.post("/upload-struktur", uploadFile.single("file"), uploadStruktur);
-router.get("/struktur", getStruktur);
-router.put("/struktur/:id", uploadFile.single("file"), updateStruktur);
-router.delete("/struktur/:id", deleteStruktur);
+router.post("/upload-struktur", authenticateToken, uploadFile.single("file"), uploadStruktur);
+router.get("/struktur", authenticateToken, getStruktur);
+router.put("/struktur/:id", authenticateToken, uploadFile.single("file"), updateStruktur);
+router.delete("/struktur/:id", authenticateToken, deleteStruktur);
 
 export default router;

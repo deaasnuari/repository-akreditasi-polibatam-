@@ -1,10 +1,19 @@
 import prisma from '../prismaClient.js';
 
-// GET semua data
+// GET semua data berdasarkan user_id
 export const getDiferensiasiMisi = async (req, res) => {
   try {
+    const userId = req.user.id; // dari middleware auth
+    const { subtab } = req.query; // opsional filter subtab
+
+    const whereClause = { user_id: userId };
+    if (subtab) {
+      whereClause.subtab = subtab;
+    }
+
     const data = await prisma.diferensiasi_misi.findMany({
-      orderBy: { id: "asc" },
+      where: whereClause,
+      orderBy: { created_at: "desc" },
     });
 
     res.json({ data });
@@ -16,8 +25,19 @@ export const getDiferensiasiMisi = async (req, res) => {
 // POST tambah data
 export const addDiferensiasiMisi = async (req, res) => {
   try {
+    const userId = req.user.id; // dari middleware auth
+    const { subtab, data } = req.body;
+
+    if (!subtab || !data) {
+      return res.status(400).json({ message: "subtab dan data diperlukan" });
+    }
+
     const newData = await prisma.diferensiasi_misi.create({
-      data: req.body,
+      data: {
+        user_id: userId,
+        subtab,
+        data,
+      },
     });
 
     res.json({ message: "Data berhasil ditambahkan", data: newData });
@@ -29,14 +49,27 @@ export const addDiferensiasiMisi = async (req, res) => {
 // PUT update data
 export const updateDiferensiasiMisi = async (req, res) => {
   const { id } = req.params;
+  const userId = req.user.id;
 
   try {
-    const updated = await prisma.diferensiasi_misi.update({
-      where: { id: Number(id) },
-      data: req.body,
+    const { subtab, data } = req.body;
+
+    const updated = await prisma.diferensiasi_misi.updateMany({
+      where: {
+        id: Number(id),
+        user_id: userId, // pastikan hanya user sendiri yang bisa update
+      },
+      data: {
+        ...(subtab && { subtab }),
+        ...(data && { data }),
+      },
     });
 
-    res.json({ message: "Data berhasil diperbarui", data: updated });
+    if (updated.count === 0) {
+      return res.status(404).json({ message: "Data tidak ditemukan atau tidak memiliki akses" });
+    }
+
+    res.json({ message: "Data berhasil diperbarui" });
   } catch (err) {
     res.status(500).json({ message: "Gagal memperbarui data", error: err.message });
   }
@@ -45,11 +78,19 @@ export const updateDiferensiasiMisi = async (req, res) => {
 // DELETE hapus data
 export const deleteDiferensiasiMisi = async (req, res) => {
   const { id } = req.params;
+  const userId = req.user.id;
 
   try {
-    await prisma.diferensiasi_misi.delete({
-      where: { id: Number(id) },
+    const deleted = await prisma.diferensiasi_misi.deleteMany({
+      where: {
+        id: Number(id),
+        user_id: userId, // pastikan hanya user sendiri yang bisa delete
+      },
     });
+
+    if (deleted.count === 0) {
+      return res.status(404).json({ message: "Data tidak ditemukan atau tidak memiliki akses" });
+    }
 
     res.json({ message: "Data berhasil dihapus" });
   } catch (err) {

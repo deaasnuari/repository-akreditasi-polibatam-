@@ -17,7 +17,9 @@ export type SubTab =
 
 export const fetchBudayaMutuData = async (type: SubTab) => {
   try {
-    const res = await fetch(`${API_BASE_LKPS}?type=${type}`);
+    const res = await fetch(`${API_BASE_LKPS}?type=${type}`, {
+      credentials: 'include',
+    });
     const json = await res.json();
     return json.success ? json.data : [];
   } catch (err) {
@@ -32,6 +34,7 @@ export const createBudayaMutuData = async (type: SubTab, data: any) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ type, data }),
+      credentials: 'include',
     });
     return await res.json();
   } catch (err) {
@@ -46,6 +49,7 @@ export const updateBudayaMutuData = async (id: string, type: SubTab, data: any) 
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ type, data }),
+      credentials: 'include',
     });
     return await res.json();
   } catch (err) {
@@ -56,7 +60,10 @@ export const updateBudayaMutuData = async (id: string, type: SubTab, data: any) 
 
 export const deleteBudayaMutuData = async (id: string) => {
   try {
-    const res = await fetch(`${API_BASE_LKPS}/${id}`, { method: 'DELETE' });
+    const res = await fetch(`${API_BASE_LKPS}/${id}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
     return await res.json();
   } catch (err) {
     console.error(err);
@@ -68,7 +75,11 @@ export const importExcelBudayaMutu = async (file: File, type: SubTab) => {
   const formData = new FormData();
   formData.append('file', file);
   try {
-    const res = await fetch(`${API_BASE_LKPS}/import/${type}`, { method: 'POST', body: formData });
+    const res = await fetch(`${API_BASE_LKPS}/import/${type}`, {
+      method: 'POST',
+      body: formData,
+      credentials: 'include',
+    });
     return await res.json();
   } catch (err) {
     console.error(err);

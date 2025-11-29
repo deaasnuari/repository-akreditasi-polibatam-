@@ -33,11 +33,31 @@ export default function DiferensiasiMisiPage() {
   // --- Fetch Data ---
   const fetchData = async () => {
   try {
-    const res = await fetch(`${API_BASE}?type=visi-misi`);
-    if (!res.ok) throw new Error('Gagal fetch data');
+    const res = await fetch(`${API_BASE}?subtab=visi-misi`, {
+      credentials: 'include',
+    });
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error('Fetch failed:', res.status, res.statusText, errorText);
+      if (res.status === 401) {
+        alert('Sesi login telah berakhir. Silakan login kembali.');
+        window.location.href = '/login';
+        return;
+      }
+      throw new Error(`Gagal fetch data: ${res.status} ${res.statusText}`);
+    }
     const json = await res.json();
     console.log('RESPON DARI BACKEND:', json);
-    setData(json.data || json || []); // ✅ fallback ke json langsung
+
+    // Transform data dari JSON ke format yang diharapkan frontend
+    const transformedData = (json.data || json || []).map((item: any) => ({
+      id: item.id,
+      tipe_data: item.data?.tipe_data,
+      unit_kerja: item.data?.unit_kerja,
+      konten: item.data?.konten,
+    }));
+
+    setData(transformedData);
   } catch (err) {
     console.error('Fetch error:', err);
     setData([]);
@@ -61,10 +81,21 @@ export default function DiferensiasiMisiPage() {
       const method = formData.id ? 'PUT' : 'POST';
       const url = method === 'PUT' ? `${API_BASE}/${formData.id}` : API_BASE;
 
+      // Struktur data baru: subtab dan data sebagai JSON
+      const payload = {
+        subtab: 'visi-misi',
+        data: {
+          tipe_data: formData.tipe_data,
+          unit_kerja: formData.unit_kerja,
+          konten: formData.konten,
+        },
+      };
+
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, type: 'visi-misi' }),
+        body: JSON.stringify(payload),
+        credentials: 'include',
       });
       const json = await res.json();
       if (res.ok) {
@@ -89,7 +120,7 @@ export default function DiferensiasiMisiPage() {
   const handleDelete = async (id?: number) => {
     if (!id || !confirm('Yakin hapus data ini?')) return;
     try {
-      const res = await fetch(`${API_BASE}/${id}`, { method: 'DELETE' });
+      const res = await fetch(`${API_BASE}/${id}`, { method: 'DELETE', credentials: 'include' });
       const json = await res.json();
       if (res.ok) {
         alert('🗑️ Data dihapus');
@@ -117,7 +148,7 @@ export default function DiferensiasiMisiPage() {
 
     const formDataImport = new FormData();
     formDataImport.append('file', file);
-    formDataImport.append('type', 'visi-misi');
+    formDataImport.append('subtab', 'visi-misi');
 
     try {
       const res = await fetch(`${API_BASE}/import`, { method: 'POST', body: formDataImport });

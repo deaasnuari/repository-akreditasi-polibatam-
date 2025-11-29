@@ -1,11 +1,9 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '../prismaClient.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 
 dotenv.config();
-
-const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'secretkey';
 const VALID_ROLES = ['tim-akreditasi', 'p4m', 'tu'];
 

@@ -16,10 +16,15 @@ model struktur_files {
 
 model budaya_mutu {
   id         Int      @id @default(autoincrement())
+  user_id    Int
   type       String
   data       Json
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
+
+  user users @relation(fields: [user_id], references: [id])
+
+  @@index([user_id], map: "idx_budaya_mutu_user")
 }
 
 model relevansi_pendidikan {
@@ -66,22 +71,32 @@ model relevansi_pkm {
 
 model akuntabilitas {
   id         Int      @id @default(autoincrement())
-  type       String   @db.VarChar(100)
-  data       Json
+  user_id    Int
+  subtab     String   @db.VarChar(100)
+  data       Json // semua data FE masuk ke sini
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
+
+  user users @relation(fields: [user_id], references: [id])
+
+  @@index([subtab], map: "idx_akuntabilitas_subtab")
+  @@index([user_id], map: "idx_akuntabilitas_user")
 
   @@map("akuntabilitas")
 }
 
 model diferensiasi_misi {
   id         Int      @id @default(autoincrement())
-  tipe_data  String?
-  unit_kerja String?
-  konten     String?
-  type       String?  @db.VarChar(50)
+  user_id    Int
+  subtab     String   @db.VarChar(100)
+  data       Json // semua data FE masuk ke sini
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
+
+  user users @relation(fields: [user_id], references: [id])
+
+  @@index([subtab], map: "idx_diferensiasi_misi_subtab")
+  @@index([user_id], map: "idx_diferensiasi_misi_user")
 }
 
 // =========================
@@ -100,6 +115,9 @@ model users {
   relevansi_penelitian relevansi_penelitian[]
   relevansi_pkm        relevansi_pkm[]
   relevansi_pendidikan relevansi_pendidikan[]
+  akuntabilitas        akuntabilitas[]
+  diferensiasi_misi    diferensiasi_misi[]
+  budaya_mutu          budaya_mutu[]
 }
 
 // =========================

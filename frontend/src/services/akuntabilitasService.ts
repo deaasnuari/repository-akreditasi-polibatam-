@@ -2,10 +2,20 @@ const API_BASE = 'http://localhost:5000/api/akuntabilitas';
 
 export type SubTab = 'tataKelola' | 'sarana';
 
+// Helper function to get auth headers
+const getAuthHeaders = () => {
+  return {
+    'Content-Type': 'application/json',
+  };
+};
+
 // =============== API ===============
-export const fetchAkuntabilitasData = async (type: SubTab) => {
+export const fetchAkuntabilitasData = async (subtab: SubTab) => {
   try {
-    const res = await fetch(`${API_BASE}?type=${type}`);
+    const res = await fetch(`${API_BASE}?subtab=${subtab}`, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
     const json = await res.json();
     return json.success ? json.data : [];
   } catch (err) {
@@ -14,12 +24,13 @@ export const fetchAkuntabilitasData = async (type: SubTab) => {
   }
 };
 
-export const createAkuntabilitasData = async (type: SubTab, data: any) => {
+export const createAkuntabilitasData = async (subtab: SubTab, data: any) => {
   try {
     const res = await fetch(API_BASE, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type, data })
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify({ subtab, data })
     });
     return await res.json();
   } catch (err) {
@@ -28,12 +39,13 @@ export const createAkuntabilitasData = async (type: SubTab, data: any) => {
   }
 };
 
-export const updateAkuntabilitasData = async (id: string, type: SubTab, data: any) => {
+export const updateAkuntabilitasData = async (id: string, data: any) => {
   try {
     const res = await fetch(`${API_BASE}/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type, data })
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify({ data })
     });
     return await res.json();
   } catch (err) {
@@ -44,7 +56,11 @@ export const updateAkuntabilitasData = async (id: string, type: SubTab, data: an
 
 export const deleteAkuntabilitasData = async (id: string) => {
   try {
-    const res = await fetch(`${API_BASE}/${id}`, { method: 'DELETE' });
+    const res = await fetch(`${API_BASE}/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
     return await res.json();
   } catch (err) {
     console.error(err);

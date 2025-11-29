@@ -1,19 +1,42 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { FileText, Download, Save, Plus, Upload, Trash2, Pencil } from 'lucide-react';
+import { SubTab, fetchAkuntabilitasData, createAkuntabilitasData, updateAkuntabilitasData, deleteAkuntabilitasData } from '@/services/akuntabilitasService';
 
 export default function AkuntabilitasPage() {
   const pathname = usePathname();
-  const [activeSubTab, setActiveSubTab] = useState<'tataKelola' | 'sarana'>('tataKelola');
+  const [activeSubTab, setActiveSubTab] = useState<SubTab>('tataKelola');
 
   const [tataKelolaData, setTataKelolaData] = useState<any[]>([]);
   const [saranaData, setSaranaData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const [showModal, setShowModal] = useState(false);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [formData, setFormData] = useState<any>({});
+
+  // Load data on mount and when subtab changes
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        if (activeSubTab === 'tataKelola') {
+          const data = await fetchAkuntabilitasData('tataKelola');
+          setTataKelolaData(data);
+        } else {
+          const data = await fetchAkuntabilitasData('sarana');
+          setSaranaData(data);
+        }
+      } catch (error) {
+        console.error('Error loading data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, [activeSubTab]);
 
    const tabs = [
     { label: 'Budaya Mutu', href: '/dashboard/tata-usaha/lkps' },
@@ -52,32 +75,65 @@ export default function AkuntabilitasPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSave = () => {
-    if (activeSubTab === 'tataKelola') {
+  const handleSave = async () => {
+    try {
       if (editIndex !== null) {
-        const updated = [...tataKelolaData];
-        updated[editIndex] = formData;
-        setTataKelolaData(updated);
+        // Update existing data
+        const item = activeSubTab === 'tataKelola' ? tataKelolaData[editIndex] : saranaData[editIndex];
+        const result = await updateAkuntabilitasData(item.id, formData);
+        if (result.success) {
+          // Reload data
+          const data = await fetchAkuntabilitasData(activeSubTab);
+          if (activeSubTab === 'tataKelola') {
+            setTataKelolaData(data);
+          } else {
+            setSaranaData(data);
+          }
+        } else {
+          alert('Gagal memperbarui data: ' + result.message);
+        }
       } else {
-        setTataKelolaData([...tataKelolaData, formData]);
+        // Create new data
+        const result = await createAkuntabilitasData(activeSubTab, formData);
+        if (result.success) {
+          // Reload data
+          const data = await fetchAkuntabilitasData(activeSubTab);
+          if (activeSubTab === 'tataKelola') {
+            setTataKelolaData(data);
+          } else {
+            setSaranaData(data);
+          }
+        } else {
+          alert('Gagal menambahkan data: ' + result.message);
+        }
       }
-    } else {
-      if (editIndex !== null) {
-        const updated = [...saranaData];
-        updated[editIndex] = formData;
-        setSaranaData(updated);
-      } else {
-        setSaranaData([...saranaData, formData]);
-      }
+      closeModal();
+    } catch (error) {
+      console.error('Error saving data:', error);
+      alert('Terjadi kesalahan saat menyimpan data');
     }
-    closeModal();
   };
 
-  const handleDelete = (index: number) => {
-    if (activeSubTab === 'tataKelola') {
-      setTataKelolaData(tataKelolaData.filter((_, i) => i !== index));
-    } else {
-      setSaranaData(saranaData.filter((_, i) => i !== index));
+  const handleDelete = async (index: number) => {
+    if (confirm('Apakah Anda yakin ingin menghapus data ini?')) {
+      try {
+        const item = activeSubTab === 'tataKelola' ? tataKelolaData[index] : saranaData[index];
+        const result = await deleteAkuntabilitasData(item.id);
+        if (result.success) {
+          // Reload data
+          const data = await fetchAkuntabilitasData(activeSubTab);
+          if (activeSubTab === 'tataKelola') {
+            setTataKelolaData(data);
+          } else {
+            setSaranaData(data);
+          }
+        } else {
+          alert('Gagal menghapus data: ' + result.message);
+        }
+      } catch (error) {
+        console.error('Error deleting data:', error);
+        alert('Terjadi kesalahan saat menghapus data');
+      }
     }
   };
 

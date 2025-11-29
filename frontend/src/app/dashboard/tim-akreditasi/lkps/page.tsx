@@ -30,6 +30,15 @@ export default function LKPSPage() {
   const [formData, setFormData] = useState<any>({});
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
+  // State untuk import Excel dengan preview
+  const [importing, setImporting] = useState(false);
+  const [previewFile, setPreviewFile] = useState<File | null>(null);
+  const [previewHeaders, setPreviewHeaders] = useState<string[]>([]);
+  const [previewRows, setPreviewRows] = useState<any[]>([]);
+  const [suggestions, setSuggestions] = useState<Record<string, string>>({});
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [mapping, setMapping] = useState<Record<string, string>>({});
+
   // State untuk popup notifikasi
   const [popup, setPopup] = useState<{ 
     show: boolean; 
@@ -166,14 +175,132 @@ export default function LKPSPage() {
             <button
               onClick={handleModalConfirm}
               className={`px-4 py-2 text-white rounded-lg transition ${
-                isDeleteAction 
-                  ? 'bg-red-600 hover:bg-red-700' 
-                  : isImportAction 
+                isDeleteAction
+                  ? 'bg-red-600 hover:bg-red-700'
+                  : isImportAction
                   ? 'bg-blue-600 hover:bg-blue-700'
                   : 'bg-yellow-600 hover:bg-yellow-700'
               }`}
             >
               {isDeleteAction ? 'Hapus' : isImportAction ? 'Import' : 'Ya, Lanjutkan'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Komponen Modal Preview Import
+  const PreviewModal = () => {
+    if (!showPreviewModal) return null;
+
+    const handleMappingChange = (field: string, value: string) => {
+      setMapping(prev => ({ ...prev, [field]: value }));
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[80] animate-fadeIn p-4">
+        <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden animate-scaleIn">
+          <div className="flex justify-between items-center p-6 border-b">
+            <h3 className="text-xl font-semibold text-gray-900">Preview Import Excel</h3>
+            <button
+              onClick={() => setShowPreviewModal(false)}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              <X size={24} />
+            </button>
+          </div>
+
+          <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+            {/* Mapping Section */}
+            <div className="mb-6">
+              <h4 className="text-lg font-medium text-gray-800 mb-4">Mapping Kolom</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {getFormFields(activeSubTab).map(field => (
+                  <div key={field.key} className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      {field.label}
+                    </label>
+                    <select
+                      value={mapping[field.key] || ''}
+                      onChange={(e) => handleMappingChange(field.key, e.target.value)}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-300 focus:border-blue-300"
+                    >
+                      <option value="">Pilih Kolom Excel</option>
+                      {previewHeaders.map((header, index) => (
+                        <option key={index} value={header}>
+                          {header}
+                        </option>
+                      ))}
+                    </select>
+                    {suggestions[field.key] && (
+                      <p className="text-xs text-blue-600">
+                        Saran: {suggestions[field.key]}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Preview Table */}
+            <div className="mb-6">
+              <h4 className="text-lg font-medium text-gray-800 mb-4">Preview Data (5 baris pertama)</h4>
+              <div className="overflow-x-auto border rounded-lg">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      {previewHeaders.map((header, index) => (
+                        <th key={index} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          {header}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {previewRows.slice(0, 5).map((row, rowIndex) => (
+                      <tr key={rowIndex}>
+                        {previewHeaders.map((header, colIndex) => (
+                          <td key={colIndex} className="px-4 py-2 text-sm text-gray-900">
+                            {row[header] || '-'}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {previewRows.length > 5 && (
+                <p className="text-sm text-gray-600 mt-2">
+                  ... dan {previewRows.length - 5} baris lainnya
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 p-6 border-t bg-gray-50">
+            <button
+              onClick={() => setShowPreviewModal(false)}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
+            >
+              Batal
+            </button>
+            <button
+              onClick={handleCommitImport}
+              disabled={importing}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {importing ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Mengimport...
+                </>
+              ) : (
+                <>
+                  <Upload size={16} />
+                  Import Data
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -207,8 +334,10 @@ export default function LKPSPage() {
 
   const fetchData = async () => {
     try {
-      const res = await fetch(`${API_BASE}?type=${activeSubTab}`);
-      
+      const res = await fetch(`${API_BASE}?type=${activeSubTab}`, {
+        credentials: 'include',
+      });
+
       if (!res.ok) {
         console.error(`HTTP error! status: ${res.status}`);
         setTabData(prev => ({ ...prev, [activeSubTab]: [] }));
@@ -223,7 +352,7 @@ export default function LKPSPage() {
       }
 
       const json = await res.json();
-      
+
       if (json.success && Array.isArray(json.data)) {
         setTabData(prev => ({
           ...prev,
@@ -243,7 +372,9 @@ export default function LKPSPage() {
 
   const fetchStrukturOrganisasi = async () => {
     try {
-      const res = await fetch(`${API_BASE}/struktur`);
+      const res = await fetch(`${API_BASE}/struktur`, {
+        credentials: 'include',
+      });
       const json = await res.json();
 
       if (json.success && json.file) {
@@ -256,49 +387,92 @@ export default function LKPSPage() {
     }
   };
 
-  const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Fungsi untuk handle file change dan preview
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    showModal(
-      'Konfirmasi Import Excel',
-      `Apakah Anda yakin ingin mengimport file "${file.name}"? Data yang ada akan diganti dengan data dari file Excel.`,
-      async () => {
-        const fd = new FormData();
-        fd.append('file', file);
+    setPreviewFile(file);
+    setImporting(true);
 
-        try {
-          const res = await fetch(`${API_BASE}/import/${activeSubTab}`, { method: 'POST', body: fd });
-          
-          const contentType = res.headers.get('content-type');
-          if (!contentType || !contentType.includes('application/json')) {
-            showPopup('Server error - bukan JSON response', 'error');
-            console.error('Response:', await res.text());
-            return;
-          }
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
 
-          const json = await res.json();
+      const res = await fetch(`${API_BASE}/preview/${activeSubTab}`, { method: 'POST', body: fd, credentials: 'include' });
 
-          if (res.ok && json.success) {
-            showPopup(`Import ${activeSubTab} berhasil`, 'success');
-            fetchData();
-            if (Array.isArray(json.data)) {
-              setTabData(prev => ({
-                ...prev,
-                [activeSubTab]: json.data.map((d: any) => ({ id: d.id, data: d.data }))
-              }));
-            }
-          } else {
-            showPopup(json.message || 'Gagal import file', 'error');
-          }
-        } catch (err) {
-          showPopup('Gagal upload file', 'error');
-          console.error(err);
-        }
+      if (!res.ok) {
+        showPopup('Gagal memproses file', 'error');
+        return;
       }
-    );
+
+      const json = await res.json();
+
+      if (json.success) {
+        setPreviewHeaders(json.headers || []);
+        setPreviewRows(json.rows || []);
+        setSuggestions(json.suggestions || {});
+
+        // Initialize mapping with suggestions
+        const initialMapping: Record<string, string> = {};
+        Object.entries(json.suggestions || {}).forEach(([field, suggestion]) => {
+          initialMapping[field] = suggestion as string;
+        });
+        setMapping(initialMapping);
+
+        setShowPreviewModal(true);
+      } else {
+        showPopup(json.message || 'Gagal memproses file', 'error');
+      }
+    } catch (err) {
+      console.error('Preview error:', err);
+      showPopup('Gagal memproses file', 'error');
+    } finally {
+      setImporting(false);
+    }
 
     e.target.value = '';
+  };
+
+  // Fungsi untuk commit import setelah mapping
+  const handleCommitImport = async () => {
+    if (!previewFile) return;
+
+    setImporting(true);
+
+    try {
+      const fd = new FormData();
+      fd.append('file', previewFile);
+      fd.append('mapping', JSON.stringify(mapping));
+
+      const res = await fetch(`${API_BASE}/import/${activeSubTab}`, { method: 'POST', body: fd, credentials: 'include' });
+
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        showPopup('Server error - bukan JSON response', 'error');
+        console.error('Response:', await res.text());
+        return;
+      }
+
+      const json = await res.json();
+
+      if (res.ok && json.success) {
+        showPopup(`Import ${activeSubTab} berhasil`, 'success');
+        fetchData();
+        setShowPreviewModal(false);
+        setPreviewFile(null);
+        setPreviewHeaders([]);
+        setPreviewRows([]);
+        setMapping({});
+      } else {
+        showPopup(json.message || 'Gagal import file', 'error');
+      }
+    } catch (err) {
+      console.error('Import error:', err);
+      showPopup('Gagal import file', 'error');
+    } finally {
+      setImporting(false);
+    }
   };
 
   const handleUploadStruktur = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -330,7 +504,7 @@ export default function LKPSPage() {
       
       const method = strukturFileId ? 'PUT' : 'POST';
 
-      const res = await fetch(url, { method, body: fd });
+      const res = await fetch(url, { method, body: fd, credentials: 'include' });
 
       const contentType = res.headers.get('content-type');
       
@@ -424,7 +598,7 @@ export default function LKPSPage() {
 
       const body = JSON.stringify({ type: activeSubTab, data: dataToSave });
       
-      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body });
+      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body, credentials: 'include' });
       
       const contentType = res.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
@@ -853,7 +1027,7 @@ export default function LKPSPage() {
                 <div className="flex gap-2 flex-wrap">
                   <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2 text-sm text-white bg-blue-700 rounded-lg hover:bg-blue-800"><Plus size={16} /> Tambah Data</button>
                   <div className="relative">
-                    <input type="file" accept=".xlsx, .xls" id="importExcel" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleImportExcel} />
+                    <input type="file" accept=".xlsx, .xls" id="importExcel" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleFileChange} />
                     <label htmlFor="importExcel" className="flex items-center gap-2 px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-100 cursor-pointer">
                       <Upload size={16} /> Import Excel
                     </label>
