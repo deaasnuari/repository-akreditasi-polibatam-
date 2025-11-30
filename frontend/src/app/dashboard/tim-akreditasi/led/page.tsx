@@ -1,21 +1,17 @@
-'use client';
+ 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Trash, Save, Info } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
-import {
-  fetchBudayaMutuLED,
-  createBudayaMutuLED,
-  updateBudayaMutuLED,
-  saveDraftBudayaMutuLED,
-  loadDraftBudayaMutuLED,
-} from '@/services/budayaMutuService';
+ 
 
-type Row2Col = { id: string; pernyataan: string; keterlaksanaan: string };
+type Row2Col = { id: string; pernyataan: string; keterlaksanaan: string; pelaksanaan: string; bukti_pendukung: string };
 type RowEval = {
   id: string;
   pernyataan: string;
   keterlaksanaan: string;
+  pelaksanaan: string;
+  bukti_pendukung: string;
   evaluasi: string;
   tindak_lanjut: string;
   hasil_optimalisasi: string;
@@ -24,8 +20,20 @@ type RowEval = {
 type TabData = {
   penetapanA: Row2Col[];
   penetapanB: Row2Col[];
+  penetapanC?: Row2Col[];
+  penetapanD?: Row2Col[];
   pelaksanaanA: Row2Col[];
   pelaksanaanB: Row2Col[];
+  pelaksanaanC?: Row2Col[];
+  pelaksanaanD?: Row2Col[];
+  pengendalianA: Row2Col[];
+  pengendalianB: Row2Col[];
+  pengendalianC?: Row2Col[];
+  pengendalianD?: Row2Col[];
+  peningkatanA: Row2Col[];
+  peningkatanB: Row2Col[];
+  peningkatanC?: Row2Col[];
+  peningkatanD?: Row2Col[];
   evalRows: RowEval[];
 };
 
@@ -40,40 +48,30 @@ const tabs = [
   ['diferensiasi-misi', 'C.6 Diferensiasi Misi'],
 ];
 
-// Pemetaan alias untuk kompatibilitas nama key dari server
-const TAB_ALIASES: Record<string, string[]> = {
-  'budaya-mutu': ['budayaMutu', 'BudayaMutu', 'C1', 'c1'],
-  'relevansi-pendidikan': ['relevansiPendidikan', 'RelevansiPendidikan', 'C2', 'c2'],
-  'relevansi-penelitian': ['relevansiPenelitian', 'RelevansiPenelitian', 'C3', 'c3'],
-  'relevansi-pkm': ['relevansiPkm', 'RelevansiPkm', 'C4', 'c4'],
-  'akuntabilitas': ['Akuntabilitas', 'akuntabilitasLed', 'C5', 'c5'],
-  'diferensiasi-misi': ['diferensiasiMisi', 'DiferensiasiMisi', 'C6', 'c6'],
-};
-
-function normalizeTabs(source: any): Record<string, any> {
-  if (!source || typeof source !== 'object') return {};
-  const out: Record<string, any> = {};
-  Object.entries(TAB_ALIASES).forEach(([stdKey, aliases]) => {
-    for (const k of [stdKey, ...aliases]) {
-      if (source && source[k]) {
-        out[stdKey] = source[k];
-        break;
-      }
-    }
-  });
-  return out;
-}
-
 const createEmptyTab = (): TabData => ({
-  penetapanA: [{ id: uid('pa-'), pernyataan: '', keterlaksanaan: '' }],
-  penetapanB: [{ id: uid('pb-'), pernyataan: '', keterlaksanaan: '' }],
-  pelaksanaanA: [{ id: uid('la-'), pernyataan: '', keterlaksanaan: '' }],
-  pelaksanaanB: [{ id: uid('lb-'), pernyataan: '', keterlaksanaan: '' }],
+  penetapanA: [{ id: uid('pa-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
+  penetapanB: [{ id: uid('pb-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
+  penetapanC: [{ id: uid('pc-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
+  penetapanD: [{ id: uid('pd-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
+  pelaksanaanA: [{ id: uid('la-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
+  pelaksanaanB: [{ id: uid('lb-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
+  pelaksanaanC: [{ id: uid('lc-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
+  pelaksanaanD: [{ id: uid('ld-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
+  pengendalianA: [{ id: uid('ca-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
+  pengendalianB: [{ id: uid('cb-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
+  pengendalianC: [{ id: uid('cc-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
+  pengendalianD: [{ id: uid('cd-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
+  peningkatanA: [{ id: uid('ia-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
+  peningkatanB: [{ id: uid('ib-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
+  peningkatanC: [{ id: uid('ic-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
+  peningkatanD: [{ id: uid('id-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
   evalRows: [
     {
       id: uid('ev-'),
       pernyataan: '',
       keterlaksanaan: '',
+      pelaksanaan: '',
+      bukti_pendukung: '',
       evaluasi: '',
       tindak_lanjut: '',
       hasil_optimalisasi: '',
@@ -91,8 +89,7 @@ export default function BudayaMutuLEDPage() {
     }
     return 'budaya-mutu';
   });
-  const [loading, setLoading] = useState(true);
-  const [serverId, setServerId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const [tabData, setTabData] = useState<Record<string, TabData>>({});
 
   useEffect(() => {
@@ -118,53 +115,20 @@ export default function BudayaMutuLEDPage() {
 
     const loadData = async () => {
       try {
-        const apiData = await fetchBudayaMutuLED();
-        if (apiData?.length) {
-          const latest = apiData[0];
-          setServerId(String(latest.id));
-          
-          // Pastikan setiap tab memiliki data yang valid
-          const validatedTabs: Record<string, TabData> = {};
-          tabs.forEach(([key]) => {
-            const tabsSrc = normalizeTabs(latest.tabs);
-            if (tabsSrc && tabsSrc[key]) {
-              validatedTabs[key] = {
-                penetapanA: Array.isArray(tabsSrc[key].penetapanA) && tabsSrc[key].penetapanA.length > 0 
-                  ? tabsSrc[key].penetapanA 
-                  : [{ id: uid('pa-'), pernyataan: '', keterlaksanaan: '' }],
-                penetapanB: Array.isArray(tabsSrc[key].penetapanB) && tabsSrc[key].penetapanB.length > 0
-                  ? tabsSrc[key].penetapanB
-                  : [{ id: uid('pb-'), pernyataan: '', keterlaksanaan: '' }],
-                pelaksanaanA: Array.isArray(tabsSrc[key].pelaksanaanA) && tabsSrc[key].pelaksanaanA.length > 0
-                  ? tabsSrc[key].pelaksanaanA
-                  : [{ id: uid('la-'), pernyataan: '', keterlaksanaan: '' }],
-                pelaksanaanB: Array.isArray(tabsSrc[key].pelaksanaanB) && tabsSrc[key].pelaksanaanB.length > 0
-                  ? tabsSrc[key].pelaksanaanB
-                  : [{ id: uid('lb-'), pernyataan: '', keterlaksanaan: '' }],
-                evalRows: Array.isArray(tabsSrc[key].evalRows) && tabsSrc[key].evalRows.length > 0
-                  ? tabsSrc[key].evalRows
-                  : [{ id: uid('ev-'), pernyataan: '', keterlaksanaan: '', evaluasi: '', tindak_lanjut: '', hasil_optimalisasi: '' }],
-              };
-            } else {
-              validatedTabs[key] = createEmptyTab();
-            }
-          });
-          setTabData(validatedTabs);
+        // Load from localStorage
+        const stored = localStorage.getItem('budaya_mutu_led_data');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          setTabData(parsed);
         } else {
-          const draft = loadDraftBudayaMutuLED();
-          if (draft?.tabs) {
-            setTabData(draft.tabs);
-          } else {
-            const initialTabs: Record<string, TabData> = {};
-            tabs.forEach(([key]) => {
-              initialTabs[key] = createEmptyTab();
-            });
-            setTabData(initialTabs);
-          }
+          const initialTabs: Record<string, TabData> = {};
+          tabs.forEach(([key]) => {
+            initialTabs[key] = createEmptyTab();
+          });
+          setTabData(initialTabs);
         }
       } catch (err) {
         console.error('Gagal memuat data:', err);
-        toast.error('Gagal memuat data dari server');
         const initialTabs: Record<string, TabData> = {};
         tabs.forEach(([key]) => {
           initialTabs[key] = createEmptyTab();
@@ -181,27 +145,19 @@ export default function BudayaMutuLEDPage() {
   const handleSave = useCallback(async (notify = true, auto = false) => {
     const activeLabel = tabs.find(([k]) => k === activeTab)?.[1] || activeTab;
     try {
-      saveDraftBudayaMutuLED({ tabs: tabData });
-
-      if (serverId) {
-        await updateBudayaMutuLED(serverId, { tabs: tabData });
-      } else {
-        const res = await createBudayaMutuLED({ tabs: tabData });
-        if (res?.data?.id) {
-          setServerId(String(res.data.id));
-        }
-      }
+      // Save to localStorage
+      localStorage.setItem('budaya_mutu_led_data', JSON.stringify(tabData));
 
       if (notify && !auto) {
-        toast.success(`✅ Data ${activeLabel} berhasil disimpan ke server!`);
+        toast.success(`✅ Data ${activeLabel} berhasil disimpan!`);
       }
     } catch (error) {
       console.error('Error saving:', error);
       if (notify) {
-        toast.warning(`💾 Disimpan ke draft (offline mode). Server tidak merespons. (Tab: ${activeLabel})`);
+        toast.error(`❌ Gagal menyimpan data. (Tab: ${activeLabel})`);
       }
     }
-  }, [tabData, serverId, activeTab]);
+  }, [tabData, activeTab]);
 
   useEffect(() => {
     if (!isClient || loading) return;
@@ -281,6 +237,15 @@ export default function BudayaMutuLEDPage() {
 
   const currentTabData = tabData[activeTab] || createEmptyTab();
 
+  // Determine if tables should be extended based on active tab
+  const isExtended = (sectionKey: keyof TabData): boolean | 'partial' => {
+    if (activeTab === 'budaya-mutu' || activeTab === 'relevansi-pendidikan' || activeTab === 'relevansi-penelitian' || activeTab === 'relevansi-pkm' || activeTab === 'akuntabilitas') {
+      if (sectionKey.startsWith('pelaksanaan')) return true;
+      if (sectionKey.startsWith('pengendalian')) return false;
+    }
+    return false;
+  };
+
   return (
     <div className="min-h-screen bg-white w-full">
       <Toaster position="top-right" richColors />
@@ -343,18 +308,48 @@ export default function BudayaMutuLEDPage() {
                 onAdd={handleAddRow}
                 onRemove={handleRemoveRow}
                 onUpdate={handleUpdateRow}
+                extended={isExtended('penetapanA')}
               />
             </div>
-            <div>
-              <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-1.5 sm:mb-2">Tabel B</h4>
-              <Table2Col
-                rows={currentTabData.penetapanB}
-                sectionKey="penetapanB"
-                onAdd={handleAddRow}
-                onRemove={handleRemoveRow}
-                onUpdate={handleUpdateRow}
-              />
-            </div>
+            {activeTab !== 'diferensiasi-misi' && (
+              <div className="mb-3 sm:mb-4">
+                <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-1.5 sm:mb-2">Tabel B</h4>
+                <Table2Col
+                  rows={currentTabData.penetapanB}
+                  sectionKey="penetapanB"
+                  onAdd={handleAddRow}
+                  onRemove={handleRemoveRow}
+                  onUpdate={handleUpdateRow}
+                  extended={isExtended('penetapanB')}
+                />
+              </div>
+            )}
+            {(activeTab === 'relevansi-pendidikan' || activeTab === 'relevansi-penelitian' || activeTab === 'relevansi-pkm') && (
+              <div className="mb-3 sm:mb-4">
+                <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-1.5 sm:mb-2">Tabel C</h4>
+                <Table2Col
+                  rows={currentTabData.penetapanC || []}
+                  sectionKey="penetapanC"
+                  onAdd={handleAddRow}
+                  onRemove={handleRemoveRow}
+                  onUpdate={handleUpdateRow}
+                  extended={isExtended('penetapanC')}
+                />
+              </div>
+            )}
+            {activeTab === 'relevansi-pendidikan' && (
+              <div>
+                <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-1.5 sm:mb-2">Tabel D</h4>
+                <Table2Col
+                  rows={currentTabData.penetapanD || []}
+                  sectionKey="penetapanD"
+                  onAdd={handleAddRow}
+                  onRemove={handleRemoveRow}
+                  onUpdate={handleUpdateRow}
+                  extended={isExtended('penetapanD')}
+                />
+              </div>
+            )}
           </div>
 
           {/* Pelaksanaan Section */}
@@ -371,18 +366,48 @@ export default function BudayaMutuLEDPage() {
                 onAdd={handleAddRow}
                 onRemove={handleRemoveRow}
                 onUpdate={handleUpdateRow}
+                extended={isExtended('pelaksanaanA')}
               />
             </div>
-            <div>
-              <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-1.5 sm:mb-2">Tabel B</h4>
-              <Table2Col
-                rows={currentTabData.pelaksanaanB}
-                sectionKey="pelaksanaanB"
-                onAdd={handleAddRow}
-                onRemove={handleRemoveRow}
-                onUpdate={handleUpdateRow}
-              />
-            </div>
+            {activeTab !== 'diferensiasi-misi' && (
+              <div className="mb-3 sm:mb-4">
+                <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-1.5 sm:mb-2">Tabel B</h4>
+                <Table2Col
+                  rows={currentTabData.pelaksanaanB}
+                  sectionKey="pelaksanaanB"
+                  onAdd={handleAddRow}
+                  onRemove={handleRemoveRow}
+                  onUpdate={handleUpdateRow}
+                  extended={isExtended('pelaksanaanB')}
+                />
+              </div>
+            )}
+            {(activeTab === 'relevansi-pendidikan' || activeTab === 'relevansi-penelitian' || activeTab === 'relevansi-pkm') && (
+              <div className="mb-3 sm:mb-4">
+                <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-1.5 sm:mb-2">Tabel C</h4>
+                <Table2Col
+                  rows={currentTabData.pelaksanaanC || []}
+                  sectionKey="pelaksanaanC"
+                  onAdd={handleAddRow}
+                  onRemove={handleRemoveRow}
+                  onUpdate={handleUpdateRow}
+                  extended={isExtended('pelaksanaanC')}
+                />
+              </div>
+            )}
+            {activeTab === 'relevansi-pendidikan' && (
+              <div>
+                <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-1.5 sm:mb-2">Tabel D</h4>
+                <Table2Col
+                  rows={currentTabData.pelaksanaanD || []}
+                  sectionKey="pelaksanaanD"
+                  onAdd={handleAddRow}
+                  onRemove={handleRemoveRow}
+                  onUpdate={handleUpdateRow}
+                  extended={isExtended('pelaksanaanD')}
+                />
+              </div>
+            )}
           </div>
 
           {/* Evaluasi Section */}
@@ -393,6 +418,122 @@ export default function BudayaMutuLEDPage() {
             onUpdate={handleUpdateRow}
           />
 
+          {/* Pengendalian Section */}
+          <div className="mb-6 sm:mb-8">
+            <h3 className="font-semibold text-[#183A64] text-base sm:text-lg mb-2 sm:mb-3 flex items-center gap-2">
+              <span className="bg-[#183A64] text-white px-2 sm:px-3 py-0.5 sm:py-1 rounded text-xs sm:text-sm">4</span>
+              Pengendalian
+            </h3>
+            <div className="mb-3 sm:mb-4">
+              <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-1.5 sm:mb-2">Tabel A</h4>
+              <Table2Col
+                rows={currentTabData.pengendalianA}
+                sectionKey="pengendalianA"
+                onAdd={handleAddRow}
+                onRemove={handleRemoveRow}
+                onUpdate={handleUpdateRow}
+                extended={isExtended('pengendalianA')}
+              />
+            </div>
+            {activeTab !== 'diferensiasi-misi' && (
+              <div className="mb-3 sm:mb-4">
+                <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-1.5 sm:mb-2">Tabel B</h4>
+                <Table2Col
+                  rows={currentTabData.pengendalianB}
+                  sectionKey="pengendalianB"
+                  onAdd={handleAddRow}
+                  onRemove={handleRemoveRow}
+                  onUpdate={handleUpdateRow}
+                  extended={isExtended('pengendalianB')}
+                />
+              </div>
+            )}
+            {(activeTab === 'relevansi-pendidikan' || activeTab === 'relevansi-penelitian' || activeTab === 'relevansi-pkm') && (
+              <div className="mb-3 sm:mb-4">
+                <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-1.5 sm:mb-2">Tabel C</h4>
+                <Table2Col
+                  rows={currentTabData.pengendalianC || []}
+                  sectionKey="pengendalianC"
+                  onAdd={handleAddRow}
+                  onRemove={handleRemoveRow}
+                  onUpdate={handleUpdateRow}
+                  extended={isExtended('pengendalianC')}
+                />
+              </div>
+            )}
+            {activeTab === 'relevansi-pendidikan' && (
+              <div>
+                <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-1.5 sm:mb-2">Tabel D</h4>
+                <Table2Col
+                  rows={currentTabData.pengendalianD || []}
+                  sectionKey="pengendalianD"
+                  onAdd={handleAddRow}
+                  onRemove={handleRemoveRow}
+                  onUpdate={handleUpdateRow}
+                  extended={isExtended('pengendalianD')}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Peningkatan Section */}
+          <div className="mb-6 sm:mb-8">
+            <h3 className="font-semibold text-[#183A64] text-base sm:text-lg mb-2 sm:mb-3 flex items-center gap-2">
+              <span className="bg-[#183A64] text-white px-2 sm:px-3 py-0.5 sm:py-1 rounded text-xs sm:text-sm">5</span>
+              Peningkatan
+            </h3>
+            <div className="mb-3 sm:mb-4">
+              <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-1.5 sm:mb-2">Tabel A</h4>
+              <Table2Col
+                rows={currentTabData.peningkatanA}
+                sectionKey="peningkatanA"
+                onAdd={handleAddRow}
+                onRemove={handleRemoveRow}
+                onUpdate={handleUpdateRow}
+                extended={isExtended('peningkatanA')}
+              />
+            </div>
+            {activeTab !== 'diferensiasi-misi' && (
+              <div className="mb-3 sm:mb-4">
+                <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-1.5 sm:mb-2">Tabel B</h4>
+                <Table2Col
+                  rows={currentTabData.peningkatanB}
+                  sectionKey="peningkatanB"
+                  onAdd={handleAddRow}
+                  onRemove={handleRemoveRow}
+                  onUpdate={handleUpdateRow}
+                  extended={isExtended('peningkatanB')}
+                />
+              </div>
+            )}
+            {activeTab !== 'budaya-mutu' && activeTab !== 'akuntabilitas' && activeTab !== 'diferensiasi-misi' && (
+              <div className="mb-3 sm:mb-4">
+                <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-1.5 sm:mb-2">Tabel C</h4>
+                <Table2Col
+                  rows={currentTabData.peningkatanC || []}
+                  sectionKey="peningkatanC"
+                  onAdd={handleAddRow}
+                  onRemove={handleRemoveRow}
+                  onUpdate={handleUpdateRow}
+                  extended={isExtended('peningkatanC')}
+                />
+              </div>
+            )}
+            {activeTab !== 'budaya-mutu' && activeTab !== 'relevansi-penelitian' && activeTab !== 'relevansi-pkm' && activeTab !== 'akuntabilitas' && activeTab !== 'diferensiasi-misi' && (
+              <div>
+                <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-1.5 sm:mb-2">Tabel D</h4>
+                <Table2Col
+                  rows={currentTabData.peningkatanD || []}
+                  sectionKey="peningkatanD"
+                  onAdd={handleAddRow}
+                  onRemove={handleRemoveRow}
+                  onUpdate={handleUpdateRow}
+                  extended={isExtended('peningkatanD')}
+                />
+              </div>
+            )}
+          </div>
+
           <div className="flex justify-end gap-2 sm:gap-3 mt-4 sm:mt-6 pt-3 sm:pt-4 border-t">
             <button
               type="button"
@@ -400,7 +541,7 @@ export default function BudayaMutuLEDPage() {
               className="inline-flex items-center gap-1 sm:gap-2 bg-[#183A64] text-white px-3 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-[#2C5F8D] transition-all duration-200 shadow-md hover:shadow-lg font-medium text-xs sm:text-sm"
             >
               <Save className="h-4 w-4 sm:h-5 sm:w-5" />
-              <span className="hidden sm:inline">Simpan Data ke Server</span>
+              <span className="hidden sm:inline">Simpan Data</span>
               <span className="inline sm:hidden">Simpan</span>
             </button>
           </div>
@@ -418,24 +559,23 @@ interface Table2ColProps {
   onAdd: (sectionKey: keyof TabData, template: any) => void;
   onRemove: (sectionKey: keyof TabData, id: string) => void;
   onUpdate: (sectionKey: keyof TabData, id: string, field: string, value: string) => void;
+  extended?: boolean | 'partial';
 }
 
-function Table2Col({ rows, sectionKey, onAdd, onRemove, onUpdate }: Table2ColProps) {
-  const safeRows = Array.isArray(rows) && rows.length > 0 
-    ? rows 
-    : [{ id: uid('default-'), pernyataan: '', keterlaksanaan: '' }];
+export function Table2Col({ rows, sectionKey, onAdd, onRemove, onUpdate, extended = false }: Table2ColProps) {
+   const safeRows = Array.isArray(rows) && rows.length > 0
+    ? rows
+    : [{ id: uid('default-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }];
 
   const handleAddClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log('Adding row to:', sectionKey);
-    onAdd(sectionKey, { pernyataan: '', keterlaksanaan: '' });
+    onAdd(sectionKey, { pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' });
   };
 
   const handleRemoveClick = (e: React.MouseEvent<HTMLButtonElement>, id: string) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log('Removing row:', id, 'from:', sectionKey);
     onRemove(sectionKey, id);
   };
 
@@ -445,12 +585,24 @@ function Table2Col({ rows, sectionKey, onAdd, onRemove, onUpdate }: Table2ColPro
         <table className="w-full border-collapse text-xs sm:text-sm">
           <thead className="bg-[#ADE7F7]/40">
             <tr>
-              <th className="border border-gray-300 p-2 sm:p-3 text-left w-1/2 font-semibold text-[#183A64]">
+              <th className="border border-gray-300 p-2 sm:p-3 text-left font-semibold text-[#183A64]">
                 Pernyataan Standar
               </th>
-              <th className="border border-gray-300 p-2 sm:p-3 text-left w-1/2 font-semibold text-[#183A64]">
+              <th className="border border-gray-300 p-2 sm:p-3 text-left font-semibold text-[#183A64]">
                 Keterlaksanaan
               </th>
+              {extended && (
+                <>
+                  <th className="border border-gray-300 p-2 sm:p-3 text-left font-semibold text-[#183A64]">
+                    Pelaksanaan
+                  </th>
+                  {extended !== 'partial' && (
+                    <th className="border border-gray-300 p-2 sm:p-3 text-left font-semibold text-[#183A64]">
+                      Bukti Pendukung
+                    </th>
+                  )}
+                </>
+              )}
               <th className="border border-gray-300 p-2 sm:p-3 w-16 sm:w-24 text-center font-semibold text-[#183A64]">
                 Aksi
               </th>
@@ -480,6 +632,28 @@ function Table2Col({ rows, sectionKey, onAdd, onRemove, onUpdate }: Table2ColPro
                     placeholder="Isi keterlaksanaan..."
                   />
                 </td>
+                {extended && (
+                  <>
+                    <td className="border border-gray-300 p-1.5 sm:p-2 align-top">
+                      <textarea
+                        value={r.pelaksanaan || ''}
+                        onChange={(e) => onUpdate(sectionKey, r.id, 'pelaksanaan', e.target.value)}
+                        className="w-full min-h-[60px] sm:min-h-[80px] border border-gray-300 rounded p-1.5 sm:p-2 text-xs sm:text-sm resize-y focus:border-[#183A64] focus:ring-2 focus:ring-[#ADE7F7]/50 focus:outline-none"
+                        placeholder="Isi pelaksanaan..."
+                      />
+                    </td>
+                    {extended !== 'partial' && (
+                      <td className="border border-gray-300 p-1.5 sm:p-2 align-top">
+                        <textarea
+                          value={r.bukti_pendukung || ''}
+                          onChange={(e) => onUpdate(sectionKey, r.id, 'bukti_pendukung', e.target.value)}
+                          className="w-full min-h-[60px] sm:min-h-[80px] border border-gray-300 rounded p-1.5 sm:p-2 text-xs sm:text-sm resize-y focus:border-[#183A64] focus:ring-2 focus:ring-[#ADE7F7]/50 focus:outline-none"
+                          placeholder="Isi bukti pendukung..."
+                        />
+                      </td>
+                    )}
+                  </>
+                )}
                 <td className="border border-gray-300 p-1.5 sm:p-2 text-center align-top">
                   <button
                     type="button"
@@ -518,7 +692,7 @@ interface SectionEvalProps {
   onUpdate: (sectionKey: keyof TabData, id: string, field: string, value: string) => void;
 }
 
-function SectionEval({ evalRows, onAdd, onRemove, onUpdate }: SectionEvalProps) {
+export function SectionEval({ evalRows, onAdd, onRemove, onUpdate }: SectionEvalProps) {
   const safeRows = Array.isArray(evalRows) && evalRows.length > 0
     ? evalRows
     : [{
@@ -533,7 +707,6 @@ function SectionEval({ evalRows, onAdd, onRemove, onUpdate }: SectionEvalProps) 
   const handleAddClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log('Adding eval row');
     onAdd('evalRows', {
       pernyataan: '',
       keterlaksanaan: '',
@@ -546,7 +719,6 @@ function SectionEval({ evalRows, onAdd, onRemove, onUpdate }: SectionEvalProps) 
   const handleRemoveClick = (e: React.MouseEvent<HTMLButtonElement>, id: string) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log('Removing eval row:', id);
     onRemove('evalRows', id);
   };
 
