@@ -161,7 +161,63 @@ const subtabFields = {
 };
 
 /* =============================================
-   IMPORT EXCEL
+   PREVIEW EXCEL - NEW ENDPOINT
+============================================= */
+export const previewExcel = [
+  upload.single("file"),
+  async (req, res) => {
+    try {
+      const type = req.params.type;
+
+      if (!req.file) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "File tidak ditemukan" 
+        });
+      }
+
+      // Parse Excel
+      const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = xlsx.utils.sheet_to_json(sheet, { defval: "" });
+
+      if (rows.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "File Excel kosong"
+        });
+      }
+
+      // Get headers from first row
+      const headers = Object.keys(rows[0]);
+      
+      // Generate suggestions based on field matching
+      const suggestions = generateSuggestions(headers, type);
+
+      console.log("PREVIEW - Headers:", headers);
+      console.log("PREVIEW - Suggestions:", suggestions);
+
+      res.json({
+        success: true,
+        headers,
+        rows: rows.slice(0, 5), // Preview first 5 rows
+        suggestions,
+        totalRows: rows.length
+      });
+
+    } catch (err) {
+      console.error("PREVIEW ERROR:", err);
+      res.status(500).json({ 
+        success: false, 
+        message: "Gagal memproses file Excel",
+        error: err.message 
+      });
+    }
+  }
+];
+
+/* =============================================
+   IMPORT EXCEL - UPDATED
 ============================================= */
 export const importExcel = [
   upload.single("file"),
@@ -169,55 +225,77 @@ export const importExcel = [
     try {
       const type = req.params.type;
       const user_id = req.user.id;
-      const mapping = req.body.mapping ? JSON.parse(req.body.mapping) : {};
-      const isPreview = req.body.preview === 'true';
+      
+      if (!req.file) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "File tidak ditemukan" 
+        });
+      }
 
+      // Parse mapping from request body
+      let mapping = {};
+      if (req.body.mapping) {
+        try {
+          mapping = JSON.parse(req.body.mapping);
+          console.log("IMPORT - Mapping received:", mapping);
+        } catch (e) {
+          return res.status(400).json({
+            success: false,
+            message: "Format mapping tidak valid"
+          });
+        }
+      }
+
+      // Parse Excel
       const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       const rows = xlsx.utils.sheet_to_json(sheet, { defval: "" });
 
-      if (isPreview) {
-        // Handle preview: return headers, preview rows, and suggestions
-        const headers = rows.length > 0 ? Object.keys(rows[0]) : [];
-        const previewRows = rows.slice(0, 5); // First 5 rows for preview
-        const suggestions = {};
-
-        const fields = subtabFields[type] || [];
-        for (const header of headers) {
-          const lowerHeader = header.toLowerCase().replace(/\s+/g, '');
-          for (const field of fields) {
-            const lowerKey = field.key.toLowerCase();
-            const lowerLabel = field.label.toLowerCase().replace(/\s+/g, '').replace(/[()]/g, '');
-            if (lowerHeader.includes(lowerKey) || lowerLabel.includes(lowerHeader) || lowerHeader === lowerKey) {
-              suggestions[header] = field.key;
-              break;
-            }
-          }
-        }
-
-        return res.json({
-          success: true,
-          headers,
-          previewRows,
-          suggestions,
+      if (rows.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "File Excel kosong"
         });
       }
 
-      // Proceed with actual import
+      console.log("IMPORT - Processing", rows.length, "rows");
+
       let added = 0;
       let errors = [];
 
+      // Process each row
       for (let i = 0; i < rows.length; i++) {
         try {
-          const raw = rows[i];
-          const obj = {};
-          for (const header of Object.keys(mapping)) {
-            const dbField = mapping[header];
-            if (dbField) obj[dbField] = raw[header];
+          const rawRow = rows[i];
+          const mappedData = {};
+
+          // Map Excel columns to database fields
+          Object.entries(mapping).forEach(([dbField, excelColumn]) => {
+            if (excelColumn && rawRow.hasOwnProperty(excelColumn)) {
+              mappedData[dbField] = rawRow[excelColumn];
+            }
+          });
+
+          console.log(`IMPORT - Row ${i + 1} mapped:`, mappedData);
+
+          // Validate required fields
+          const fields = subtabFields[type] || [];
+          const missingFields = fields
+            .filter(field => !mappedData[field.key] || mappedData[field.key] === '')
+            .map(field => field.label);
+
+          if (missingFields.length > 0) {
+            errors.push({ 
+              row: i + 1, 
+              error: `Field wajib kosong: ${missingFields.join(', ')}` 
+            });
+            continue;
           }
 
-          const cleanData = normalizeRow(obj);
+          const cleanData = normalizeRow(mappedData);
 
+          // Save to database
           await prisma.budaya_mutu.create({
             data: {
               user_id,
@@ -225,31 +303,83 @@ export const importExcel = [
               data: cleanData,
             },
           });
+
           added++;
         } catch (e) {
-          errors.push({ row: i + 1, error: e.message });
+          console.error(`IMPORT - Error on row ${i + 1}:`, e);
+          errors.push({ 
+            row: i + 1, 
+            error: e.message 
+          });
         }
       }
+
+      console.log("IMPORT - Complete:", { added, failed: errors.length });
 
       res.json({
         success: true,
         message: `Import selesai: ${added} berhasil, ${errors.length} gagal`,
         added,
         failed: errors.length,
-        errors,
+        errors: errors.slice(0, 10) // Return max 10 errors
       });
+
     } catch (err) {
       console.error("IMPORT ERROR:", err);
-      res.status(500).json({ success: false, message: "Gagal import", error: err.message });
+      res.status(500).json({ 
+        success: false, 
+        message: "Gagal import data",
+        error: err.message 
+      });
     }
   },
 ];
+
+/* =============================================
+   HELPER: GENERATE SUGGESTIONS
+============================================= */
+function generateSuggestions(headers, type) {
+  const suggestions = {};
+  const fields = subtabFields[type] || [];
+
+  headers.forEach(header => {
+    const normalizedHeader = header.toLowerCase()
+      .replace(/\s+/g, '')
+      .replace(/[()]/g, '')
+      .replace(/-/g, '');
+
+    for (const field of fields) {
+      const normalizedKey = field.key.toLowerCase();
+      const normalizedLabel = field.label.toLowerCase()
+        .replace(/\s+/g, '')
+        .replace(/[()]/g, '')
+        .replace(/-/g, '');
+
+      // Exact match
+      if (normalizedHeader === normalizedKey || normalizedHeader === normalizedLabel) {
+        suggestions[field.key] = header;
+        break;
+      }
+
+      // Partial match
+      if (normalizedHeader.includes(normalizedKey) || 
+          normalizedLabel.includes(normalizedHeader)) {
+        if (!suggestions[field.key]) { // Don't override exact matches
+          suggestions[field.key] = header;
+        }
+      }
+    }
+  });
+
+  return suggestions;
+}
 
 /* =============================================
    NORMALIZATION & FILTER
 ============================================= */
 function normalizeValue(value) {
   if (value === undefined || value === null || value === "") return null;
+  if (typeof value === 'string') return value.trim();
   return value;
 }
 
@@ -284,6 +414,7 @@ export const uploadStruktur = async (req, res) => {
       success: true,
       message: "File berhasil diupload",
       fileId: saved.id,
+      fileName: file.originalname,
       fileUrl: `/uploads/struktur/${path.basename(file.path)}`,
     });
   } catch (err) {
@@ -347,6 +478,7 @@ export const updateStruktur = async (req, res) => {
     res.json({
       success: true,
       message: "File berhasil diupdate",
+      fileName: file.originalname,
       fileUrl: `/uploads/struktur/${path.basename(file.path)}`,
     });
   } catch (err) {

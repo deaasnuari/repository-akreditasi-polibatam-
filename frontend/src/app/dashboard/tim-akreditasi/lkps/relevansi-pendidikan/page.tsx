@@ -1,10 +1,11 @@
- 'use client';
+'use client';
 
 import React, { useEffect, useState, ChangeEvent } from 'react';
 import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { relevansiPendidikanService, SubTab, DataItem, API_BASE } from '@/services/relevansiPendidikanService';
+import * as XLSX from 'xlsx';
 
 // --- Table titles ---
 const tableTitles: Record<SubTab, string> = {
@@ -169,23 +170,221 @@ export default function RelevansiPendidikanPage() {
     });
   };
 
-  // --- Import Excel (hanya 1 deklarasi) ---
+  // --- Import Excel dengan Preview dan Mapping ---
   const handleImport = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const formDataImport = new FormData();
-    formDataImport.append('file', file);
-    formDataImport.append('type', activeSubTab);
-
+    setImporting(true);
     try {
-      const res = await fetch(`${API_BASE}/import`, { method: 'POST', body: formDataImport });
-      const json = await res.json();
-      if (res.ok) {
-        fetchData();
-      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const data = new Uint8Array(event.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+
+        if (jsonData.length < 2) {
+          showPopup('File Excel harus memiliki minimal 2 baris (header dan data)', 'error');
+          setImporting(false);
+          return;
+        }
+
+        const headers = jsonData[0] as string[];
+        const rows = jsonData.slice(1) as any[][];
+
+        setPreviewHeaders(headers);
+        setPreviewRows(rows.slice(0, 5)); // Show first 5 rows
+        setPreviewFile(file);
+        setShowPreviewModal(true);
+      };
+      reader.readAsArrayBuffer(file);
+    } catch (err) {
+      console.error('Error reading file:', err);
+      showPopup('Gagal membaca file Excel', 'error');
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const handleConfirmImport = async () => {
+    if (!previewFile || !mapping) return;
+
+    setImporting(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const data = new Uint8Array(event.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+
+        // Create reverse mapping: field -> header
+        const reverseMapping: Record<string, string> = {};
+        Object.entries(mapping).forEach(([header, field]) => {
+          if (field) reverseMapping[field] = header;
+        });
+
+        // Map Excel data to table fields based on activeSubTab
+        const mappedData = jsonData.map((row: any) => {
+          const mappedItem: any = {};
+
+          // Get field mapping for current subtab
+          const fieldMap = getFieldMappingForSubTab(activeSubTab);
+
+          Object.keys(fieldMap).forEach(tableField => {
+            const excelColumn = reverseMapping[tableField];
+            if (excelColumn && row[excelColumn] !== undefined) {
+              mappedItem[tableField] = row[excelColumn];
+            }
+          });
+
+          return mappedItem;
+        });
+
+        // Send to backend
+        const formDataImport = new FormData();
+        formDataImport.append('file', previewFile);
+        formDataImport.append('type', activeSubTab);
+        formDataImport.append('mappedData', JSON.stringify(mappedData));
+
+        const res = await fetch(`${API_BASE}/import`, {
+          method: 'POST',
+          body: formDataImport
+        });
+
+        const json = await res.json();
+        if (res.ok) {
+          fetchData();
+          setShowPreviewModal(false);
+          setPreviewFile(null);
+          setPreviewHeaders([]);
+          setPreviewRows([]);
+          setMapping({});
+          showPopup('Data berhasil diimport', 'success');
+        } else {
+          showPopup(json.message || 'Gagal import data', 'error');
+        }
+      };
+      reader.readAsArrayBuffer(previewFile);
     } catch (err) {
       console.error('Import error:', err);
+      showPopup('Gagal import data', 'error');
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const getFieldMappingForSubTab = (subTab: SubTab): Record<string, string> => {
+    switch (subTab) {
+      case 'mahasiswa':
+        return {
+          tahun: 'Tahun (TS)',
+          daya_tampung: 'Daya Tampung',
+          calon_reguler_diterima: 'Calon Reguler Diterima',
+          calon_reguler_afirmasi: 'Calon Reguler Afirmasi',
+          calon_rpl_diterima: 'Calon RPL Diterima',
+          calon_rpl_afirmasi: 'Calon RPL Afirmasi',
+          calon_kebutuhan_khusus: 'Calon Kebutuhan Khusus',
+          baru_reguler_diterima: 'Baru Reguler Diterima',
+          baru_reguler_afirmasi: 'Baru Reguler Afirmasi',
+          baru_rpl_diterima: 'Baru RPL Diterima',
+          baru_rpl_afirmasi: 'Baru RPL Afirmasi',
+          baru_kebutuhan_khusus: 'Baru Kebutuhan Khusus',
+          aktif_reguler_diterima: 'Aktif Reguler Diterima',
+          aktif_reguler_afirmasi: 'Aktif Reguler Afirmasi',
+          aktif_rpl_diterima: 'Aktif RPL Diterima',
+          aktif_rpl_afirmasi: 'Aktif RPL Afirmasi',
+          aktif_kebutuhan_khusus: 'Aktif Kebutuhan Khusus'
+        };
+      case 'keragaman-asal':
+        return {
+          asalMahasiswa: 'Asal Mahasiswa',
+          ts2: 'TS-2',
+          ts1: 'TS-1',
+          ts: 'TS',
+          linkBukti: 'Link Bukti'
+        };
+      case 'kondisi-jumlah-mahasiswa':
+        return {
+          alasan: 'Alasan',
+          ts2: 'TS-2',
+          ts1: 'TS-1',
+          ts: 'TS',
+          jumlah: 'Jumlah'
+        };
+      case 'tabel-pembelajaran':
+        return {
+          mata_kuliah: 'Mata Kuliah',
+          sks: 'SKS',
+          semester: 'Semester',
+          profil_lulusan: 'Profil Lulusan'
+        };
+      case 'pemetaan-CPL-PL':
+        return {
+          pl1: 'PL1',
+          pl2: 'PL2'
+        };
+      case 'peta-pemenuhan-CPL':
+        return {
+          cpl: 'CPL',
+          cpmk: 'CPMK',
+          semester1: 'Semester 1',
+          semester2: 'Semester 2',
+          semester3: 'Semester 3',
+          semester4: 'Semester 4',
+          semester5: 'Semester 5',
+          semester6: 'Semester 6',
+          semester7: 'Semester 7',
+          semester8: 'Semester 8'
+        };
+      case 'rata-rata-masa-tunggu-lulusan':
+        return {
+          tahun: 'Tahun Lulus',
+          jumlah_lulusan: 'Jumlah Lulusan',
+          aktif: 'Jumlah Lulusan Yang Terlacak',
+          ts: 'Rata-rata Waktu Tunggu (Bulan)'
+        };
+      case 'kesesuaian-bidang':
+        return {
+          tahun: 'Tahun Lulus',
+          jumlah_lulusan: 'Jumlah Lulusan',
+          aktif: 'Jumlah Lulusan Yang Terlacak',
+          profesi_infokom: 'Profesi Kerja Bidang Infokom',
+          profesi_noninfokom: 'Profesi Kerja Bidang NonInfokom',
+          lingkup_internasional: 'Lingkup Kerja Internasional',
+          lingkup_nasional: 'Lingkup Kerja Nasional',
+          lingkup_wirausaha: 'Lingkup Kerja Wirausaha'
+        };
+      case 'kepuasan-pengguna':
+        return {
+          no: 'No',
+          jenis_kemampuan: 'Jenis Kemampuan',
+          sangat_baik: 'Sangat Baik',
+          baik: 'Baik',
+          cukup: 'Cukup',
+          kurang: 'Kurang',
+          rencana_tindak_lanjut: 'Rencana Tindak Lanjut UPPS/PS'
+        };
+      case 'fleksibilitas':
+        return {
+          tahun: 'Tahun Akademik',
+          ts2: 'TS-2',
+          ts1: 'TS-1',
+          ts: 'TS',
+          linkBukti: 'Link Bukti'
+        };
+      case 'rekognisi-apresiasi':
+        return {
+          sumber_rekognisi: 'Sumber Rekognisi',
+          jenis_pengakuan: 'Jenis Pengakuan Lulusan (Rekognisi)',
+          ts2: 'TS-2',
+          ts1: 'TS-1',
+          ts: 'TS',
+          linkBukti: 'Link Bukti'
+        };
+      default:
+        return {};
     }
   };
 
@@ -887,6 +1086,94 @@ export default function RelevansiPendidikanPage() {
                   </button>
                 </div>
 
+                </div>
+              </div>
+            )}
+
+            {/* Preview Modal for Excel Import */}
+            {showPreviewModal && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+                <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-4xl max-h-[80vh] overflow-auto">
+                  <h3 className="text-lg font-semibold mb-4">Preview Excel Import</h3>
+                  <p className="mb-4">Map the Excel columns to table fields for {activeSubTab.replace('-', ' ')}:</p>
+
+                  <div className="mb-4">
+                    <table className="min-w-full border text-sm">
+                      <thead>
+                        <tr className="bg-gray-50">
+                          <th className="border px-4 py-2 text-left">Excel Column</th>
+                          <th className="border px-4 py-2 text-left">Table Field</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {previewHeaders.map((header, index) => (
+                          <tr key={index}>
+                            <td className="border px-4 py-2 font-medium">{header}</td>
+                            <td className="border px-4 py-2">
+                              <select
+                                value={mapping[header] || ''}
+                                onChange={(e) => setMapping({ ...mapping, [header]: e.target.value })}
+                                className="border p-2 rounded w-full"
+                              >
+                                <option value="">Select Field</option>
+                                {Object.keys(getFieldMappingForSubTab(activeSubTab)).map(field => (
+                                  <option key={field} value={field}>
+                                    {field.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                                  </option>
+                                ))}
+                              </select>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="mb-4">
+                    <h4 className="font-semibold mb-2">Preview First 5 Rows:</h4>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full border text-xs">
+                        <thead>
+                          <tr className="bg-gray-50">
+                            {previewHeaders.map((header, index) => (
+                              <th key={index} className="border px-2 py-1 text-left">{header}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {previewRows.map((row, index) => (
+                            <tr key={index}>
+                              {row.map((cell, cellIndex) => (
+                                <td key={cellIndex} className="border px-2 py-1">{String(cell)}</td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-2">
+                    <button
+                      onClick={() => {
+                        setShowPreviewModal(false);
+                        setPreviewFile(null);
+                        setPreviewHeaders([]);
+                        setPreviewRows([]);
+                        setMapping({});
+                      }}
+                      className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleConfirmImport}
+                      disabled={importing}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      {importing ? 'Importing...' : 'Confirm Import'}
+                    </button>
+                  </div>
                 </div>
               </div>
             )}

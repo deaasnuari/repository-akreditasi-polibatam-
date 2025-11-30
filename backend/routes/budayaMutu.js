@@ -8,6 +8,7 @@ import {
   createData,
   updateData,
   deleteData,
+  previewExcel, // NEW
   importExcel,
   uploadStruktur,
   getStruktur,
@@ -31,21 +32,15 @@ const storage = multer.diskStorage({
 
 const uploadFile = multer({ storage });
 
-// === Konfigurasi Upload Excel (temporary) ===
-const storageExcel = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, 'uploads/'),
-  filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
-});
-const uploadExcel = multer({ storage: storageExcel });
-
 // === ROUTES CRUD Utama ===
 router.get("/", authenticateToken, getData);
 router.post("/", authenticateToken, createData);
 router.put("/:id", authenticateToken, updateData);
 router.delete("/:id", authenticateToken, deleteData);
 
-// === Import Excel ===
-router.post("/import/:type", authenticateToken, uploadExcel.single("file"), importExcel);
+// === Import Excel Routes (UPDATED) ===
+router.post("/preview/:type", authenticateToken, previewExcel);
+router.post("/import/:type", authenticateToken, importExcel);
 
 // === STRUKTUR ORGANISASI ROUTES ===
 router.post("/upload-struktur", authenticateToken, uploadFile.single("file"), uploadStruktur);
