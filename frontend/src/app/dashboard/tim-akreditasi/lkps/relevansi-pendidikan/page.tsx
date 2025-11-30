@@ -602,10 +602,7 @@ export default function RelevansiPendidikanPage() {
             </div>
             <div className="flex gap-1.5 sm:gap-2 flex-wrap">
               <button className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-xs sm:text-sm">
-                <Download size={14} className="sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Export PDF</span><span className="inline sm:hidden">Export</span>
-              </button>
-              <button className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-xs sm:text-sm">
-                <Save size={14} className="sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Save Draft</span><span className="inline sm:hidden">Save</span>
+                <Save size={14} className="sm:w-4 sm:h-4" /> <span className="hidden sm:inline"> Save Draft</span><span className="inline sm:hidden"> Save Draft</span>
               </button>
             </div>
           </div>
@@ -678,7 +675,7 @@ export default function RelevansiPendidikanPage() {
                   onClick={openAdd}
                   className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm text-white bg-blue-700 rounded-lg hover:bg-blue-800"
                 >
-                  <Plus size={14} className="sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Tambah</span> Data
+                  <Plus size={14} className="sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Tambah</span> Tambah Data
                 </button>
                 <form onSubmit={(e) => e.preventDefault()} className="relative">
                   <input
@@ -692,7 +689,7 @@ export default function RelevansiPendidikanPage() {
                     htmlFor="importExcel"
                     className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-100 cursor-pointer"
                   >
-                    <Upload size={14} className="sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Import</span> Excel
+                    <Upload size={14} className="sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Import</span> Import Excel
                   </label>
                 </form>
               </div>

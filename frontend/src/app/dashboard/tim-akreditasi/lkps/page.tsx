@@ -902,9 +902,6 @@ export default function LKPSPage() {
             </div>
             <div className="flex gap-2">
               <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-                <Download size={16} /> Export PDF
-              </button>
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
                 <Save size={16} /> Save Draft
               </button>
               <button className="flex items-center gap-2 px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800">
@@ -1021,7 +1018,7 @@ export default function LKPSPage() {
             {/* Table Section */}
             <div className="bg-white rounded-lg shadow-md overflow-hidden">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center px-6 py-4 border-b bg-gray-50 gap-2 md:gap-0">
-                <h3 className="text-lg font-semibold text-gray-900 capitalize">Data {activeSubTab}</h3>
+                <h3 className="text-lg font-semibold text-gray-900 capitalize"> Data {activeSubTab}</h3>
                 <h2 className="text-sm text-gray-600">{tableTitles[activeSubTab]}</h2>
 
                 <div className="flex gap-2 flex-wrap">

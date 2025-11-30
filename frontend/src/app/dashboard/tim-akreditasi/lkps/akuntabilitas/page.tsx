@@ -72,7 +72,7 @@ export default function AkuntabilitasPage() {
   const handleSave = async () => {
     let res;
     if (editIndex !== null && tabData[editIndex].id) {
-      res = await updateAkuntabilitasData(tabData[editIndex].id, activeSubTab, formData);
+      res = await updateAkuntabilitasData(tabData[editIndex].id, formData);
     } else {
       res = await createAkuntabilitasData(activeSubTab, formData);
     }
@@ -146,7 +146,6 @@ export default function AkuntabilitasPage() {
               </div>
             </div>
             <div className="flex gap-2">
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"><Download size={16} /> Export PDF</button>
               <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"><Save size={16} /> Save Draft</button>
             </div>
           </div>
