@@ -1,8 +1,9 @@
- 'use client';
+'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Trash, Save, Info } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
+import { getAllLEDData, saveLEDTab } from '../../../../services/ledService';
  
 
 type Row2Col = { id: string; pernyataan: string; keterlaksanaan: string; pelaksanaan: string; bukti_pendukung: string };
@@ -38,6 +39,48 @@ type TabData = {
 };
 
 const uid = (p = '') => p + Math.random().toString(36).substring(2, 9);
+
+/**
+ * Ambil user_id dari localStorage atau sessionStorage. Hanya bisa di client-side.
+ */
+function getUserId() {
+  if (typeof window === "undefined") {
+    throw new Error("Harus di client-side. Tunggu sampai browser mount.");
+  }
+
+  // Coba ambil dari localStorage dulu
+  const idStr = localStorage.getItem("user_id");
+  if (idStr) {
+    const id = Number(idStr);
+    if (!Number.isNaN(id)) return id;
+  }
+
+  // Jika tidak ada, coba ambil dari sessionStorage (mengambil key user yang berisi JSON user)
+  const userJson = sessionStorage.getItem("user");
+  if (userJson) {
+    try {
+      const userObj = JSON.parse(userJson);
+      if (userObj && typeof userObj.id === 'number') {
+        return userObj.id;
+      }
+      // Also try if id is string number
+      if (userObj && typeof userObj.id === 'string' && !isNaN(Number(userObj.id))) {
+        return Number(userObj.id);
+      }
+    } catch {
+      // JSON parsing error - ignore and fallback
+    }
+  }
+
+  // Jika tidak ada, coba ambil dari sessionStorage "user_id" secara khusus masih fallback lama
+  const sessionIdStr = sessionStorage.getItem("user_id");
+  if (sessionIdStr) {
+    const id = Number(sessionIdStr);
+    if (!Number.isNaN(id)) return id;
+  }
+
+  throw new Error("User ID tidak ditemukan. Pastikan sudah login.");
+}
 
 const tabs = [
   ['budaya-mutu', 'C.1 Budaya Mutu'],
@@ -145,6 +188,12 @@ export default function BudayaMutuLEDPage() {
   const handleSave = useCallback(async (notify = true, auto = false) => {
     const activeLabel = tabs.find(([k]) => k === activeTab)?.[1] || activeTab;
     try {
+      // Get user_id
+      const user_id = getUserId();
+
+      // Save to database
+      await saveLEDTab(user_id, activeTab, tabData[activeTab]);
+
       // Save to localStorage
       localStorage.setItem('budaya_mutu_led_data', JSON.stringify(tabData));
 

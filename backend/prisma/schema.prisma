@@ -108,6 +108,8 @@ model users {
   email            String    @unique @db.VarChar(100)
   password         String    @db.VarChar(255)
   nama_lengkap     String?   @db.VarChar(255)
+  prodi            String?   @db.VarChar(255) // Program Studi
+  photo            String?   @db.VarChar(500) // Path atau URL foto
   role             String    @default("TU") @db.VarChar(20) // TU, P4M, Tim Akreditasi
   status           String    @default("aktif") @db.VarChar(20)
   created_at       DateTime  @default(now())

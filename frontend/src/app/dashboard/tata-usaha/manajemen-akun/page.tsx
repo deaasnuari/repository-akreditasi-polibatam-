@@ -26,6 +26,8 @@ export default function ManajemenAkun() {
           nama_lengkap: u.nama_lengkap,
           email: u.email,
           username: u.username,
+          prodi: u.prodi,
+          photo: u.photo,
           role: u.role,
           status: u.status === 'aktif' ? 'Aktif' : u.status,
           created_at: u.created_at,
@@ -139,6 +141,7 @@ export default function ManajemenAkun() {
               <tr className="bg-gray-100 text-left">
                 <th className="py-2 px-2">User</th>
                 <th className="py-2 px-2">Role</th>
+                <th className="py-2 px-2">Prodi</th>
                 <th className="py-2 px-2">Status</th>
                 <th className="py-2 px-2">Terakhir Login</th>
                 <th className="py-2 px-2">Aksi</th>
@@ -161,6 +164,7 @@ export default function ManajemenAkun() {
                       {u.role}
                     </span>
                   </td>
+                  <td className="py-2 px-2">{u.prodi || '-'}</td>
                   <td className="py-2 px-2">
                     <span
                       className={`px-2 py-1 text-xs rounded-full ${
@@ -232,6 +236,8 @@ export default function ManajemenAkun() {
               const formData = new FormData(e.currentTarget);
               const nama_lengkap = formData.get('name') as string | null;
               const email = formData.get('email') as string | null;
+              const prodi = formData.get('prodi') as string | null;
+              const photo = formData.get('photo') as string | null;
               const role = (formData.get('role') as string) || editingRoleSelected;
               const status = editingUser ? (formData.get('status') as string) : 'aktif';
               const password = formData.get('password') as string | null;
@@ -282,8 +288,13 @@ export default function ManajemenAkun() {
                   if (submitShowFull) {
                     payload.nama_lengkap = nama_lengkap;
                     payload.email = email;
+                    payload.prodi = prodi;
+                    payload.photo = photo;
                     if (password) payload.password = password;
                     if (currentPassword) payload.currentPassword = currentPassword;
+                  } else {
+                    // For limited fields, include prodi if provided
+                    if (prodi) payload.prodi = prodi;
                   }
                   const res = await apiUpdateUser(editingUser.id, payload);
                   if (res.success) {
@@ -293,6 +304,8 @@ export default function ManajemenAkun() {
                       nama_lengkap: updated.nama_lengkap,
                       email: updated.email,
                       username: updated.username,
+                      prodi: updated.prodi,
+                      photo: updated.photo,
                       role: updated.role,
                       status: updated.status === 'aktif' ? 'Aktif' : updated.status,
                       created_at: updated.created_at,
@@ -310,6 +323,7 @@ export default function ManajemenAkun() {
                     email,
                     username,
                     password,
+                    prodi,
                     role,
                     status: status.toLowerCase()
                   });
@@ -320,6 +334,8 @@ export default function ManajemenAkun() {
                       nama_lengkap: created.nama_lengkap,
                       email: created.email,
                       username: created.username,
+                      prodi: created.prodi,
+                      photo: created.photo,
                       role: created.role,
                       status: created.status === 'aktif' ? 'Aktif' : created.status,
                       created_at: created.created_at,
@@ -362,45 +378,31 @@ export default function ManajemenAkun() {
                       />
                     </div>
                     <div>
-                      {editingUser && isEditingOwnAccount ? (
-                        <>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">Password Sekarang</label>
-                          <input
-                            type="password"
-                            name="currentPassword"
-                            placeholder="Masukkan password saat ini"
-                            autoComplete="current-password"
-                            className="w-full border rounded-lg px-2 py-1 text-sm mb-2"
-                          />
-                          <label className="block text-xs font-medium text-gray-700 mb-1">Password Baru</label>
-                          <input
-                            type="password"
-                            name="password"
-                            placeholder="Masukkan password baru"
-                            autoComplete="new-password"
-                            className="w-full border rounded-lg px-2 py-1 text-sm mb-2"
-                          />
-                          <label className="block text-xs font-medium text-gray-700 mb-1">Konfirmasi Password Baru</label>
-                          <input
-                            type="password"
-                            name="confirmPassword"
-                            placeholder="Konfirmasi password baru"
-                            autoComplete="new-password"
-                            className="w-full border rounded-lg px-2 py-1 text-sm"
-                          />
-                        </>
-                      ) : (
-                        <>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">Password {editingUser ? '(kosongkan jika tidak ingin mengganti)' : ''}</label>
-                          <input
-                            type="password"
-                            name="password"
-                             autoComplete="new-password"
-                            className="w-full border rounded-lg px-2 py-1 text-sm"
-                            {...(editingUser ? {} : { required: true })}
-                          />
-                        </>
-                      )}
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Program Studi</label>
+                      <select
+                        name="prodi"
+                        className="w-full border rounded-lg px-2 py-1 text-sm"
+                      >
+                        <option value="">Pilih Program Studi</option>
+                        <option value="Teknik Informatika">Teknik Informatika</option>
+                        <option value="Teknologi Geomatika">Teknologi Geomatika</option>
+                        <option value="Animasi">Animasi</option>
+                        <option value="Teknologi Rekayasa Multimedia">Teknologi Rekayasa Multimedia</option>
+                        <option value="Rekayasa Keamanan Siber">Rekayasa Keamanan Siber</option>
+                        <option value="Rekayasa Perangkat Lunak">Rekayasa Perangkat Lunak</option>
+                        <option value="Teknologi Permainan">Teknologi Permainan</option>
+                        <option value="Teknik Komputer / Rekayasa Komputer">Teknik Komputer / Rekayasa Komputer</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Password {editingUser ? '(kosongkan jika tidak ingin mengganti)' : ''}</label>
+                      <input
+                        type="password"
+                        name="password"
+                         autoComplete="new-password"
+                        className="w-full border rounded-lg px-2 py-1 text-sm"
+                        {...(editingUser ? {} : { required: true })}
+                      />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">Role</label>
@@ -448,6 +450,23 @@ export default function ManajemenAkun() {
                       </select>
                     </div>
                     <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Program Studi</label>
+                      <select
+                        name="prodi"
+                        className="w-full border rounded-lg px-2 py-1 text-sm"
+                      >
+                        <option value="">Pilih Program Studi</option>
+                        <option value="Teknik Informatika">Teknik Informatika</option>
+                        <option value="Teknologi Geomatika">Teknologi Geomatika</option>
+                        <option value="Animasi">Animasi</option>
+                        <option value="Teknologi Rekayasa Multimedia">Teknologi Rekayasa Multimedia</option>
+                        <option value="Rekayasa Keamanan Siber">Rekayasa Keamanan Siber</option>
+                        <option value="Rekayasa Perangkat Lunak">Rekayasa Perangkat Lunak</option>
+                        <option value="Teknologi Permainan">Teknologi Permainan</option>
+                        <option value="Teknik Komputer / Rekayasa Komputer">Teknik Komputer / Rekayasa Komputer</option>
+                      </select>
+                    </div>
+                    <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
                       <select
                         name="status"
@@ -486,7 +505,8 @@ export default function ManajemenAkun() {
   );
 }
 
-function StatBox({ label, value, icon }: any) {
+function StatBox(props: { label: string; value: string; icon?: any }) {
+  const { label, value, icon } = props;
   return (
     <div className="bg-white shadow rounded-xl p-4 flex flex-col items-center justify-center">
       <div className="text-2xl font-bold">{value}</div>

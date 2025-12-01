@@ -21,6 +21,8 @@ export const getAllUsers = async (req, res) => {
         nama_lengkap: true,
         email: true,
         username: true,
+        prodi: true,
+        photo: true,
         role: true,
         status: true,
         created_at: true,
@@ -49,6 +51,8 @@ export const getUserById = async (req, res) => {
         nama_lengkap: true,
         email: true,
         username: true,
+        prodi: true,
+        photo: true,
         role: true,
         status: true,
         created_at: true,
@@ -76,6 +80,8 @@ export const createUser = async (req, res) => {
     email,
     username,
     password,
+    prodi,
+    photo,
     role,
     status,
     currentPassword,
@@ -132,6 +138,8 @@ export const createUser = async (req, res) => {
         email,
         username,
         password: hashedPassword,
+        prodi,
+        photo,
         role,
         status: status || "aktif",
       },
@@ -140,6 +148,8 @@ export const createUser = async (req, res) => {
         nama_lengkap: true,
         email: true,
         username: true,
+        prodi: true,
+        photo: true,
         role: true,
         status: true,
         created_at: true,
@@ -164,6 +174,8 @@ export const updateUser = async (req, res) => {
     email,
     username,
     password,
+    prodi,
+    photo,
     role,
     status,
   } = req.body;
@@ -176,6 +188,8 @@ export const updateUser = async (req, res) => {
     nama_lengkap: nama_lengkap ? '[REDACTED]' : undefined,
     email,
     username,
+    prodi,
+    photo,
     role,
     status,
   });
@@ -232,6 +246,8 @@ export const updateUser = async (req, res) => {
     if (nama_lengkap) updateData.nama_lengkap = nama_lengkap;
     if (email) updateData.email = email;
     if (username) updateData.username = username;
+    if (prodi !== undefined) updateData.prodi = prodi;
+    if (photo !== undefined) updateData.photo = photo;
     // If user is changing their own password, require currentPassword verification
     if (password) {
       if (requesterId && Number(id) === Number(requesterId)) {
@@ -261,6 +277,8 @@ export const updateUser = async (req, res) => {
         nama_lengkap: true,
         email: true,
         username: true,
+        prodi: true,
+        photo: true,
         role: true,
         status: true,
         created_at: true,
@@ -316,6 +334,8 @@ export const getUsersByRole = async (req, res) => {
         nama_lengkap: true,
         email: true,
         username: true,
+        prodi: true,
+        photo: true,
         role: true,
         status: true,
         created_at: true,
@@ -345,6 +365,8 @@ export const getUsersByStatus = async (req, res) => {
         nama_lengkap: true,
         email: true,
         username: true,
+        prodi: true,
+        photo: true,
         role: true,
         status: true,
         created_at: true,

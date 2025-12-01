@@ -38,6 +38,7 @@ export const createUser = async (userData: {
   password: string;
   role: string; // TU, P4M, Tim Akreditasi
   status?: string;
+  prodi?: string;
   no_identitas?: string;
   no_telp?: string;
   departemen?: string;
@@ -69,6 +70,8 @@ export const updateUser = async (
     currentPassword?: string;
     role?: string;
     status?: string;
+    prodi?: string;
+    photo?: string;
     no_identitas?: string;
     no_telp?: string;
     departemen?: string;
