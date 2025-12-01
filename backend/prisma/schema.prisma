@@ -2,11 +2,16 @@ generator client {
   provider = "prisma-client-js"
 }
 
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
 model struktur_files {
   id         Int      @id @default(autoincrement())
   nama_file  String
   file_path  String
-  created_at DateTime @default(now()) @db.Timestamp(6)
+  created_at DateTime @default(now())
 }
 
 model budaya_mutu {
@@ -25,8 +30,8 @@ model budaya_mutu {
 model relevansi_pendidikan {
   id         Int      @id @default(autoincrement())
   user_id    Int
-  subtab     String   @db.VarChar(100)
-  data       Json // semua data FE masuk ke sini
+  subtab     String
+  data       Json
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
@@ -39,8 +44,8 @@ model relevansi_pendidikan {
 model relevansi_penelitian {
   id         Int      @id @default(autoincrement())
   user_id    Int
-  subtab     String   @db.VarChar(100)
-  data       Json // semua data FE masuk ke sini
+  subtab     String
+  data       Json
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
@@ -53,10 +58,10 @@ model relevansi_penelitian {
 model relevansi_pkm {
   id         Int      @id @default(autoincrement())
   user_id    Int
-  subtab     String   @db.VarChar(100)
-  data       Json // semua data FE masuk ke sini
+  subtab     String
+  data       Json
   created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  updated_at DateTime @default(now()) @updatedAt
 
   user users @relation(fields: [user_id], references: [id])
 
@@ -67,8 +72,8 @@ model relevansi_pkm {
 model akuntabilitas {
   id         Int      @id @default(autoincrement())
   user_id    Int
-  subtab     String   @db.VarChar(100)
-  data       Json // semua data FE masuk ke sini
+  subtab     String
+  data       Json
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
@@ -83,8 +88,8 @@ model akuntabilitas {
 model diferensiasi_misi {
   id         Int      @id @default(autoincrement())
   user_id    Int
-  subtab     String   @db.VarChar(100)
-  data       Json // semua data FE masuk ke sini
+  subtab     String
+  data       Json
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
@@ -94,21 +99,18 @@ model diferensiasi_misi {
   @@index([user_id], map: "idx_diferensiasi_misi_user")
 }
 
-// =========================
-// USERS (AUTH + MANAJEMEN AKUN)
-// =========================
+// USERS AUTH
 model users {
   id               Int       @id @default(autoincrement())
-  username         String    @unique @db.VarChar(50)
-  email            String    @unique @db.VarChar(100)
-  password         String    @db.VarChar(255)
-  nama_lengkap     String?   @db.VarChar(255)
-  role             String    @default("TU") @db.VarChar(20) // TU, P4M, Tim Akreditasi
-  status           String    @default("aktif") @db.VarChar(20)
+  username         String    @unique
+  email            String    @unique
+  password         String
+  nama_lengkap     String?
+  role             String    @default("TU")
+  status           String    @default("aktif")
   created_at       DateTime  @default(now())
   updated_at       DateTime  @default(now()) @updatedAt
 
-  // Relasi balik
   relevansi_penelitian relevansi_penelitian[]
   relevansi_pkm        relevansi_pkm[]
   relevansi_pendidikan relevansi_pendidikan[]
@@ -118,14 +120,12 @@ model users {
   led                  led[]
 }
 
-// =========================
-// LED (Laporan Evaluasi Diri)
-// =========================
+// LED
 model led {
   id         Int      @id @default(autoincrement())
   user_id    Int
-  subtab     String   @db.VarChar(100)
-  data       Json // semua data FE masuk ke sini
+  subtab     String
+  data       Json
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
