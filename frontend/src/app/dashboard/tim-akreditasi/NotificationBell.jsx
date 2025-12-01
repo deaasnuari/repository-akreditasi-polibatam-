@@ -5,8 +5,27 @@ import { Bell, AlertCircle, CheckCircle } from "lucide-react";
 
 export default function NotificationBell({ variant = "header" }) {
   const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications] = useState([
+    {
+      id: 1,
+      type: 'error',
+      title: 'Revisi Dokumen',
+      message: 'Dokumen LKPS Bagian 1 harus direvisi',
+      time: '5 menit lalu',
+      read: false
+    },
+    {
+      id: 2,
+      type: 'success',
+      title: 'Upload Berhasil',
+      message: 'Dokumen bukti pendukung berhasil diupload',
+      time: '2 jam lalu',
+      read: false
+    }
+  ]);
 
   const isHeader = variant === "header";
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
     <div className="relative">
@@ -22,16 +41,6 @@ export default function NotificationBell({ variant = "header" }) {
         `}
       >
         <Bell className={isHeader ? "text-white" : "text-gray-700"} size={20} />
-
-        {/* Red Dot */}
-        <span
-          className={`absolute top-1 right-1 w-3 h-3 rounded-full border-2 
-            ${isHeader 
-              ? "bg-red-500 border-blue-900" 
-              : "bg-red-500 border-white"
-            }
-          `}
-        ></span>
       </button>
 
       {/* DROPDOWN */}

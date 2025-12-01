@@ -2,93 +2,99 @@
 import prisma from '../prismaClient.js';
 
 /**
- * GET semua data LED (ambil data terbaru)
+ * GET semua data LED untuk user tertentu
  */
-export const getLED = async (req, res) => {
+export const getAllLEDData = async (req, res) => {
   try {
-    // Beberapa DB mungkin tidak punya created_at, jadi urutkan berdasarkan id yang pasti ada
-    const row = await prisma.led.findFirst({
-      orderBy: { id: 'desc' },
+    const { user_id } = req.params;
+    const parsedUserId = Number(user_id);
+    if (Number.isNaN(parsedUserId)) {
+      return res.status(400).json({ message: 'Invalid user_id' });
+    }
+
+    const rows = await prisma.led.findMany({
+      where: { user_id: parsedUserId },
+      orderBy: { updated_at: 'desc' },
     });
-    res.json(row ? [row] : []);
+
+    // Transform ke format FE: { subtab: data }
+    const result = {};
+    rows.forEach(row => {
+      result[row.subtab] = row.data;
+    });
+
+    res.json(result);
   } catch (err) {
-    console.error('getLED error:', err);
+    console.error('getAllLEDData error:', err);
     res.status(500).json({ message: 'Server error' });
   }
 };
 
 /**
- * POST create baru LED
+ * POST save/update LED tab untuk user tertentu
  */
-export const createLED = async (req, res) => {
+export const saveLEDTab = async (req, res) => {
   try {
-    const { tabs } = req.body;
+    const { user_id } = req.params;
+    const { subtab, data } = req.body;
 
-    if (!tabs) {
-      return res.status(400).json({ message: 'tabs is required' });
+    const parsedUserId = Number(user_id);
+    if (Number.isNaN(parsedUserId)) {
+      return res.status(400).json({ message: 'Invalid user_id' });
     }
 
-    const created = await prisma.led.create({
-      data: { tabs },
+    if (!subtab || !data) {
+      return res.status(400).json({ message: 'subtab and data are required' });
+    }
+
+    // Upsert: update jika ada, create jika tidak
+    const upserted = await prisma.led.upsert({
+      where: {
+        user_id_subtab: {
+          user_id: parsedUserId,
+          subtab: subtab,
+        },
+      },
+      update: { data },
+      create: {
+        user_id: parsedUserId,
+        subtab,
+        data,
+      },
     });
 
-    res.json({ data: created });
+    res.json({ data: upserted });
   } catch (err) {
-    console.error('createLED error:', err);
+    console.error('saveLEDTab error:', err);
     res.status(500).json({ message: 'Server error' });
   }
 };
 
 /**
- * PUT update LED
+ * DELETE hapus LED tab untuk user tertentu
  */
-export const updateLED = async (req, res) => {
+export const deleteLEDTab = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { tabs } = req.body;
-
-    if (!tabs) {
-      return res.status(400).json({ message: 'tabs is required' });
+    const { user_id, subtab } = req.params;
+    const parsedUserId = Number(user_id);
+    if (Number.isNaN(parsedUserId)) {
+      return res.status(400).json({ message: 'Invalid user_id' });
     }
 
-    const parsedId = Number(id);
-    if (Number.isNaN(parsedId)) {
-      return res.status(400).json({ message: 'Invalid id' });
+    if (!subtab) {
+      return res.status(400).json({ message: 'subtab is required' });
     }
 
-    const updated = await prisma.led.update({
-      where: { id: parsedId },
-      data: { tabs },
+    await prisma.led.deleteMany({
+      where: {
+        user_id: parsedUserId,
+        subtab: subtab,
+      },
     });
 
-    res.json({ data: updated });
-  } catch (err) {
-    if (err.code === 'P2025') {
-      return res.status(404).json({ message: 'Data not found' });
-    }
-    console.error('updateLED error:', err);
-    res.status(500).json({ message: 'Server error' });
-  }
-};
-
-/**
- * DELETE hapus LED by id
- */
-export const deleteLED = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const parsedId = Number(id);
-    if (Number.isNaN(parsedId)) {
-      return res.status(400).json({ message: 'Invalid id' });
-    }
-
-    await prisma.led.delete({ where: { id: parsedId } });
     res.json({ success: true });
   } catch (err) {
-    if (err.code === 'P2025') {
-      return res.status(404).json({ message: 'Data not found' });
-    }
-    console.error('deleteLED error:', err);
+    console.error('deleteLEDTab error:', err);
     res.status(500).json({ message: 'Server error' });
   }
 };

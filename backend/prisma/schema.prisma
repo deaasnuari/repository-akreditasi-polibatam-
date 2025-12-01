@@ -2,11 +2,6 @@ generator client {
   provider = "prisma-client-js"
 }
 
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-
 model struktur_files {
   id         Int      @id @default(autoincrement())
   nama_file  String
@@ -118,6 +113,7 @@ model users {
   akuntabilitas        akuntabilitas[]
   diferensiasi_misi    diferensiasi_misi[]
   budaya_mutu          budaya_mutu[]
+  led                  led[]
 }
 
 // =========================
@@ -125,9 +121,17 @@ model users {
 // =========================
 model led {
   id         Int      @id @default(autoincrement())
-  tabs       Json
-  created_at DateTime @default(now()) @db.Timestamp(6)
-  updated_at DateTime @updatedAt @db.Timestamp(6)
+  user_id    Int
+  subtab     String   @db.VarChar(100)
+  data       Json // semua data FE masuk ke sini
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  user users @relation(fields: [user_id], references: [id])
+
+  @@unique([user_id, subtab], map: "user_id_subtab")
+  @@index([subtab], map: "idx_led_subtab")
+  @@index([user_id], map: "idx_led_user")
 
   @@map("led")
 }

@@ -110,100 +110,100 @@ export function loadDraftBudayaMutu(subTab: SubTab) {
 // ============== 🟨 LED SECTION (DITAMBAHKAN) =======
 // ===================================================
 
-export const fetchBudayaMutuLED = async () => {
-  try {
-    const res = await fetch(API_BASE_LED);
-    if (!res.ok) {
-      console.error('Fetch error, status:', res.status);
-      return [];
-    }
-    return await res.json();
-  } catch (err) {
-    console.error('fetchBudayaMutuLED error:', err);
-    return [];
-  }
-};
+// export const fetchBudayaMutuLED = async () => {
+//   try {
+//     const res = await fetch(API_BASE_LED);
+//     if (!res.ok) {
+//       console.error('Fetch error, status:', res.status);
+//       return [];
+//     }
+//     return await res.json();
+//   } catch (err) {
+//     console.error('fetchBudayaMutuLED error:', err);
+//     return [];
+//   }
+// };
 
-export const createBudayaMutuLED = async (data: any) => {
-  try {
-    const res = await fetch(API_BASE_LED, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
+// export const createBudayaMutuLED = async (data: any) => {
+//   try {
+//     const res = await fetch(API_BASE_LED, {
+//       method: 'POST',
+//       headers: { 'Content-Type': 'application/json' },
+//       body: JSON.stringify(data),
+//     });
 
-    // baca body sekali saja
-    const text = await res.text();
-    let json;
-    try {
-      json = JSON.parse(text);
-    } catch {
-      json = null;
-    }
+//     // baca body sekali saja
+//     const text = await res.text();
+//     let json;
+//     try {
+//       json = JSON.parse(text);
+//     } catch {
+//       json = null;
+//     }
 
-    if (!res.ok) throw new Error(`Create failed: ${res.status} ${text}`);
+//     if (!res.ok) throw new Error(`Create failed: ${res.status} ${text}`);
 
-    return json;
-  } catch (err) {
-    console.error('createBudayaMutuLED error:', err);
-    return null;
-  }
-};
+//     return json;
+//   } catch (err) {
+//     console.error('createBudayaMutuLED error:', err);
+//     return null;
+//   }
+// };
 
-export const updateBudayaMutuLED = async (id: string, data: any) => {
-  try {
-    const res = await fetch(`${API_BASE_LED}/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
+// export const updateBudayaMutuLED = async (id: string, data: any) => {
+//   try {
+//     const res = await fetch(`${API_BASE_LED}/${id}`, {
+//       method: 'PUT',
+//       headers: { 'Content-Type': 'application/json' },
+//       body: JSON.stringify(data),
+//     });
 
-    const text = await res.text();
-    let json;
-    try {
-      json = JSON.parse(text);
-    } catch {
-      json = null;
-    }
+//     const text = await res.text();
+//     let json;
+//     try {
+//       json = JSON.parse(text);
+//     } catch {
+//       json = null;
+//     }
 
-    if (!res.ok) throw new Error(`Update failed: ${res.status} ${text}`);
+//     if (!res.ok) throw new Error(`Update failed: ${res.status} ${text}`);
 
-    return json;
-  } catch (err) {
-    console.error('updateBudayaMutuLED error:', err);
-    return null;
-  }
-};
+//     return json;
+//   } catch (err) {
+//     console.error('updateBudayaMutuLED error:', err);
+//     return null;
+//   }
+// };
 
-export const deleteBudayaMutuLED = async (id: string | number) => {
-  try {
-    const res = await fetch(`${API_BASE_LED}/${id}`, {
-      method: 'DELETE',
-    });
+// export const deleteBudayaMutuLED = async (id: string | number) => {
+//   try {
+//     const res = await fetch(`${API_BASE_LED}/${id}`, {
+//       method: 'DELETE',
+//     });
 
-    const text = await res.text();
-    let json;
-    try {
-      json = JSON.parse(text);
-    } catch {
-      json = null;
-    }
+//     const text = await res.text();
+//     let json;
+//     try {
+//       json = JSON.parse(text);
+//     } catch {
+//       json = null;
+//     }
 
-    if (!res.ok) throw new Error(`Delete failed: ${res.status} ${text}`);
+//     if (!res.ok) throw new Error(`Delete failed: ${res.status} ${text}`);
 
-    return json; // expected { success: true }
-  } catch (err) {
-    console.error('deleteBudayaMutuLED error:', err);
-    return null;
-  }
-};
+//     return json; // expected { success: true }
+//   } catch (err) {
+//     console.error('deleteBudayaMutuLED error:', err);
+//     return null;
+//   }
+// };
 
-// Draft di localStorage
-export const saveDraftBudayaMutuLED = (data: any) => {
-  localStorage.setItem('draftBudayaMutuLED', JSON.stringify(data));
-};
+// // Draft di localStorage
+// export const saveDraftBudayaMutuLED = (data: any) => {
+//   localStorage.setItem('draftBudayaMutuLED', JSON.stringify(data));
+// };
 
-export const loadDraftBudayaMutuLED = () => {
-  const raw = localStorage.getItem('draftBudayaMutuLED');
-  return raw ? JSON.parse(raw) : null;
-};
+// export const loadDraftBudayaMutuLED = () => {
+//   const raw = localStorage.getItem('draftBudayaMutuLED');
+//   return raw ? JSON.parse(raw) : null;
+// };

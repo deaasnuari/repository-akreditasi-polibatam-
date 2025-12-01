@@ -1,11 +1,15 @@
 import express from 'express';
-import { getLED, createLED, updateLED, deleteLED } from '../controllers/ledController.js';
+import { getAllLEDData, saveLEDTab, deleteLEDTab } from '../controllers/ledController.js';
 
 const router = express.Router();
 
-router.get('/', getLED);
-router.post('/', createLED);
-router.put('/:id', updateLED);
-router.delete('/:id', deleteLED);
+// GET /api/led/:user_id - ambil semua data LED untuk user tertentu
+router.get('/:user_id', getAllLEDData);
+
+// POST /api/led/:user_id - save/update LED tab untuk user tertentu
+router.post('/:user_id', saveLEDTab);
+
+// DELETE /api/led/:user_id/:subtab - hapus LED tab untuk user tertentu
+router.delete('/:user_id/:subtab', deleteLEDTab);
 
 export default router;
