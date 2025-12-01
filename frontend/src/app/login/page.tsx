@@ -2,28 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { loginUser, registerUser } from "../../services/auth";
+import { loginUser, roleToSlug } from "@/services/auth";
 
-type Tab = 'login' | 'register';
-
-export default function AuthPage() {
+export default function LoginPage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
-  const [activeTab, setActiveTab] = useState<Tab>('login');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
 
   // Login states
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
-  const [loginRole, setLoginRole] = useState('tim-akreditasi');
-
-  // Register states
-  const [regName, setRegName] = useState('');
-  const [regEmail, setRegEmail] = useState('');
-  const [regPassword, setRegPassword] = useState('');
-  const [regRole, setRegRole] = useState('tim-akreditasi');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [role, setRole] = useState('TU');
 
   useEffect(() => setMounted(true), []);
   if (!mounted) return null;
@@ -34,39 +24,28 @@ export default function AuthPage() {
     setError('');
     setLoading(true);
     try {
-      const data = await loginUser(loginEmail, loginPassword, loginRole);
+      // kirim email + password ke backend
+      const data = await loginUser(username, password);
       if (data.success && data.user) {
-        const role = data.user.role;
-        if (role === 'tim-akreditasi') router.push('/dashboard/tim-akreditasi');
-        else if (role === 'p4m') router.push('/dashboard/p4m');
-        else if (role === 'tu') router.push('/dashboard/tata-usaha');
+        // pastikan role yang dipilih user sesuai dengan role di server
+        const serverSlug = roleToSlug(data.user.role);
+        const selectedSlug = roleToSlug(role);
+        if (selectedSlug && serverSlug !== selectedSlug) {
+          // Jangan accept login jika role yang dipilih tidak sama dengan role akun
+          setError('Role yang dipilih tidak sesuai dengan akun. Silakan pilih role yang sesuai.');
+          return;
+        }
+
+        const userRole = data.user.role;
+        if (userRole === 'Tim Akreditasi') router.push('/dashboard/tim-akreditasi');
+        else if (userRole === 'P4M') router.push('/dashboard/p4m');
+        else if (userRole === 'TU') router.push('/dashboard/tata-usaha');
         else router.push('/dashboard');
       } else {
-        setError(data.msg || 'Login gagal, periksa kembali data Anda.');
+        setError(data.message || data.msg || 'Login gagal, periksa kembali data Anda.');
       }
     } catch (err: any) {
       setError(err.message || 'Terjadi kesalahan saat login.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // === REGISTER HANDLER ===
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setSuccess('');
-    setLoading(true);
-    try {
-      await registerUser(regName, regEmail, regPassword, regRole);
-      setSuccess('Registrasi berhasil! Silakan login.');
-      setActiveTab('login');
-      setRegName('');
-      setRegEmail('');
-      setRegPassword('');
-      setRegRole('tim-akreditasi');
-    } catch (err: any) {
-      setError(err.message || 'Registrasi gagal.');
     } finally {
       setLoading(false);
     }
@@ -76,150 +55,62 @@ export default function AuthPage() {
     <div
       className="min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat px-4 py-8"
       style={{
-        backgroundImage: "url('/images/Gedungpolibatam.jpg')", // 👉 ubah sesuai nama file kamu
+        backgroundImage: "url('/images/Gedungpolibatam.jpg')",
       }}
     >
-      {/* Overlay opsional (hapus kalau gak mau efek gelap sedikit) */}
+      {/* Overlay */}
       <div className="absolute inset-0 bg-black/20" />
 
       <div className="relative w-full max-w-md bg-white rounded-[2rem] shadow-[0_0_40px_rgba(0,0,0,0.15)] p-8 z-10">
-        {/* === Tabs === */}
-        <div className="flex justify-center mb-6">
-          {(['login', 'register'] as Tab[]).map((tab) => (
-            <button
-              key={tab}
-              className={`px-6 py-2 rounded-full font-semibold transition-colors duration-300 ${
-                activeTab === tab
-                  ? 'bg-[#183A64] text-[#ADE7F7]'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              } ${tab === 'register' ? 'ml-2' : ''}`}
-              onClick={() => setActiveTab(tab)}
-            >
-              {tab === 'login' ? 'Login' : 'Register'}
-            </button>
-          ))}
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-[#183A64] mb-2">Login</h1>
         </div>
 
-        {/* === Error & Success === */}
+        {/* Error Message */}
         {error && (
           <div className="bg-red-50 border border-red-300 text-red-600 text-sm p-3 rounded-lg mb-4 text-center">
             {error}
           </div>
         )}
-        {success && (
-          <div className="bg-green-50 border border-green-300 text-green-600 text-sm p-3 rounded-lg mb-4 text-center">
-            {success}
-          </div>
-        )}
 
-        {/* === LOGIN FORM === */}
-        {activeTab === 'login' && (
-          <form onSubmit={handleLogin} className="space-y-5">
-            <input
-              type="email"
-              placeholder="Email"
-              className="w-full border-2 border-[#183A64] rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#183A64]"
-              value={loginEmail}
-              onChange={(e) => setLoginEmail(e.target.value)}
-              required
-            />
-            <input
-              type="password"
-              placeholder="Password"
-              className="w-full border-2 border-[#183A64] rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#183A64]"
-              value={loginPassword}
-              onChange={(e) => setLoginPassword(e.target.value)}
-              required
-            />
-            <select
-              value={loginRole}
-              onChange={(e) => setLoginRole(e.target.value)}
-              className="w-full border-2 border-[#183A64] rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#183A64]"
-            >
-              <option value="tim-akreditasi">Tim Akreditasi</option>
-              <option value="p4m">P4M</option>
-              <option value="tu">Tata Usaha</option>
-            </select>
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-[#183A64] text-white font-semibold py-3 rounded-xl hover:bg-[#ADE7F7] hover:text-[#183A64] transition-colors duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Loading...' : 'Masuk'}
-            </button>
-          </form>
-        )}
-
-        {/* === REGISTER FORM === */}
-        {activeTab === 'register' && (
-          <form onSubmit={handleRegister} className="space-y-5">
-            <input
-              type="text"
-              placeholder="Nama Lengkap"
-              className="w-full border-2 border-[#183A64] rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#183A64]"
-              value={regName}
-              onChange={(e) => setRegName(e.target.value)}
-              required
-            />
-            <input
-              type="email"
-              placeholder="Email"
-              className="w-full border-2 border-[#183A64] rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#183A64]"
-              value={regEmail}
-              onChange={(e) => setRegEmail(e.target.value)}
-              required
-            />
-            <input
-              type="password"
-              placeholder="Password"
-              className="w-full border-2 border-[#183A64] rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#183A64]"
-              value={regPassword}
-              onChange={(e) => setRegPassword(e.target.value)}
-              required
-            />
-            <select
-              value={regRole}
-              onChange={(e) => setRegRole(e.target.value)}
-              className="w-full border-2 border-[#183A64] rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#183A64]"
-            >
-              <option value="tim-akreditasi">Tim Akreditasi</option>
-              <option value="p4m">P4M</option>
-              <option value="tu">Tata Usaha</option>
-            </select>
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-[#183A64] text-white font-semibold py-3 rounded-xl hover:bg-[#ADE7F7] hover:text-[#183A64] transition-colors duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Loading...' : 'Daftar'}
-            </button>
-          </form>
-        )}
-
-        {/* === Footer Switch === */}
-        <div className="text-center mt-6">
-          {activeTab === 'login' ? (
-            <p className="text-sm text-gray-600">
-              Belum punya akun?{' '}
-              <button
-                onClick={() => setActiveTab('register')}
-                className="text-[#183A64] hover:text-[#ADE7F7] font-medium transition-colors"
-              >
-                Daftar
-              </button>
-            </p>
-          ) : (
-            <p className="text-sm text-gray-600">
-              Sudah punya akun?{' '}
-              <button
-                onClick={() => setActiveTab('login')}
-                className="text-[#183A64] hover:text-[#ADE7F7] font-medium transition-colors"
-              >
-                Masuk
-              </button>
-            </p>
-          )}
-        </div>
+        {/* Login Form */}
+        <form onSubmit={handleLogin} className="space-y-5" autoComplete="off">
+          <input
+            type="email"
+            placeholder="Email"
+            className="w-full border-2 border-[#183A64] rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#183A64]"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            autoComplete="off"
+            required
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            className="w-full border-2 border-[#183A64] rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#183A64]"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="new-password"
+            required
+          />
+          <select
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+            className="w-full border-2 border-[#183A64] rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#183A64]"
+          >
+            <option value="TU">Tata Usaha</option>
+            <option value="P4M">P4M</option>
+            <option value="Tim Akreditasi">Tim Akreditasi</option>
+          </select>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-[#183A64] text-white font-semibold py-3 rounded-xl hover:bg-[#ADE7F7] hover:text-[#183A64] transition-colors duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {loading ? 'Loading...' : 'Masuk'}
+          </button>
+        </form>
       </div>
     </div>
   );

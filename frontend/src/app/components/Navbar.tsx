@@ -26,8 +26,7 @@ export default function Navbar() {
   // === Kondisi untuk menyembunyikan menu ===
   const hideMenu =
     pathname.startsWith('/dashboard') ||
-    pathname === '/login' ||
-    pathname === '/register';
+    pathname === '/login';
 
   const isDashboard = pathname.startsWith('/dashboard');
 
@@ -170,8 +169,11 @@ export default function Navbar() {
 
       {/* Profile Modal */}
       <Dialog open={profileModalOpen} onOpenChange={setProfileModalOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
+          <DialogContent className="sm:max-w-[425px]">
+            {/* Hidden fields to discourage browser credential autofill in the profile modal */}
+            <input type="text" style={{ display: 'none' }} autoComplete="username" tabIndex={-1} />
+            <input type="password" style={{ display: 'none' }} autoComplete="current-password" tabIndex={-1} />
+            <DialogHeader>
             <DialogTitle>Edit Profile</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -205,6 +207,7 @@ export default function Navbar() {
                 type="text"
                 value={profileForm.username}
                 onChange={(e) => setProfileForm({ ...profileForm, username: e.target.value })}
+                 autoComplete="off"
                 className="col-span-3 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#183A64]"
                 placeholder="Enter new username"
               />
@@ -218,6 +221,7 @@ export default function Navbar() {
                 type="password"
                 value={profileForm.currentPassword}
                 onChange={(e) => setProfileForm({ ...profileForm, currentPassword: e.target.value })}
+                 autoComplete="current-password"
                 className="col-span-3 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#183A64]"
                 placeholder="Enter current password"
               />
@@ -231,6 +235,7 @@ export default function Navbar() {
                 type="password"
                 value={profileForm.newPassword}
                 onChange={(e) => setProfileForm({ ...profileForm, newPassword: e.target.value })}
+                 autoComplete="new-password"
                 className="col-span-3 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#183A64]"
                 placeholder="Enter new password"
               />
@@ -244,6 +249,7 @@ export default function Navbar() {
                 type="password"
                 value={profileForm.confirmPassword}
                 onChange={(e) => setProfileForm({ ...profileForm, confirmPassword: e.target.value })}
+                 autoComplete="new-password"
                 className="col-span-3 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#183A64]"
                 placeholder="Confirm new password"
               />

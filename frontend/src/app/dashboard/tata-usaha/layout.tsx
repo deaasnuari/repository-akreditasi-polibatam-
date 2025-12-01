@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { logout } from '@/services/auth';
 
-// 🔔 Import komponen modal dari shadcn/ui
+// ðŸ”” Import komponen modal dari shadcn/ui
 import {
   AlertDialog,
   AlertDialogTrigger,
@@ -118,8 +118,6 @@ export default function LayoutTataUsaha({
 
   const menuItems = [
     { name: 'Dashboard', href: '/dashboard/tata-usaha', icon: <Home size={18} /> },
-    { name: 'LKPS', href: '/dashboard/tata-usaha/lkps', icon: <FileText size={18} /> },
-    { name: 'Bukti Pendukung', href: '/dashboard/tata-usaha/bukti-pendukung', icon: <Upload size={18} /> },
     { name: 'Manajemen Akun', href: '/dashboard/tata-usaha/manajemen-akun', icon: <Users size={18} /> },
   ];
 
@@ -267,3 +265,5 @@ export default function LayoutTataUsaha({
     </div>
   );
 }
+
+

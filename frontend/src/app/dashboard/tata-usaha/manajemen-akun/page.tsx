@@ -1,17 +1,64 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { UserPlus, Shield, Edit2, Trash2, X } from "lucide-react";
+import { fetchAllUsers, createUser, deleteUser as apiDeleteUser, updateUser as apiUpdateUser } from '@/services/manajemenAkunService';
 
 export default function ManajemenAkun() {
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
+  const [editingRoleSelected, setEditingRoleSelected] = useState<string>('Tim Akreditasi');
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [selectedRole, setSelectedRole] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
-  const [users, setUsers] = useState([
-    { id: 1, name: "Dr. Ahmad Sutanto", email: "ahmad.sutanto@polibatam.ac.id", role: "Tim Akreditasi", status: "Aktif", lastLogin: "2024-12-19 09:30" },
-    { id: 2, name: "Drs. Budi Hartono", email: "budi.hartono@polibatam.ac.id", role: "Tim Akreditasi", status: "Aktif", lastLogin: "Profil belum lengkap" },
-    { id: 3, name: "Dr. Maya Sari", email: "maya.sari@polibatam.ac.id", role: "P4M", status: "Tidak Aktif", lastLogin: "2024-12-10 14:20" },
-  ]);
+  const [users, setUsers] = useState<any[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      setLoadingUsers(true);
+      try {
+        const data = await fetchAllUsers();
+        if (!mounted) return;
+        // map backend fields to UI-friendly names
+        const mapped = (data || []).map((u: any) => ({
+          id: u.id,
+          nama_lengkap: u.nama_lengkap,
+          email: u.email,
+          username: u.username,
+          role: u.role,
+          status: u.status === 'aktif' ? 'Aktif' : u.status,
+          created_at: u.created_at,
+        }));
+        setUsers(mapped);
+      } catch (err) {
+        console.error('fetch users failed', err);
+      } finally {
+        if (mounted) setLoadingUsers(false);
+      }
+    })();
+    // read current user id from sessionStorage if available
+    try {
+      if (typeof window !== 'undefined') {
+        const u = sessionStorage.getItem('user');
+        if (u) {
+          const parsed = JSON.parse(u);
+          if (parsed && parsed.id) setCurrentUserId(parsed.id);
+        }
+      }
+    } catch (err) {
+      // ignore
+    }
+    return () => { mounted = false; };
+  }, []);
+
+  // determine whether the modal should show full editable fields
+  // Rules:
+  // - creating a new user -> show full fields
+  // - editing a TU account -> show full fields ONLY if the TU account is the current logged-in user
+  // - editing non-TU accounts -> do NOT show full fields (only role & status)
+  const isEditingOwnAccount = !!(editingUser && currentUserId && editingUser.id === currentUserId);
+  const showFullFields = !editingUser || (editingUser?.role === 'TU' && isEditingOwnAccount);
 
 
   return (
@@ -21,6 +68,7 @@ export default function ManajemenAkun() {
         <button 
           onClick={() => {
             setEditingUser(null);
+            setEditingRoleSelected('Tim Akreditasi');
             setShowModal(true);
           }}
           className="bg-[#001B79] text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-800"
@@ -31,7 +79,7 @@ export default function ManajemenAkun() {
       <p className="text-gray-600">Kelola akun Tim Akreditasi dan P4M</p>
 
       {/* Statistik */}
-      <div className="grid grid-cols-5 gap-4">
+      <div className="grid grid-cols-6 gap-4">
         <StatBox 
           label="Total Users" 
           value={users.length.toString()} 
@@ -54,6 +102,11 @@ export default function ManajemenAkun() {
           value={users.filter(u => u.role === "P4M").length.toString()} 
           icon={<Shield size={18} />} 
         />
+        <StatBox 
+          label="TU" 
+          value={users.filter(u => u.role === "TU").length.toString()} 
+          icon={<Shield size={18} />} 
+        />
       </div>
 
       {/* Daftar Users */}
@@ -68,6 +121,7 @@ export default function ManajemenAkun() {
             >
               <option value="all">Semua Role</option>
               <option value="Tim Akreditasi">Tim Akreditasi</option>
+              <option value="TU">TU</option>
               <option value="P4M">P4M</option>
             </select>
             <select 
@@ -99,7 +153,7 @@ export default function ManajemenAkun() {
                 .map((u) => (
                 <tr key={u.id} className="border-b hover:bg-gray-50">
                   <td className="py-2 px-2">
-                    <div className="font-medium">{u.name}</div>
+                    <div className="font-medium">{u.nama_lengkap || u.name}</div>
                     <div className="text-xs text-gray-500">{u.email}</div>
                   </td>
                   <td className="py-2 px-2">
@@ -121,11 +175,12 @@ export default function ManajemenAkun() {
                       {u.status}
                     </span>
                   </td>
-                  <td className="py-2 px-2">{u.lastLogin}</td>
+                  <td className="py-2 px-2">{u.lastLogin || (u.created_at ? new Date(u.created_at).toLocaleString() : '-')}</td>
                   <td className="py-2 px-2 flex gap-2 items-center">
                     <button 
                       onClick={() => {
                         setEditingUser(u);
+                        setEditingRoleSelected(u.role || 'Tim Akreditasi');
                         setShowModal(true);
                       }}
                       className="text-blue-600 hover:text-blue-800"
@@ -137,7 +192,14 @@ export default function ManajemenAkun() {
                     <button 
                       onClick={() => {
                         if (confirm('Apakah Anda yakin ingin menghapus user ini?')) {
-                          setUsers(users.filter(user => user.id !== u.id));
+                          // call backend
+                          apiDeleteUser(u.id).then((res:any) => {
+                            if (res.success) {
+                              setUsers(users.filter(user => user.id !== u.id));
+                            } else {
+                              alert(res.message || 'Gagal menghapus user');
+                            }
+                          }).catch(() => alert('Gagal menghapus user'));
                         }
                       }}
                       className="text-red-600 hover:text-red-800"
@@ -157,7 +219,7 @@ export default function ManajemenAkun() {
       {/* Modal Tambah/Edit User */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+          <div className="bg-white rounded-lg p-4 w-full max-w-sm">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">{editingUser ? 'Edit User' : 'Tambah User'}</h3>
               <button onClick={() => setShowModal(false)} className="text-gray-500 hover:text-gray-700">
@@ -165,83 +227,253 @@ export default function ManajemenAkun() {
               </button>
             </div>
             
-            <form onSubmit={(e) => {
+            <form onSubmit={async (e) => {
               e.preventDefault();
               const formData = new FormData(e.currentTarget);
-              const newUser = {
-                id: editingUser ? editingUser.id : users.length + 1,
-                name: formData.get('name') as string,
-                email: formData.get('email') as string,
-                role: formData.get('role') as string,
-             status: editingUser ? (formData.get('status') as string) : 'Aktif',
-                lastLogin: editingUser ? editingUser.lastLogin : '-'
-              };
+              const nama_lengkap = formData.get('name') as string | null;
+              const email = formData.get('email') as string | null;
+              const role = (formData.get('role') as string) || editingRoleSelected;
+              const status = editingUser ? (formData.get('status') as string) : 'aktif';
+              const password = formData.get('password') as string | null;
+              const currentPassword = formData.get('currentPassword') as string | null;
+              const confirmPassword = formData.get('confirmPassword') as string | null;
 
-              if (editingUser) {
-                setUsers(users.map(u => u.id === editingUser.id ? newUser : u));
+              // determine whether to require full fields on submit
+              // only require full fields if creating new user or original user was TU
+              const submitShowFull = showFullFields;
+
+              // validation per rules
+              if (!editingUser) {
+                if (!nama_lengkap || !email || !role || !password) {
+                  alert('Nama, email, role dan password (untuk user baru) wajib diisi');
+                  return;
+                }
+              } else if (submitShowFull) {
+                if (!nama_lengkap || !email || !role) {
+                  alert('Nama, email, dan role wajib diisi');
+                  return;
+                }
+                // If editing own account and attempting to change password, validate current and confirm
+                if (editingUser && isEditingOwnAccount && password) {
+                  if (!currentPassword) {
+                    alert('Masukkan password sekarang untuk mengganti password');
+                    return;
+                  }
+                  if (!confirmPassword || confirmPassword !== password) {
+                    alert('Konfirmasi password baru tidak cocok');
+                    return;
+                  }
+                }
               } else {
-                setUsers([...users, newUser]);
+                if (!role) {
+                  alert('Role wajib diisi');
+                  return;
+                }
               }
-              setShowModal(false);
-            }}>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap</label>
-                  <input
-                    type="text"
-                    name="name"
-                    defaultValue={editingUser?.name || ''}
-                    required
-                    className="w-full border rounded-lg px-3 py-2"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                  <input
-                    type="email"
-                    name="email"
-                    defaultValue={editingUser?.email || ''}
-                    required
-                    className="w-full border rounded-lg px-3 py-2"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
-                  <select
-                    name="role"
-                    defaultValue={editingUser?.role || 'Tim Akreditasi'}
-                    required
-                    className="w-full border rounded-lg px-3 py-2"
-                  >
-                    <option value="Tim Akreditasi">Tim Akreditasi</option>
-                    <option value="P4M">P4M</option>
-                  </select>
-                </div>
-                  {editingUser && <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                  <select
-                    name="status"
-                    defaultValue={editingUser?.status || 'Aktif'}
-                    required
-                    className="w-full border rounded-lg px-3 py-2"
-                  >
-                    <option value="Aktif">Aktif</option>
-                    <option value="Tidak Aktif">Tidak Aktif</option>
-                  </select>
-                  </div>}
+
+              try {
+                if (editingUser) {
+                  // update user (password optional)
+                  const statusNormalized = typeof status === 'string' ? status.toLowerCase() : status;
+                  const payload: any = {
+                    role,
+                    status: statusNormalized,
+                  };
+                  if (submitShowFull) {
+                    payload.nama_lengkap = nama_lengkap;
+                    payload.email = email;
+                    if (password) payload.password = password;
+                    if (currentPassword) payload.currentPassword = currentPassword;
+                  }
+                  const res = await apiUpdateUser(editingUser.id, payload);
+                  if (res.success) {
+                    const updated = res.data;
+                    const mappedUpdated = {
+                      id: updated.id,
+                      nama_lengkap: updated.nama_lengkap,
+                      email: updated.email,
+                      username: updated.username,
+                      role: updated.role,
+                      status: updated.status === 'aktif' ? 'Aktif' : updated.status,
+                      created_at: updated.created_at,
+                    };
+                    setUsers(users.map(u => u.id === editingUser.id ? mappedUpdated : u));
+                    setShowModal(false);
+                  } else {
+                    alert(res.message || 'Gagal update user');
+                  }
+                } else {
+                  // create user: derive username dari email local-part
+                  const username = email.split('@')[0];
+                  const res = await createUser({
+                    nama_lengkap,
+                    email,
+                    username,
+                    password,
+                    role,
+                    status: status.toLowerCase()
+                  });
+                  if (res.success) {
+                    const created = res.data;
+                    const mappedCreated = {
+                      id: created.id,
+                      nama_lengkap: created.nama_lengkap,
+                      email: created.email,
+                      username: created.username,
+                      role: created.role,
+                      status: created.status === 'aktif' ? 'Aktif' : created.status,
+                      created_at: created.created_at,
+                    };
+                    setUsers([...users, mappedCreated]);
+                    setShowModal(false);
+                  } else {
+                    alert(res.message || 'Gagal membuat user');
+                  }
+                }
+              } catch (err) {
+                console.error(err);
+                alert('Terjadi kesalahan');
+              }
+            }} autoComplete="off">
+              {/* Hidden dummy fields to prevent browser autofill from populating real inputs */}
+              <input type="text" name="__fake_user" autoComplete="username" style={{ display: 'none' }} tabIndex={-1} />
+              <input type="password" name="__fake_pass" autoComplete="current-password" style={{ display: 'none' }} tabIndex={-1} />
+              <div className="space-y-2">
+                {showFullFields ? (
+                  <>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Nama Lengkap</label>
+                      <input
+                        type="text"
+                        name="name"
+                        required={true}
+                        autoComplete="off"
+                        className="w-full border rounded-lg px-2 py-1 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
+                      <input
+                        type="email"
+                        name="email"
+                        required={true}
+                        autoComplete="off"
+                        className="w-full border rounded-lg px-2 py-1 text-sm"
+                      />
+                    </div>
+                    <div>
+                      {editingUser && isEditingOwnAccount ? (
+                        <>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">Password Sekarang</label>
+                          <input
+                            type="password"
+                            name="currentPassword"
+                            placeholder="Masukkan password saat ini"
+                            autoComplete="current-password"
+                            className="w-full border rounded-lg px-2 py-1 text-sm mb-2"
+                          />
+                          <label className="block text-xs font-medium text-gray-700 mb-1">Password Baru</label>
+                          <input
+                            type="password"
+                            name="password"
+                            placeholder="Masukkan password baru"
+                            autoComplete="new-password"
+                            className="w-full border rounded-lg px-2 py-1 text-sm mb-2"
+                          />
+                          <label className="block text-xs font-medium text-gray-700 mb-1">Konfirmasi Password Baru</label>
+                          <input
+                            type="password"
+                            name="confirmPassword"
+                            placeholder="Konfirmasi password baru"
+                            autoComplete="new-password"
+                            className="w-full border rounded-lg px-2 py-1 text-sm"
+                          />
+                        </>
+                      ) : (
+                        <>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">Password {editingUser ? '(kosongkan jika tidak ingin mengganti)' : ''}</label>
+                          <input
+                            type="password"
+                            name="password"
+                             autoComplete="new-password"
+                            className="w-full border rounded-lg px-2 py-1 text-sm"
+                            {...(editingUser ? {} : { required: true })}
+                          />
+                        </>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Role</label>
+                      <select
+                        name="role"
+                        value={editingRoleSelected}
+                        onChange={(e) => setEditingRoleSelected(e.target.value)}
+                        required
+                        className="w-full border rounded-lg px-2 py-1 text-sm"
+                      >
+                        <option value="Tim Akreditasi">Tim Akreditasi</option>
+                        <option value="P4M">P4M</option>
+                        <option value="TU">TU</option>
+                      </select>
+                    </div>
+                    {editingUser && (
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
+                        <select
+                          name="status"
+                          required
+                          className="w-full border rounded-lg px-2 py-1 text-sm"
+                        >
+                          <option value="">Pilih Status</option>
+                          <option value="Aktif">Aktif</option>
+                          <option value="Tidak Aktif">Tidak Aktif</option>
+                        </select>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Role</label>
+                      <select
+                        name="role"
+                        value={editingRoleSelected}
+                        onChange={(e) => setEditingRoleSelected(e.target.value)}
+                        required
+                        className="w-full border rounded-lg px-2 py-1 text-sm"
+                      >
+                        <option value="Tim Akreditasi">Tim Akreditasi</option>
+                        <option value="P4M">P4M</option>
+                        <option value="TU">TU</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
+                      <select
+                        name="status"
+                        required
+                        className="w-full border rounded-lg px-2 py-1 text-sm"
+                      >
+                        <option value="">Pilih Status</option>
+                        <option value="Aktif">Aktif</option>
+                        <option value="Tidak Aktif">Tidak Aktif</option>
+                      </select>
+                    </div>
+                  </>
+                )}
               </div>
 
-              <div className="mt-6 flex justify-end gap-3">
+              <div className="mt-4 flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+                  className="px-3 py-1 text-sm border rounded-lg hover:bg-gray-50"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
                   {editingUser ? 'Simpan Perubahan' : 'Tambah User'}
                 </button>
