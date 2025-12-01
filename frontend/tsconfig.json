@@ -35,7 +35,7 @@
     "**/*.ts",
     "**/*.tsx",
     "src/types/**/*.d.ts" // ✅ tambahkan baris ini
-  ],
+, "src/app/dashboard/tim-akreditasi/NotificationBell.jsx"  ],
   "exclude": [
     "node_modules"
   ]

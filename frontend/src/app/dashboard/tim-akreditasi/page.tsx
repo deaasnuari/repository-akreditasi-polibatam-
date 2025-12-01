@@ -8,6 +8,7 @@ import { Home, FileText, BookOpen, Upload, BarChart3, Download, Menu, X, Bell, U
 export default function DashboardAkreditasi() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [lastLogin, setLastLogin] = useState<string | null>(null);
+  const [notifOpen, setNotifOpen] = useState(false);
 
   const menuItems = [
     { icon: Home, label: 'Dashboard', active: true },
@@ -30,15 +31,20 @@ export default function DashboardAkreditasi() {
   ];
 
   useEffect(() => {
-    (async () => {
-      try {
-        const me = await getMyProfile();
-        if (me?.lastLogin) setLastLogin(me.lastLogin);
-      } catch (e) {
-        // ignore for now
+    // Selalu set ke waktu sekarang setiap kali halaman dibuka
+    setLastLogin(new Date().toISOString());
+    
+    // Close notification dropdown when clicking outside
+    const handleClickOutside = (event) => {
+      const target = event.target;
+      if (notifOpen && !target.closest('.notification-container')) {
+        setNotifOpen(false);
       }
-    })();
-  }, []);
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [notifOpen]);
 
   const lastLoginText = useMemo(() => {
     if (!lastLogin) return null;
@@ -60,27 +66,75 @@ export default function DashboardAkreditasi() {
 
       {/* Main Content */}
       <div className="flex-1 w-full">
-        {/* Toggle Button - Fixed Position */}
-       
-       
-
         {/* Dashboard Content */}
         <main className="w-full p-4 md:p-6 max-w-full overflow-x-hidden">
-          {/* Info Banner */}
+          {/* Info Banner with Notification */}
           <div className="bg-blue-100 border-l-4 border-blue-900 p-4 rounded-lg mb-6">
-            <div className="flex justify-between items-center">
-              <div>
+            <div className="flex justify-between items-start">
+              <div className="flex-1">
                 <h2 className="font-bold text-blue-900 mb-1">Repository Digital Data Akreditasi</h2>
                 <p className="text-sm text-blue-800">Politeknik Negeri Batam</p>
                 <p className="text-xs text-blue-700 mt-2">Sistem terintegrasi untuk mengelola dokumen akreditasi institusi dan program studi</p>
               </div>
-              <div className="text-right">
-                <p className="text-xs text-blue-800">Terakhir Login</p>
-                {lastLoginText ? (
-                  <p className="font-semibold text-blue-900">{lastLoginText}</p>
-                ) : (
-                  <p className="text-sm text-blue-900">-</p>
-                )}
+              <div className="flex items-center gap-4">
+                <div className="text-right">
+                  <p className="text-xs text-blue-800">Terakhir Login</p>
+                  {lastLoginText ? (
+                    <p className="font-semibold text-blue-900">{lastLoginText}</p>
+                  ) : (
+                    <p className="text-sm text-blue-900">-</p>
+                  )}
+                </div>
+                <div className="relative notification-container">
+                  <button 
+                    onClick={() => setNotifOpen(!notifOpen)}
+                    className="relative p-2 hover:bg-blue-200 rounded-full transition-colors"
+                    aria-label="Notifikasi"
+                  >
+                    <Bell className="text-blue-900" size={24} />
+                    {notifikasi.length > 0 && (
+                      <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-blue-100 animate-pulse"></span>
+                    )}
+                  </button>
+                  
+                  {/* Notification Dropdown */}
+                  {notifOpen && (
+                    <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50 animate-fadeIn">
+                      <div className="p-4 border-b border-gray-200 bg-blue-50">
+                        <div className="flex justify-between items-center">
+                          <h3 className="font-bold text-gray-800">Notifikasi</h3>
+                          <span className="text-xs bg-red-500 text-white px-2 py-1 rounded-full">{notifikasi.length}</span>
+                        </div>
+                      </div>
+                      <div className="max-h-96 overflow-y-auto">
+                        {notifikasi.length > 0 ? (
+                          notifikasi.map((item, idx) => (
+                            <div key={idx} className="p-4 hover:bg-gray-50 border-b border-gray-100 cursor-pointer transition-colors">
+                              <div className="flex items-start justify-between mb-2">
+                                <h4 className="font-semibold text-sm text-gray-800">{item.title}</h4>
+                                <div className="w-2 h-2 bg-orange-500 rounded-full mt-1.5 flex-shrink-0 ml-2"></div>
+                              </div>
+                              <p className="text-xs text-gray-600">{item.desc}</p>
+                              <p className="text-xs text-gray-400 mt-2">Baru saja</p>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="p-8 text-center">
+                            <Bell className="mx-auto text-gray-300 mb-2" size={32} />
+                            <p className="text-sm text-gray-500">Tidak ada notifikasi</p>
+                          </div>
+                        )}
+                      </div>
+                      {notifikasi.length > 0 && (
+                        <div className="p-3 border-t border-gray-200 bg-gray-50">
+                          <button className="w-full text-center text-xs text-blue-600 hover:text-blue-800 font-medium">
+                            Tandai semua sudah dibaca
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -98,42 +152,24 @@ export default function DashboardAkreditasi() {
                 </div>
                 <div className="relative pt-1">
                   <div className="flex items-center justify-center">
-                    <div className="relative w-20 h-20">
-                      <svg className="transform -rotate-90 w-20 h-20">
-                        <circle cx="40" cy="40" r="36" stroke="#e5e7eb" strokeWidth="8" fill="none" />
-                        <circle cx="40" cy="40" r="36" stroke="#1e3a8a" strokeWidth="8" fill="none"
-                          strokeDasharray="226" strokeDashoffset="56.5" />
-                      </svg>
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-xl font-bold text-blue-900">75%</span>
-                      </div>
-                    </div>
+                    
                   </div>
                 </div>
               </div>
             </Link>
 
-            {/* Progress IED - Clickable */}
+            {/* Progress LED - Clickable */}
             <Link href="/dashboard/tim-akreditasi/led">
               <div className="bg-white p-4 rounded-lg shadow cursor-pointer hover:shadow-xl hover:scale-105 transition-all duration-200">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
                     <BookOpen className="text-green-700" size={20} />
                   </div>
-                  <h3 className="font-semibold text-gray-700">Progress IED</h3>
+                  <h3 className="font-semibold text-gray-700">Progress LED</h3>
                 </div>
                 <div className="relative pt-1">
                   <div className="flex items-center justify-center">
-                    <div className="relative w-20 h-20">
-                      <svg className="transform -rotate-90 w-20 h-20">
-                        <circle cx="40" cy="40" r="36" stroke="#e5e7eb" strokeWidth="8" fill="none" />
-                        <circle cx="40" cy="40" r="36" stroke="#15803d" strokeWidth="8" fill="none"
-                          strokeDasharray="226" strokeDashoffset="56.5" />
-                      </svg>
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-xl font-bold text-green-700">75%</span>
-                      </div>
-                    </div>
+                    
                   </div>
                 </div>
               </div>
@@ -148,9 +184,9 @@ export default function DashboardAkreditasi() {
                   </div>
                   <h3 className="font-semibold text-gray-700">Dokumen Upload</h3>
                 </div>
-                <div className="text-center mt-4">
-                  <div className="text-3xl font-bold text-orange-700">20</div>
-                  <p className="text-xs text-gray-600 mt-1">Total dokumen terupload</p>
+                <div className="text-left mt-4">
+                  
+                  <p className="text-xs text-gray-600 mt-1">Dokumen terupload</p>
                 </div>
               </div>
             </Link>
@@ -164,18 +200,15 @@ export default function DashboardAkreditasi() {
                   </div>
                   <h3 className="font-semibold text-gray-700">Status Akreditasi</h3>
                 </div>
-                <div className="text-center mt-4">
-                  <div className="text-3xl font-bold text-purple-700">B</div>
-                  <p className="text-xs text-gray-600 mt-1">Akreditasi Terakhir</p>
-                </div>
+               
               </div>
             </Link>
           </div>
 
           {/* Bottom Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-6">
             {/* Aktivitas Terbaru */}
-            <div className="lg:col-span-2 bg-white rounded-lg shadow p-4">
+            <div className="bg-white rounded-lg shadow p-4">
               <h3 className="font-bold text-gray-800 mb-4">Aktivitas Terbaru</h3>
               <div className="space-y-3">
                 {aktivitasTerbaru.map((item, idx) => (
@@ -185,22 +218,6 @@ export default function DashboardAkreditasi() {
                       <p className="font-medium text-gray-800">{item.title}</p>
                       <p className="text-xs text-gray-500">{item.time}</p>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Notifikasi */}
-            <div className="bg-white rounded-lg shadow p-4">
-              <h3 className="font-bold text-gray-800 mb-4">Notifikasi</h3>
-              <div className="space-y-3">
-                {notifikasi.map((item, idx) => (
-                  <div key={idx} className="p-3 bg-orange-50 border-l-4 border-orange-500 rounded">
-                    <div className="flex items-start justify-between">
-                      <h4 className="font-semibold text-sm text-gray-800">{item.title}</h4>
-                      <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                    </div>
-                    <p className="text-xs text-gray-600 mt-1">{item.desc}</p>
                   </div>
                 ))}
               </div>

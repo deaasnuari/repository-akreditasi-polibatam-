@@ -3,6 +3,7 @@ import Link from "next/link";
 import React, { useEffect, useState } from 'react';
 import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import { usePathname } from "next/navigation";
+import NotificationBell from '../NotificationBell';
 const API_BASE = 'http://localhost:5000/api/budaya-mutu'; 
 
 export default function LKPSPage() {
@@ -904,7 +905,8 @@ export default function LKPSPage() {
                 <p className="text-sm text-gray-600">Kelola data kuantitatif berdasarkan kriteria akreditasi</p>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center">
+              <NotificationBell />
               <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
                 <Save size={16} /> Save Draft
               </button>
