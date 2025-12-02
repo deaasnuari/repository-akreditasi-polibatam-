@@ -67,18 +67,17 @@ export async function getAllLEDData(user_id: number): Promise<Record<string, Tab
 /* ==================== SAVE LED TAB ==================== */
 export async function saveLEDTab(
   user_id: number,
-  tab: string,
+  subtab: string,
   data: TabData
 ): Promise<any> {
   try {
-    const res = await fetch(`${API_BASE_LED}/save`, {
+    const res = await fetch(`${API_BASE_LED}/${user_id}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        user_id,
-        tab,
+        subtab,
         data,
       }),
     });
