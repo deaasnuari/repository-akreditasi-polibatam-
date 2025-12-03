@@ -123,6 +123,8 @@ model users {
   diferensiasi_misi    diferensiasi_misi[]
   budaya_mutu          budaya_mutu[]
   led                  led[]
+  criteria_scores criteria_scores[]
+
 }
 
 // =========================
@@ -143,4 +145,52 @@ model led {
   @@index([user_id], map: "idx_led_user")
 
   @@map("led")
+}
+// =========================
+// MATRiks PENILAIAN LAM (RUBRIK STATIS)
+// =========================
+model criteria_items {
+  id              Int      @id @default(autoincrement())
+  jenis           String?  @db.VarChar(50) // I, P, O
+  no_urut         Int?
+  no_butir        String?  @db.VarChar(50)
+  elemen_penilaian String  @db.VarChar(500)
+  deskriptor      String?  @db.Text
+
+  descriptor_4    String?  @db.Text // Sangat Baik
+  descriptor_3    String?  @db.Text // Baik
+  descriptor_2    String?  @db.Text // Cukup
+  descriptor_1    String?  @db.Text // Kurang
+
+  bobot_raw       Float    // angka bobot dalam format 400 poin (contoh: 5, 7.5, 10)
+  bobot_fraction  Float?   // nilai bobot 0–1 (otomatis diisi di backend saat seeding)
+
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  // Relasi
+  scores criteria_scores[]
+}
+
+// =========================
+// SKOR PRODI (DINAMIS)
+// =========================
+model criteria_scores {
+  id              Int      @id @default(autoincrement())
+  user_id         Int      // prodi yang melakukan penilaian
+  criteria_item_id Int
+
+  skor_prodi      Int      // 1-4 sesuai rubrik / radio input
+  skor_terbobot   Float    @default(0.0)  // dihitung = skor_prodi * (bobot_raw / 400)
+
+  updated_at      DateTime @updatedAt
+  created_at      DateTime @default(now())
+
+  // Relasi
+  user     users          @relation(fields: [user_id], references: [id])
+  criterion criteria_items @relation(fields: [criteria_item_id], references: [id])
+
+  @@unique([user_id, criteria_item_id], name: "unique_score_per_prodi")
+  @@index([criteria_item_id], map: "idx_score_item")
+  @@index([user_id], map: "idx_score_user")
 }
