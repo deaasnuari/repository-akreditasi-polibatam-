@@ -1,17 +1,29 @@
 import express from "express";
+import {
+  getKriteria,
+  saveScore,
+  getScoresByProdi,
+  getSummaryByProdi,
+  getProdiList,
+} from "../controllers/matriksPenilaianController.js";
+import { authenticateToken } from "../middleware/authMiddleware.js";
+
 const router = express.Router();
 
-// contoh data dummy sementara
-const kriteriaList = [
-  { id: 1, nama: "Visi, Misi, Tujuan, dan Strategi" },
-  { id: 2, nama: "Tata Pamong, Tata Kelola, dan Kerjasama" },
-  { id: 3, nama: "Mahasiswa" },
-];
-
 // GET /api/matriks-penilaian/kriteria
-router.get("/kriteria", (req, res) => {
-  res.json(kriteriaList);
-});
+router.get("/kriteria", getKriteria);
+
+// POST /api/matriks-penilaian/scores
+router.post("/scores", authenticateToken, saveScore);
+
+// GET /api/matriks-penilaian/scores/:prodiId
+router.get("/scores/:prodiId", authenticateToken, getScoresByProdi);
+
+// GET /api/matriks-penilaian/summary/:prodiId
+router.get("/summary/:prodiId", authenticateToken, getSummaryByProdi);
+
+// GET /api/matriks-penilaian/prodi
+router.get("/prodi", getProdiList);
 
 // GET /api/matriks-penilaian/skenario
 router.get("/skenario", (req, res) => {

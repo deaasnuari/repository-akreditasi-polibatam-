@@ -1,12 +1,8 @@
 "use client";
-import { useEffect, useState } from "react";
-import { FileText, CheckCircle, AlertCircle, Activity, Bell } from "lucide-react";
-import Link from "next/link";
+import { useState } from "react";
+import { FileText, AlertCircle, Activity, Bell } from "lucide-react";
 
 export default function DashboardP4MPage() {
-  const [progressLKPS] = useState(75);
-  const [progressLED] = useState(60);
-
   return (
     <div className="p-6 space-y-6 font-sans">
       {/* === Header === */}
@@ -17,37 +13,29 @@ export default function DashboardP4MPage() {
         </p>
       </div>
 
-      {/* === Statistik Box === */}
-      <div className="grid grid-cols-4 gap-4">
+      {/* === Statistik Box (3 cards only) === */}
+      <div className="grid grid-cols-3 gap-4">
         <CardStat
-          title="Progress LKPS"
-          value={`${progressLKPS}%`}
+          title="Pending Review"
+          value="8"
+          subtitle="Dokumen menunggu review"
+          color="bg-orange-500"
+          icon={<AlertCircle size={20} />}
+          href="/dashboard/p4m/pending-review"
+        />
+        <CardStat
+          title="LKPS"
+          value="LKPS"
           color="bg-[#6C63FF]"
           icon={<FileText size={20} />}
           href="/dashboard/p4m/reviewLKPS"
         />
         <CardStat
-          title="Progress LED"
-          value={`${progressLED}%`}
+          title="LED"
+          value="LED"
           color="bg-green-500"
           icon={<FileText size={20} />}
           href="/dashboard/p4m/reviewLED"
-        />
-        <CardStat
-          title="Pending Reviews"
-          value="8"
-          subtitle="Dokumen menunggu review"
-          color="bg-orange-500"
-          icon={<AlertCircle size={20} />}
-          href="/dashboard/p4m/reviewLKPS"
-        />
-        <CardStat
-          title="Status Akreditasi"
-          value="B"
-          subtitle="Simulasi terakhir"
-          color="bg-green-600"
-          icon={<CheckCircle size={20} />}
-          href="/dashboard/p4m/matriks-penilaian"
         />
       </div>
 
@@ -117,26 +105,16 @@ function CardStat({ title, value, subtitle, color, icon, href }: any) {
       </div>
       <h3 className="text-2xl font-bold text-[#183A64]">{value}</h3>
       {subtitle && <p className="text-xs text-gray-500">{subtitle}</p>}
-
-      {/* progress bar */}
-      {title.includes("Progress") && (
-        <div className="mt-3 w-full bg-gray-200 rounded-full h-2">
-          <div
-            className={`${color} h-2 rounded-full`}
-            style={{ width: value }}
-          ></div>
-        </div>
-      )}
     </>
   );
 
   if (href) {
     return (
-      <Link href={href} className="block">
-        <div className="bg-white rounded-xl shadow p-4 transition-all duration-200 hover:shadow-lg hover:scale-[1.02]">
+      <a href={href} className="block">
+        <div className="bg-white rounded-xl shadow p-4 transition-all duration-200 hover:shadow-lg hover:scale-[1.02] cursor-pointer">
           <CardContent />
         </div>
-      </Link>
+      </a>
     );
   }
 
