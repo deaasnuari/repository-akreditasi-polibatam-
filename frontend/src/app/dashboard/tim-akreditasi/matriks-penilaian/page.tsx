@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { Calculator, Download, Save, RotateCcw, Trophy, Loader2, Eye, X, Trash2 } from 'lucide-react';
 import { matriksPenilaianService, type Criterion, type Scenario } from '@/services/matriksPenilaianService';
 
-type UserRole = 'TU' | 'Tim Akreditasi' | 'P4M';
 type AccreditationGrade = 'A' | 'B' | 'C' | 'Tidak Terakreditasi';
 
 type User = {
@@ -23,8 +22,7 @@ export default function MatriksPenilaianPage() {
   const [scenarioName, setScenarioName] = useState('');
   const [user, setUser] = useState<User | null>(null);
 
-  const userRole = user?.role as UserRole;
-  const canEdit = userRole === 'tim-akreditasi';
+  const canEdit = user?.role === 'tim-akreditasi';
 
   useEffect(() => {
     const storedUser = sessionStorage.getItem('user');
@@ -64,6 +62,8 @@ export default function MatriksPenilaianPage() {
   const handleSelectScore = async (id: number, val: number) => {
     if (!canEdit || !user) return;
 
+    const originalCriteria = [...criteria];
+    
     setCriteria(prev => prev.map(c => {
       if (c.id === id) {
         const skor = Math.max(1, Math.min(val, 4)); // ensure 1..4
@@ -81,13 +81,39 @@ export default function MatriksPenilaianPage() {
       });
     } catch (error) {
       console.error('Failed to save score:', error);
-      // Here you might want to revert the state change on error
+      alert('Gagal menyimpan skor ke server. Periksa koneksi atau hubungi administrator. Perubahan Anda telah dibatalkan.');
+      setCriteria(originalCriteria); // Revert to original state on error
     }
   };
 
   const totalScore = calculateTotalScore();
   const grade = getAccreditationGrade(totalScore);
   const progressPercentage = (totalScore / 4) * 100;
+
+  // New grouping logic that preserves order and handles A/B criteria
+  const groupDefinitions = [
+    { key: 'A', name: 'A. Kondisi Eksternal' },
+    { key: 'B', name: 'B. Profil Unit Pengelola Program Studi' },
+    { key: '1', name: 'Kriteria 1: Budaya Mutu' },
+    { key: '2', name: 'Kriteria 2: Relevansi Pendidikan' },
+    { key: '3', name: 'Kriteria 3: Relevansi Penelitian' },
+    { key: '4', name: 'Kriteria 4: Relevansi PkM' },
+    { key: '5', name: 'Kriteria 5: Akuntabilitas' },
+    { key: '6', name: 'Kriteria 6: Diferensiasi Misi' },
+  ];
+
+  const groupedAndOrderedCriteria = groupDefinitions.map(group => {
+    const items = criteria.filter(c => {
+      // Group by '1.' for Kriteria 1, etc.
+      if (!isNaN(parseInt(group.key))) {
+        return c.no_butir?.startsWith(`${group.key}.`);
+      }
+      // Group by exact match for 'A', 'B'
+      return c.no_butir === group.key;
+    });
+    return { ...group, items };
+  }).filter(group => group.items.length > 0);
+
 
   if (loading && criteria.length === 0) {
     return (
@@ -192,107 +218,116 @@ export default function MatriksPenilaianPage() {
               </thead>
 
               <tbody>
-                {criteria.map((c) => (
-                  <tr key={c.id} className="hover:bg-gray-50 align-top">
-                    <td className="px-3 py-3 border-b">{c.jenis ?? '-'}</td>
-                    <td className="px-3 py-3 border-b">{c.no_urut ?? c.urutan ?? '-'}</td>
-                    <td className="px-3 py-3 border-b">{c.no_butir ?? c.kode ?? '-'}</td>
-                    <td className="px-3 py-3 border-b text-center">
-                      {/* show as percent if bobot <=1 */}
-                      {c.bobot <= 1 ? `${(c.bobot * 100).toFixed(0)}%` : c.bobot}
-                    </td>
+                {groupedAndOrderedCriteria.map(group => (
+                  <React.Fragment key={group.key}>
+                    <tr className="bg-gray-200 sticky top-0 z-10">
+                      <th colSpan={11} className="px-3 py-2 text-left text-sm font-bold text-gray-800">
+                        {group.name}
+                      </th>
+                    </tr>
+                    {group.items.map((c) => (
+                      <tr key={c.id} className="hover:bg-gray-50 align-top">
+                        <td className="px-3 py-3 border-b">{c.jenis ?? '-'}</td>
+                        <td className="px-3 py-3 border-b">{c.no_urut ?? c.urutan ?? '-'}</td>
+                        <td className="px-3 py-3 border-b">{c.no_butir ?? c.kode ?? '-'}</td>
+                        <td className="px-3 py-3 border-b text-center">
+                          {/* show as percent if bobot <=1 */}
+                          {c.bobot <= 1 ? `${(c.bobot * 100).toFixed(0)}%` : c.bobot}
+                        </td>
 
-                    <td className="px-3 py-3 border-b w-72">
-                      <p className="font-medium text-gray-800">{c.kriteria}</p>
-                      {c.urutan && <p className="text-xs text-gray-500 mt-1">Urutan: {c.urutan}</p>}
-                    </td>
+                        <td className="px-3 py-3 border-b w-72">
+                          <p className="font-medium text-gray-800">{c.kriteria}</p>
+                          {c.urutan && <p className="text-xs text-gray-500 mt-1">Urutan: {c.urutan}</p>}
+                        </td>
 
-                    <td className="px-3 py-3 border-b text-xs text-gray-600 w-48">
-                      {c.deskriptor || '-'}
-                    </td>
+                        <td className="px-3 py-3 border-b text-xs text-gray-600 w-48">
+                          {c.deskriptor || '-'}
+                        </td>
 
-                    {/* descriptors per level (hoverable/scrollable) */}
-                    <td className="px-3 py-3 border-b text-xs text-gray-700 max-w-xs">
-                      <div className="text-xs mb-1">{c.descriptor_4 ?? ''}</div>
-                      <div className="text-right">
-                        <label className={`inline-flex items-center gap-1`}>
-                          <input
-                            type="radio"
-                            name={`score-${c.id}`}
-                            value="4"
-                            checked={c.skorInput === 4}
-                            onChange={() => handleSelectScore(c.id, 4)}
-                            disabled={!canEdit}
-                            className="form-radio"
-                          />
-                          <span className="ml-1 text-sm font-semibold">4</span>
-                        </label>
-                      </div>
-                    </td>
+                        {/* descriptors per level (hoverable/scrollable) */}
+                        <td className="px-3 py-3 border-b text-xs text-gray-700 max-w-xs">
+                          <div className="text-xs mb-1">{c.descriptor_4 ?? ''}</div>
+                          <div className="text-right">
+                            <label className={`inline-flex items-center gap-1`}>
+                              <input
+                                type="radio"
+                                name={`score-${c.id}`}
+                                value="4"
+                                checked={c.skorInput === 4}
+                                onChange={() => handleSelectScore(c.id, 4)}
+                                disabled={!canEdit}
+                                className="form-radio"
+                              />
+                              <span className="ml-1 text-sm font-semibold">4</span>
+                            </label>
+                          </div>
+                        </td>
 
-                    <td className="px-3 py-3 border-b text-xs text-gray-700 max-w-xs">
-                      <div className="text-xs mb-1">{c.descriptor_3 ?? ''}</div>
-                      <div className="text-right">
-                        <label className={`inline-flex items-center gap-1`}>
-                          <input
-                            type="radio"
-                            name={`score-${c.id}`}
-                            value="3"
-                            checked={c.skorInput === 3}
-                            onChange={() => handleSelectScore(c.id, 3)}
-                            disabled={!canEdit}
-                            className="form-radio"
-                          />
-                          <span className="ml-1 text-sm font-semibold">3</span>
-                        </label>
-                      </div>
-                    </td>
+                        <td className="px-3 py-3 border-b text-xs text-gray-700 max-w-xs">
+                          <div className="text-xs mb-1">{c.descriptor_3 ?? ''}</div>
+                          <div className="text-right">
+                            <label className={`inline-flex items-center gap-1`}>
+                              <input
+                                type="radio"
+                                name={`score-${c.id}`}
+                                value="3"
+                                checked={c.skorInput === 3}
+                                onChange={() => handleSelectScore(c.id, 3)}
+                                disabled={!canEdit}
+                                className="form-radio"
+                              />
+                              <span className="ml-1 text-sm font-semibold">3</span>
+                            </label>
+                          </div>
+                        </td>
 
-                    <td className="px-3 py-3 border-b text-xs text-gray-700 max-w-xs">
-                      <div className="text-xs mb-1">{c.descriptor_2 ?? ''}</div>
-                      <div className="text-right">
-                        <label className={`inline-flex items-center gap-1`}>
-                          <input
-                            type="radio"
-                            name={`score-${c.id}`}
-                            value="2"
-                            checked={c.skorInput === 2}
-                            onChange={() => handleSelectScore(c.id, 2)}
-                            disabled={!canEdit}
-                            className="form-radio"
-                          />
-                          <span className="ml-1 text-sm font-semibold">2</span>
-                        </label>
-                      </div>
-                    </td>
+                        <td className="px-3 py-3 border-b text-xs text-gray-700 max-w-xs">
+                          <div className="text-xs mb-1">{c.descriptor_2 ?? ''}</div>
+                          <div className="text-right">
+                            <label className={`inline-flex items-center gap-1`}>
+                              <input
+                                type="radio"
+                                name={`score-${c.id}`}
+                                value="2"
+                                checked={c.skorInput === 2}
+                                onChange={() => handleSelectScore(c.id, 2)}
+                                disabled={!canEdit}
+                                className="form-radio"
+                              />
+                              <span className="ml-1 text-sm font-semibold">2</span>
+                            </label>
+                          </div>
+                        </td>
 
-                    <td className="px-3 py-3 border-b text-xs text-gray-700 max-w-xs">
-                      <div className="text-xs mb-1">{c.descriptor_1 ?? ''}</div>
-                      <div className="text-right">
-                        <label className={`inline-flex items-center gap-1`}>
-                          <input
-                            type="radio"
-                            name={`score-${c.id}`}
-                            value="1"
-                            checked={c.skorInput === 1}
-                            onChange={() => handleSelectScore(c.id, 1)}
-                            disabled={!canEdit}
-                            className="form-radio"
-                          />
-                          <span className="ml-1 text-sm font-semibold">1</span>
-                        </label>
-                      </div>
-                    </td>
+                        <td className="px-3 py-3 border-b text-xs text-gray-700 max-w-xs">
+                          <div className="text-xs mb-1">{c.descriptor_1 ?? ''}</div>
+                          <div className="text-right">
+                            <label className={`inline-flex items-center gap-1`}>
+                              <input
+                                type="radio"
+                                name={`score-${c.id}`}
+                                value="1"
+                                checked={c.skorInput === 1}
+                                onChange={() => handleSelectScore(c.id, 1)}
+                                disabled={!canEdit}
+                                className="form-radio"
+                              />
+                              <span className="ml-1 text-sm font-semibold">1</span>
+                            </label>
+                          </div>
+                        </td>
 
-                    <td className="px-3 py-3 border-b text-center">
-                      <div className="text-sm font-semibold">
-                        {c.skorInput ? c.skorInput : '-'}
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        Terbobot: <span className="font-medium">{c.skorTerbobot.toFixed(3)}</span>
-                      </div>
-                    </td>
-                  </tr>
+                        <td className="px-3 py-3 border-b text-center">
+                          <div className="text-sm font-semibold">
+                            {c.skorInput ? c.skorInput : '-'}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            Terbobot: <span className="font-medium">{c.skorTerbobot.toFixed(3)}</span>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </React.Fragment>
                 ))}
 
                 <tr className="bg-gray-50 font-bold">
