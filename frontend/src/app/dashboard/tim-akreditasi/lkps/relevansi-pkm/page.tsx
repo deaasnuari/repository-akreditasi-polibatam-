@@ -3,11 +3,13 @@
 import React, { useEffect, useState } from 'react';
 import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { getRelevansiPkm, saveRelevansiPkm, updateRelevansiPkm, deleteRelevansiPkm } from '@/services/relevansiPkmService';
+import { fetchData as apiFetch } from '@/services/api';
 
 export default function RelevansiPkmPage() {
   const pathname = usePathname();
+  const router = useRouter();
   const [activeSubTab, setActiveSubTab] = useState('sarana-prasarana');
   const [data, setData] = useState<any[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -64,6 +66,30 @@ export default function RelevansiPkmPage() {
         </div>
       </div>
     );
+  };
+
+  const handleSaveDraft = async () => {
+    showPopup('Menyimpan draft...', 'info');
+    try {
+      await apiFetch('bukti-pendukung', {
+        method: 'POST',
+        body: JSON.stringify({
+          nama: 'LKPS - Relevansi PKM',
+          path: pathname,
+          status: 'Draft',
+        }),
+      });
+
+      showPopup('Draft berhasil disimpan. Mengalihkan...', 'success');
+
+      setTimeout(() => {
+        router.push('/dashboard/tim-akreditasi/bukti-pendukung');
+      }, 1500);
+
+    } catch (error) {
+      console.error('Gagal menyimpan draft:', error);
+      showPopup(error.message || 'Gagal menyimpan draft. Lihat konsol untuk detail.', 'error');
+    }
   };
 
   const tabs = [
@@ -308,7 +334,7 @@ export default function RelevansiPkmPage() {
               </div>
             </div>
             <div className="flex gap-2">
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"><Save size={16} /> Save Draft</button>
+              <button onClick={handleSaveDraft} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"><Save size={16} /> Save Draft</button>
             </div>
           </div>
 

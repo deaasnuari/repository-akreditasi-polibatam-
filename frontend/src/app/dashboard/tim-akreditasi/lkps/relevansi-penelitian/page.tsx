@@ -3,11 +3,13 @@
 import React, { useEffect, useState } from 'react';
 import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { relevansiPenelitianService, SubTab, DataItem } from '@/services/relevansiPenelitianService';
+import { fetchData } from '@/services/api';
 
 export default function RelevansiPenelitianPage() {
   const pathname = usePathname();
+  const router = useRouter();
 
   // --- State utama (top-level Hooks) ---
   const [activeSubTab, setActiveSubTab] = useState<SubTab>('sarana-prasarana');
@@ -67,6 +69,33 @@ export default function RelevansiPenelitianPage() {
         </div>
       </div>
     );
+  };
+
+  const handleSaveDraft = async () => {
+    showPopup('Menyimpan draft...', 'info');
+    try {
+      // Menggunakan fetchData yang diekspor dari api.ts
+      await fetchData('bukti-pendukung', {
+        method: 'POST',
+        body: JSON.stringify({
+          nama: 'LKPS - Relevansi Penelitian',
+          path: pathname,
+          status: 'Draft',
+        }),
+      });
+
+      showPopup('Draft berhasil disimpan. Mengalihkan...', 'success');
+
+      // Redirect ke halaman bukti pendukung setelah notifikasi terlihat
+      setTimeout(() => {
+        router.push('/dashboard/tim-akreditasi/bukti-pendukung');
+      }, 1500);
+
+    } catch (error) {
+      console.error('Gagal menyimpan draft:', error);
+      // fetchData sudah melempar error dengan message yang sesuai
+      showPopup(error.message || 'Gagal menyimpan draft. Lihat konsol untuk detail.', 'error');
+    }
   };
 
   // --- Tabs & Subtabs ---
@@ -314,7 +343,7 @@ export default function RelevansiPenelitianPage() {
               </div>
             </div>
             <div className="flex gap-2">
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"><Save size={16} /> Save Draft</button>
+              <button onClick={handleSaveDraft} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"><Save size={16} /> Save Draft</button>
             </div>
           </div>
 

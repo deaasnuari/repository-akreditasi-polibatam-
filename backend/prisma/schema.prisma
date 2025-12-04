@@ -124,7 +124,7 @@ model users {
   budaya_mutu          budaya_mutu[]
   led                  led[]
   criteria_scores criteria_scores[]
-
+  buktiPendukung       BuktiPendukung[]
 }
 
 // =========================
@@ -193,4 +193,22 @@ model criteria_scores {
   @@unique([user_id, criteria_item_id], name: "unique_score_per_prodi")
   @@index([criteria_item_id], map: "idx_score_item")
   @@index([user_id], map: "idx_score_user")
+}
+
+// =========================
+// BUKTI PENDUKUNG (DRAFT STATUS)
+// =========================
+model BuktiPendukung {
+  id        Int      @id @default(autoincrement())
+  nama      String   @db.VarChar(255)
+  path      String   @db.VarChar(500)
+  status    String   @db.VarChar(50)
+  userId    Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      users    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("bukti_pendukung")
 }

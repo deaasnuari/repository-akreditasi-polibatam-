@@ -19,6 +19,7 @@ import matriksPenilaianAkreditasiRoutes from "./routes/matriksPenilaianAkreditas
 import relevansiPkmRoutes from "./routes/relevansiPkm.js";
 import akreditasiRoutes from "./routes/akreditasiRoutes.js";
 import manajemenAkunRoutes from "./routes/manajemenAkunRoutes.js";
+import buktiPendukungRoutes from './routes/buktiPendukungRoutes.js';
 
 dotenv.config();
 
@@ -66,6 +67,7 @@ app.use("/api/akuntabilitas", akuntabilitasRoutes);
 app.use("/api/matriks-penilaian", matriksPenilaianAkreditasiRoutes);
 app.use("/api/akreditasi", akreditasiRoutes);
 app.use('/api/manajemen-akun', manajemenAkunRoutes);
+app.use('/api/bukti-pendukung', buktiPendukungRoutes);
 
 app.get("/", (req, res) => res.send("Server berjalan 🚀"));
 
