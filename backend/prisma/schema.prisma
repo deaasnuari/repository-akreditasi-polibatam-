@@ -17,6 +17,7 @@ model struktur_files {
 model budaya_mutu {
   id         Int      @id @default(autoincrement())
   user_id    Int
+  prodi      String   @db.VarChar(255)
   type       String
   data       Json
   created_at DateTime @default(now())
@@ -25,11 +26,13 @@ model budaya_mutu {
   user users @relation(fields: [user_id], references: [id])
 
   @@index([user_id], map: "idx_budaya_mutu_user")
+  @@index([prodi], map: "idx_budaya_mutu_prodi")
 }
 
 model relevansi_pendidikan {
   id         Int      @id @default(autoincrement())
   user_id    Int
+  prodi      String   @db.VarChar(255)
   subtab     String   @db.VarChar(100)
   data       Json // semua data FE masuk ke sini
   created_at DateTime @default(now())
@@ -39,11 +42,13 @@ model relevansi_pendidikan {
 
   @@index([subtab], map: "idx_relevansi_pendidikan_subtab")
   @@index([user_id], map: "idx_relevansi_pendidikan_user")
+  @@index([prodi], map: "idx_relevansi_pendidikan_prodi")
 }
 
 model relevansi_penelitian {
   id         Int      @id @default(autoincrement())
   user_id    Int
+  prodi      String   @db.VarChar(255)
   subtab     String   @db.VarChar(100)
   data       Json // semua data FE masuk ke sini
   created_at DateTime @default(now())
@@ -53,11 +58,13 @@ model relevansi_penelitian {
 
   @@index([subtab], map: "idx_relevansi_penelitian_subtab")
   @@index([user_id], map: "idx_relevansi_penelitian_user")
+  @@index([prodi], map: "idx_relevansi_penelitian_prodi")
 }
 
 model relevansi_pkm {
   id         Int      @id @default(autoincrement())
   user_id    Int
+  prodi      String   @db.VarChar(255)
   subtab     String   @db.VarChar(100)
   data       Json // semua data FE masuk ke sini
   created_at DateTime @default(now())
@@ -67,11 +74,13 @@ model relevansi_pkm {
 
   @@index([subtab], map: "idx_relevansi_pkm_subtab")
   @@index([user_id], map: "idx_relevansi_pkm_user")
+  @@index([prodi], map: "idx_relevansi_pkm_prodi")
 }
 
 model akuntabilitas {
   id         Int      @id @default(autoincrement())
   user_id    Int
+  prodi      String   @db.VarChar(255)
   subtab     String   @db.VarChar(100)
   data       Json // semua data FE masuk ke sini
   created_at DateTime @default(now())
@@ -81,6 +90,7 @@ model akuntabilitas {
 
   @@index([subtab], map: "idx_akuntabilitas_subtab")
   @@index([user_id], map: "idx_akuntabilitas_user")
+  @@index([prodi], map: "idx_akuntabilitas_prodi")
 
   @@map("akuntabilitas")
 }
@@ -88,6 +98,7 @@ model akuntabilitas {
 model diferensiasi_misi {
   id         Int      @id @default(autoincrement())
   user_id    Int
+  prodi      String   @db.VarChar(255)
   subtab     String   @db.VarChar(100)
   data       Json // semua data FE masuk ke sini
   created_at DateTime @default(now())
@@ -97,6 +108,7 @@ model diferensiasi_misi {
 
   @@index([subtab], map: "idx_diferensiasi_misi_subtab")
   @@index([user_id], map: "idx_diferensiasi_misi_user")
+  @@index([prodi], map: "idx_diferensiasi_misi_prodi")
 }
 
 // =========================
@@ -133,6 +145,7 @@ model users {
 model led {
   id         Int      @id @default(autoincrement())
   user_id    Int
+  role       String   @db.VarChar(20)
   subtab     String   @db.VarChar(100)
   data       Json // semua data FE masuk ke sini
   created_at DateTime @default(now())
@@ -143,6 +156,7 @@ model led {
   @@unique([user_id, subtab], map: "user_id_subtab")
   @@index([subtab], map: "idx_led_subtab")
   @@index([user_id], map: "idx_led_user")
+  @@index([role], map: "idx_led_role")
 
   @@map("led")
 }
@@ -178,6 +192,7 @@ model criteria_items {
 model criteria_scores {
   id              Int      @id @default(autoincrement())
   user_id         Int      // prodi yang melakukan penilaian
+  role            String   @db.VarChar(20)
   criteria_item_id Int
 
   skor_prodi      Int      // 1-4 sesuai rubrik / radio input
@@ -190,9 +205,10 @@ model criteria_scores {
   user     users          @relation(fields: [user_id], references: [id])
   criterion criteria_items @relation(fields: [criteria_item_id], references: [id])
 
-  @@unique([user_id, criteria_item_id], name: "unique_score_per_prodi")
+  @@unique([user_id, criteria_item_id, role], name: "unique_score_per_prodi_role")
   @@index([criteria_item_id], map: "idx_score_item")
   @@index([user_id], map: "idx_score_user")
+  @@index([role], map: "idx_score_role")
 }
 
 // =========================

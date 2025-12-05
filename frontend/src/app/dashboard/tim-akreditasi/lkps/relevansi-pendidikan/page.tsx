@@ -3,7 +3,7 @@
 import React, { useEffect, useState, ChangeEvent } from 'react';
 import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { relevansiPendidikanService, SubTab, DataItem, API_BASE } from '@/services/relevansiPendidikanService';
 import * as XLSX from 'xlsx';
 
@@ -25,6 +25,7 @@ const tableTitles: Record<SubTab, string> = {
 
 export default function RelevansiPendidikanPage() {
   const pathname = usePathname();
+  const router = useRouter();
   const [activeSubTab, setActiveSubTab] = useState<SubTab>('mahasiswa');
   const [data, setData] = useState<DataItem[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -82,6 +83,36 @@ export default function RelevansiPendidikanPage() {
         </div>
       </div>
     );
+  };
+
+  const handleSaveDraft = async () => {
+    showPopup('Menyimpan draft...', 'info');
+    try {
+      await fetch(`${API_BASE}/draft`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          nama: `LKPS - Relevansi Pendidikan`,
+          path: pathname,
+          status: 'Draft',
+          type: activeSubTab,
+          currentData: data, // Send the entire 'data' state for the active sub-tab
+        }),
+        credentials: 'include',
+      });
+
+      showPopup('Draft berhasil disimpan. Mengalihkan...', 'success');
+
+      setTimeout(() => {
+        router.push('/dashboard/tim-akreditasi/bukti-pendukung');
+      }, 1500);
+
+    } catch (error: any) {
+      console.error('Gagal menyimpan draft:', error);
+      showPopup(error.message || 'Gagal menyimpan draft. Lihat konsol untuk detail.', 'error');
+    }
   };
 
 
@@ -793,17 +824,17 @@ export default function RelevansiPendidikanPage() {
       <div className="flex-1 w-full">
         <main className="w-full p-2 sm:p-4 md:p-6 max-w-full overflow-x-hidden">
           {/* Header LKPS */}
-          <div className="bg-white rounded-lg shadow p-3 sm:p-4 md:p-6 mb-4 sm:mb-6 flex flex-col sm:flex-row justify-between items-start gap-3 sm:gap-4">
-            <div className="flex items-center gap-2 sm:gap-3 mb-2">
+          <div className="bg-white rounded-lg shadow p-3 sm:p-4 md:p-6 mb-4 sm:mb-6 flex justify-between items-start">
+            <div className="flex items-center gap-2 sm:gap-3">
               <FileText className="text-blue-900 w-6 h-6 sm:w-8 sm:h-8" />
               <div>
                 <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800">Laporan Kinerja Program Studi (LKPS)</h1>
                 <p className="text-xs sm:text-sm text-gray-600">Kelola data kuantitatif berdasarkan kriteria akreditasi</p>
               </div>
             </div>
-            <div className="flex gap-1.5 sm:gap-2 flex-wrap">
-              <button className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-xs sm:text-sm">
-                <Save size={14} className="sm:w-4 sm:h-4" /> <span className="hidden sm:inline"> Save Draft</span><span className="inline sm:hidden"> Save Draft</span>
+            <div className="flex gap-2 items-center">
+              <button onClick={handleSaveDraft} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+                <Save size={16} /> Save Draft
               </button>
             </div>
           </div>

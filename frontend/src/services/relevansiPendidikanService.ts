@@ -17,6 +17,7 @@ export type SubTab =
 
 export interface DataItem {
   id?: number;
+  prodi?: string; // Added for explicit type safety
   tahun?: string;
   daya_tampung?: number;
   asalMahasiswa?: string;
@@ -88,15 +89,18 @@ function getUserId() {
 }
 
 class RelevansiPendidikanService {
-  /**
-   * Fetch data berdasarkan tipe subtab
-   */
-  async fetchData(subtab: SubTab): Promise<DataItem[]> {
-    try {
-      const user_id = getUserId();
-      const response = await fetch(`${API_BASE}?subtab=${subtab}&user_id=${user_id}`, {
-        method: 'GET',
-        headers: {
+     /**
+     * Fetch data berdasarkan tipe subtab
+     */
+    async fetchData(subtab: SubTab, prodiFilter?: string): Promise<DataItem[]> {
+      try {
+        const user_id = getUserId();
+        let url = `${API_BASE}?subtab=${subtab}&user_id=${user_id}`;
+        if (prodiFilter) {
+          url += `&prodiFilter=${encodeURIComponent(prodiFilter)}`;
+        }
+        const response = await fetch(url, {
+          method: 'GET',        headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
@@ -311,6 +315,31 @@ class RelevansiPendidikanService {
       return result.data || null;
     } catch (error) {
       console.error('Error fetching data by ID:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch distinct prodi options
+   */
+  async fetchDistinctProdiOptions(): Promise<string[]> {
+    try {
+      const response = await fetch(`${API_BASE}/distinct-prodi`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result: ApiResponse<string[]> = await response.json();
+      return result.data || [];
+    } catch (error) {
+      console.error('Error fetching distinct prodi options:', error);
       throw error;
     }
   }

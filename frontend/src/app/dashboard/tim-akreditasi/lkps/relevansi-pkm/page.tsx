@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { getRelevansiPkm, saveRelevansiPkm, updateRelevansiPkm, deleteRelevansiPkm } from '@/services/relevansiPkmService';
+import { relevansiPkmService } from '@/services/relevansiPkmService';
 import { fetchData as apiFetch } from '@/services/api';
 
 export default function RelevansiPkmPage() {
@@ -164,7 +164,7 @@ export default function RelevansiPkmPage() {
   const fetchData = async () => {
     try {
       setErrorMsg(null);
-      const result = await getRelevansiPkm(activeSubTab);
+      const result = await relevansiPkmService.fetchData(activeSubTab);
       setData(result);
     } catch (err: any) {
       console.error('fetchData error', err);
@@ -207,9 +207,9 @@ export default function RelevansiPkmPage() {
       setErrorMsg(null);
 
       if (editIndex) {
-        await updateRelevansiPkm(activeSubTab, editIndex, formData);
+        await relevansiPkmService.updateData(editIndex, formData, activeSubTab);
       } else {
-        await saveRelevansiPkm(activeSubTab, formData);
+        await relevansiPkmService.createData(formData, activeSubTab);
       }
 
       showPopup('Data berhasil disimpan', 'success');
@@ -230,7 +230,7 @@ export default function RelevansiPkmPage() {
     if (!confirm('Hapus data ini?')) return;
     try {
       setErrorMsg(null);
-      await deleteRelevansiPkm(activeSubTab, id);
+      await relevansiPkmService.deleteData(id);
       await fetchData();
       showPopup('Data berhasil dihapus', 'success');
     } catch (err: any) {
@@ -246,8 +246,7 @@ export default function RelevansiPkmPage() {
     if (!file) return;
     setImporting(true);
     try {
-      const { previewImport } = await import('@/services/relevansiPkmService');
-      const json = await previewImport(file, activeSubTab);
+      const json = await relevansiPkmService.previewImport(file, activeSubTab);
       setPreviewFile(file);
       setPreviewHeaders(json.headers || []);
       setPreviewRows(json.previewRows || []);
@@ -269,8 +268,7 @@ export default function RelevansiPkmPage() {
     if (!previewFile) return;
     try {
       setImporting(true);
-      const { commitImport } = await import('@/services/relevansiPkmService');
-      await commitImport(previewFile, activeSubTab, mapping);
+      await relevansiPkmService.commitImport(previewFile, activeSubTab, mapping);
       await fetchData();
       setShowPreviewModal(false);
       setPreviewFile(null);

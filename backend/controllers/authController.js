@@ -53,6 +53,7 @@ export const login = async (req, res) => {
         id: user.id,
         username: user.username,
         role: user.role,
+        prodi: user.prodi, // TAMBAHKAN INI
         nama_lengkap: user.nama_lengkap
       },
       JWT_SECRET,

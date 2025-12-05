@@ -2,12 +2,13 @@
 import Link from "next/link";
 import React, { useEffect, useState } from 'react';
 import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Info } from 'lucide-react';
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 import NotificationBell from '../NotificationBell';
 const API_BASE = 'http://localhost:5000/api/budaya-mutu'; 
 
 export default function LKPSPage() {
+  const router = useRouter();
   type SubTab = 'tupoksi' | 'pendanaan' | 'penggunaan-dana' | 'ewmp' | 'ktk' | 'spmi';
 
   const tableTitles: Record<SubTab, string> = {
@@ -101,6 +102,37 @@ export default function LKPSPage() {
     modal.onConfirm();
     closeModal();
   };
+
+  const handleSaveDraft = async () => {
+    showPopup('Menyimpan draft...', 'info');
+    try {
+      await fetch(`${API_BASE}/draft`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          nama: `LKPS - Budaya Mutu`,
+          path: `/dashboard/tim-akreditasi/lkps`, // Current page path, used for bukti pendukung reference
+          status: 'Draft',
+          type: activeSubTab, // Send activeSubTab as 'type'
+          currentData: tabData[activeSubTab], // Send the detailed data
+        }),
+        credentials: 'include',
+      });
+
+      showPopup('Draft berhasil disimpan. Mengalihkan...', 'success');
+
+      setTimeout(() => {
+        router.push('/dashboard/tim-akreditasi/bukti-pendukung');
+      }, 1500);
+
+    } catch (error: any) {
+      console.error('Gagal menyimpan draft:', error);
+      showPopup(error.message || 'Gagal menyimpan draft. Lihat konsol untuk detail.', 'error');
+    }
+  };
+
 
   // Komponen Popup
   const PopupNotification = () => {
@@ -973,7 +1005,7 @@ export default function LKPSPage() {
             </div>
             <div className="flex gap-2 items-center">
               <NotificationBell />
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+              <button onClick={handleSaveDraft} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
                 <Save size={16} /> Save Draft
               </button>
               <button className="flex items-center gap-2 px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800">

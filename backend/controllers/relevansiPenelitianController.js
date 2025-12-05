@@ -25,20 +25,42 @@ function normalizeRow(row = {}) {
 ============================================= */
 export const getData = async (req, res) => {
   try {
-    const subtab = req.query.subtab;
-    const userId = req.user.id;
-    const userRole = req.user.role;
+    const { subtab, prodi: prodiQuery } = req.query;
+    const { id: userId, role: userRole, prodi: userProdi } = req.user;
 
-    // Jika role tim-akreditasi, bisa lihat semua data, jika tidak, hanya data milik sendiri
-    const whereClause = userRole === 'tim-akreditasi' ? { subtab } : { subtab, user_id: userId };
+    let whereClause = { subtab };
+
+    if (userRole === 'tim-akreditasi') {
+      // Jika tim-akreditasi dan ada query prodi, filter berdasarkan prodi tsb
+      if (prodiQuery) {
+        whereClause.prodi = prodiQuery;
+      }
+      // Jika tidak ada query prodi, bisa lihat semua prodi
+    } else {
+      // Jika bukan tim-akreditasi, hanya bisa lihat data prodinya sendiri
+      whereClause.prodi = userProdi;
+    }
 
     const rows = await prisma.relevansi_penelitian.findMany({
       where: whereClause,
       orderBy: { id: "asc" },
+      include: {
+        user: { // Ambil info user (terutama nama lengkap dan prodi)
+          select: {
+            nama_lengkap: true,
+            prodi: true
+          }
+        }
+      }
     });
 
-    // kembalikan field `data` saja plus id
-    const data = rows.map(r => ({ id: r.id, ...r.data }));
+    // kembalikan field `data` saja plus id, nama_lengkap, dan prodi
+    const data = rows.map(r => ({ 
+      id: r.id, 
+      nama_user: r.user.nama_lengkap,
+      prodi: r.user.prodi,
+      ...r.data 
+    }));
 
     res.json({ success: true, data });
   } catch (err) {
@@ -53,7 +75,11 @@ export const getData = async (req, res) => {
 export const createData = async (req, res) => {
   try {
     const { subtab, ...body } = req.body;
-    const userId = req.user.id; // Ambil user_id dari token JWT
+    const { id: userId, prodi } = req.user; // Ambil user_id dan prodi dari token
+
+    if (!prodi) {
+      return res.status(400).json({ success: false, message: "Prodi pengguna tidak ditemukan. Pastikan akun Anda memiliki prodi." });
+    }
 
     const cleanData = normalizeRow(body);
 
@@ -61,6 +87,7 @@ export const createData = async (req, res) => {
       data: {
         subtab,
         user_id: userId,
+        prodi: prodi, // Simpan prodi
         data: cleanData,
       },
     });
@@ -78,8 +105,7 @@ export const createData = async (req, res) => {
 export const updateData = async (req, res) => {
   try {
     const id = Number(req.params.id);
-    const userId = req.user.id;
-    const userRole = req.user.role;
+    const { id: userId, role: userRole } = req.user;
     const cleanData = normalizeRow(req.body);
 
     // Cek kepemilikan data
@@ -92,6 +118,7 @@ export const updateData = async (req, res) => {
       return res.status(404).json({ success: false, message: "Data tidak ditemukan" });
     }
 
+    // Hanya pemilik data atau tim-akreditasi yang bisa edit
     if (record.user_id !== userId && userRole !== 'tim-akreditasi') {
       return res.status(403).json({ success: false, message: "Tidak memiliki akses untuk mengubah data ini" });
     }
@@ -114,8 +141,7 @@ export const updateData = async (req, res) => {
 export const deleteData = async (req, res) => {
   try {
     const id = Number(req.params.id);
-    const userId = req.user.id;
-    const userRole = req.user.role;
+    const { id: userId, role: userRole } = req.user;
 
     // Cek kepemilikan data
     const record = await prisma.relevansi_penelitian.findUnique({
@@ -127,6 +153,7 @@ export const deleteData = async (req, res) => {
       return res.status(404).json({ success: false, message: "Data tidak ditemukan" });
     }
 
+    // Hanya pemilik data atau tim-akreditasi yang bisa hapus
     if (record.user_id !== userId && userRole !== 'tim-akreditasi') {
       return res.status(403).json({ success: false, message: "Tidak memiliki akses untuk menghapus data ini" });
     }
@@ -212,10 +239,14 @@ export const importExcel = [
   upload.single("file"),
   async (req, res) => {
     try {
-      const subtab = req.body.subtab;
-      const userId = req.user.id; // Ambil user_id dari token JWT
+      const { subtab } = req.body;
+      const { id: userId, prodi } = req.user; // Ambil user_id dan prodi dari token
       const mapping = req.body.mapping ? JSON.parse(req.body.mapping) : {};
       const isPreview = req.body.preview === 'true';
+
+      if (!prodi) {
+        return res.status(400).json({ success: false, message: "Prodi pengguna tidak ditemukan. Pastikan akun Anda memiliki prodi." });
+      }
 
       const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -267,6 +298,7 @@ export const importExcel = [
             data: {
               subtab,
               user_id: userId,
+              prodi: prodi, // simpan prodi
               data: cleanData,
             },
           });

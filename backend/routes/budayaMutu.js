@@ -10,10 +10,12 @@ import {
   deleteData,
   previewExcel, // NEW
   importExcel,
+  getDistinctProdi, // Added this
   uploadStruktur,
   getStruktur,
   updateStruktur,
-  deleteStruktur
+  deleteStruktur,
+  saveDraft // NEW
 } from "../controllers/budayaMutuController.js";
 
 const router = express.Router();
@@ -37,6 +39,12 @@ router.get("/", authenticateToken, getData);
 router.post("/", authenticateToken, createData);
 router.put("/:id", authenticateToken, updateData);
 router.delete("/:id", authenticateToken, deleteData);
+
+// === Draft Route ===
+router.post("/draft", authenticateToken, saveDraft);
+
+// === Prodi Options ===
+router.get("/prodi-options", authenticateToken, getDistinctProdi); // New route
 
 // === Import Excel Routes (UPDATED) ===
 router.post("/preview/:type", authenticateToken, previewExcel);

@@ -1,25 +1,96 @@
 'use client';
 
 import React, { useEffect, useState, ChangeEvent } from 'react';
-import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X } from 'lucide-react';
+import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import {
+  fetchDiferensiasiMisiData,
+  createDiferensiasiMisiData,
+  updateDiferensiasiMisiData,
+  deleteDiferensiasiMisiData,
+  importExcelDiferensiasiMisi,
+  saveDiferensiasiMisiDraftToBackend,
+  DataItem
+} from '@/services/diferensiasiMisiService';
 
-// --- Data item ---
-interface DataItem {
-  id?: number;
-  tipe_data?: string;
-  unit_kerja?: string;
-  konten?: string;
-}
+
 
 export default function DiferensiasiMisiPage() {
   const pathname = usePathname();
+  const router = useRouter();
   const [data, setData] = useState<DataItem[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [formData, setFormData] = useState<DataItem>({});
-  const API_BASE = 'http://localhost:5000/api/diferensiasi-misi';
+  const [popup, setPopup] = useState<{ show: boolean; message: string; type: 'success' | 'error' | 'info' }>({
+    show: false,
+    message: '',
+    type: 'success',
+  });
+
+  // --- Fungsi Popup ---
+  const showPopup = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    setPopup({ show: true, message, type });
+    setTimeout(() => setPopup({ show: false, message: '', type: 'success' }), 3000);
+  };
+
+  const PopupNotification = () => {
+    if (!popup.show) return null;
+    const bgColor = popup.type === 'success' ? 'bg-green-50 border-green-500' :
+                    popup.type === 'error' ? 'bg-red-50 border-red-500' :
+                    'bg-blue-50 border-blue-500';
+    const textColor = popup.type === 'success' ? 'text-green-800' :
+                      popup.type === 'error' ? 'text-red-800' :
+                      'text-blue-800';
+    const Icon = popup.type === 'success' ? CheckCircle :
+                 popup.type === 'error' ? AlertCircle :
+                 Info;
+    return (
+      <div className="fixed top-0 left-0 right-0 flex justify-center z-[60] pt-4">
+        <div className={`${bgColor} ${textColor} border-l-4 rounded-lg shadow-2xl p-5 flex items-center gap-4 min-w-[350px] max-w-md animate-slideDown`}>
+          <Icon size={28} className={popup.type === 'success' ? 'text-green-500' :
+                                     popup.type === 'error' ? 'text-red-500' :
+                                     'text-blue-500'} />
+          <div className="flex-1">
+            <p className="font-bold text-base mb-1">
+              {popup.type === 'success' ? 'Berhasil!' :
+               popup.type === 'error' ? 'Error!' :
+               'Info'}
+            </p>
+            <p className="text-sm">{popup.message}</p>
+          </div>
+          <button onClick={() => setPopup({ show: false, message: '', type: 'success' })} className="hover:opacity-70 transition-opacity">
+            <X size={20} />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const handleSaveDraft = async () => {
+    showPopup('Menyimpan draft...', 'info');
+    try {
+      await saveDiferensiasiMisiDraftToBackend(
+        `LKPS - Diferensiasi Misi`,
+        pathname,
+        'Draft',
+        'visi-misi', // The subtab for Diferensiasi Misi
+        data // Sending the current data state
+      );
+
+      showPopup('Draft berhasil disimpan. Mengalihkan...', 'success');
+
+      setTimeout(() => {
+        router.push('/dashboard/tim-akreditasi/bukti-pendukung');
+      }, 1500);
+
+    } catch (error: any) {
+      console.error('Gagal menyimpan draft:', error);
+      showPopup(error.message || 'Gagal menyimpan draft. Lihat konsol untuk detail.', 'error');
+    }
+  };
+
 
   const tabs = [
     { label: 'Budaya Mutu', href: '/dashboard/tim-akreditasi/lkps' },
@@ -32,37 +103,15 @@ export default function DiferensiasiMisiPage() {
 
   // --- Fetch Data ---
   const fetchData = async () => {
-  try {
-    const res = await fetch(`${API_BASE}?subtab=visi-misi`, {
-      credentials: 'include',
-    });
-    if (!res.ok) {
-      const errorText = await res.text();
-      console.error('Fetch failed:', res.status, res.statusText, errorText);
-      if (res.status === 401) {
-        alert('Sesi login telah berakhir. Silakan login kembali.');
-        window.location.href = '/login';
-        return;
-      }
-      throw new Error(`Gagal fetch data: ${res.status} ${res.statusText}`);
+    const result = await fetchDiferensiasiMisiData();
+    if (result.success) {
+      setData(result.data);
+    } else {
+      console.error("Fetch data failed:", result.message);
+      showPopup(result.message, 'error');
+      setData([]);
     }
-    const json = await res.json();
-    console.log('RESPON DARI BACKEND:', json);
-
-    // Transform data dari JSON ke format yang diharapkan frontend
-    const transformedData = (json.data || json || []).map((item: any) => ({
-      id: item.id,
-      tipe_data: item.data?.tipe_data,
-      unit_kerja: item.data?.unit_kerja,
-      konten: item.data?.konten,
-    }));
-
-    setData(transformedData);
-  } catch (err) {
-    console.error('Fetch error:', err);
-    setData([]);
-  }
-};
+  };
 
 
   useEffect(() => {
@@ -78,35 +127,26 @@ export default function DiferensiasiMisiPage() {
 
   const handleSave = async () => {
     try {
-      const method = formData.id ? 'PUT' : 'POST';
-      const url = method === 'PUT' ? `${API_BASE}/${formData.id}` : API_BASE;
+      let result;
+      // Placeholder for prodi. You might get this from user context.
+      const prodi = 'Teknologi Informasi'; 
 
-      // Struktur data baru: subtab dan data sebagai JSON
-      const payload = {
-        subtab: 'visi-misi',
-        data: {
-          tipe_data: formData.tipe_data,
-          unit_kerja: formData.unit_kerja,
-          konten: formData.konten,
-        },
-      };
+      if (formData.id) {
+        result = await updateDiferensiasiMisiData(formData.id, formData, prodi);
+      } else {
+        result = await createDiferensiasiMisiData(formData, prodi);
+      }
 
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-        credentials: 'include',
-      });
-      const json = await res.json();
-      if (res.ok) {
-        alert('✅ Data berhasil disimpan');
+      if (result.success) {
+        showPopup('Data berhasil disimpan', 'success');
         setShowForm(false);
         fetchData();
       } else {
-        alert(json.message || 'Gagal menyimpan data');
+        showPopup(result.message || 'Gagal menyimpan data', 'error');
       }
     } catch (err) {
       console.error('Save error:', err);
+      showPopup('Terjadi kesalahan saat menyimpan data', 'error');
     }
   };
 
@@ -120,16 +160,16 @@ export default function DiferensiasiMisiPage() {
   const handleDelete = async (id?: number) => {
     if (!id || !confirm('Yakin hapus data ini?')) return;
     try {
-      const res = await fetch(`${API_BASE}/${id}`, { method: 'DELETE', credentials: 'include' });
-      const json = await res.json();
-      if (res.ok) {
-        alert('🗑️ Data dihapus');
+      const result = await deleteDiferensiasiMisiData(id);
+      if (result.success) {
+        showPopup('Data berhasil dihapus', 'success');
         setData(prev => prev.filter(d => d.id !== id));
       } else {
-        alert(json.message || 'Gagal menghapus');
+        showPopup(result.message || 'Gagal menghapus data', 'error');
       }
     } catch (err) {
       console.error('Delete error:', err);
+      showPopup('Terjadi kesalahan saat menghapus data', 'error');
     }
   };
 
@@ -146,21 +186,21 @@ export default function DiferensiasiMisiPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const formDataImport = new FormData();
-    formDataImport.append('file', file);
-    formDataImport.append('subtab', 'visi-misi');
+    // Placeholder for prodi. You might get this from user context.
+    const prodi = 'Teknologi Informasi'; 
+    const mapping = {}; // You might need to implement mapping logic here if your import expects it
 
     try {
-      const res = await fetch(`${API_BASE}/import`, { method: 'POST', body: formDataImport });
-      const json = await res.json();
-      if (res.ok) {
-        alert('✅ Data berhasil diimport');
+      const result = await importExcelDiferensiasiMisi(file, mapping, prodi);
+      if (result.success) {
+        showPopup('Data berhasil diimport', 'success');
         fetchData();
       } else {
-        alert(json.message || 'Gagal import data');
+        showPopup(result.message || 'Gagal import data', 'error');
       }
     } catch (err) {
       console.error('Import error:', err);
+      showPopup('Terjadi kesalahan saat import data', 'error');
     }
   };
 
@@ -179,7 +219,7 @@ export default function DiferensiasiMisiPage() {
               </div>
             </div>
             <div className="flex gap-2">
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+              <button onClick={handleSaveDraft} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
                 <Save size={16} /> Save Draft
               </button>
             </div>

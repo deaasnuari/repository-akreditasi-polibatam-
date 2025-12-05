@@ -1,4 +1,4 @@
-const API_BASE_LKPS = 'http://localhost:5000/api/budaya-mutu-';
+const API_BASE_LKPS = 'http://localhost:5000/api/budaya-mutu';
 const API_BASE_LED = 'http://localhost:5000/api/led';
 
 // ==================== 🔹 TYPE ====================

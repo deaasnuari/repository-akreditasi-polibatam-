@@ -1,48 +1,99 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X } from 'lucide-react';
+import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   fetchAkuntabilitasData,
   createAkuntabilitasData,
   updateAkuntabilitasData,
   deleteAkuntabilitasData,
   saveDraftAkuntabilitas,
-  loadDraftAkuntabilitas
+  loadDraftAkuntabilitas,
+  saveAkuntabilitasDraftToBackend
 } from '@/services/akuntabilitasService';
 
 export default function AkuntabilitasPage() {
   const pathname = usePathname();
+  const router = useRouter();
   const [activeSubTab, setActiveSubTab] = useState<'tataKelola' | 'sarana'>('tataKelola');
   const [tabData, setTabData] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [formData, setFormData] = useState<any>({});
+  const [importing, setImporting] = useState(false);
+  const [previewFile, setPreviewFile] = useState<File | null>(null);
+  const [previewHeaders, setPreviewHeaders] = useState<string[]>([]);
+  const [previewRows, setPreviewRows] = useState<any[]>([]);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [mapping, setMapping] = useState<Record<string, string>>({});
+  const [popup, setPopup] = useState<{ show: boolean; message: string; type: 'success' | 'error' | 'info' }>({
+    show: false,
+    message: '',
+    type: 'success',
+  });
 
-  const handleImportExcel = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  // --- Fungsi Popup ---
+  const showPopup = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    setPopup({ show: true, message, type });
+    setTimeout(() => setPopup({ show: false, message: '', type: 'success' }), 3000);
+  };
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const data = new Uint8Array(e.target?.result as ArrayBuffer);
-      const workbook = XLSX.read(data, { type: 'array' });
-      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-      const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+  const handleSaveDraft = async () => {
+    showPopup('Menyimpan draft...', 'info');
+    try {
+      await saveAkuntabilitasDraftToBackend(
+        `LKPS - Akuntabilitas`,
+        pathname,
+        'Draft',
+        activeSubTab,
+        tabData
+      );
 
-      const formattedData = jsonData.map((item: any) => ({
-        id: null,
-        data: item,
-      }));
+      showPopup('Draft berhasil disimpan. Mengalihkan...', 'success');
 
-      setTabData(formattedData);
-      saveDraftAkuntabilitas(activeSubTab, formattedData);
-      alert('✅ Data dari Excel berhasil dimuat!');
-    };
+      setTimeout(() => {
+        router.push('/dashboard/tim-akreditasi/bukti-pendukung');
+      }, 1500);
 
-    reader.readAsArrayBuffer(file);
+    } catch (error: any) {
+      console.error('Gagal menyimpan draft:', error);
+      showPopup(error.message || 'Gagal menyimpan draft. Lihat konsol untuk detail.', 'error');
+    }
+  };
+
+  const PopupNotification = () => {
+    if (!popup.show) return null;
+    const bgColor = popup.type === 'success' ? 'bg-green-50 border-green-500' :
+                    popup.type === 'error' ? 'bg-red-50 border-red-500' :
+                    'bg-blue-50 border-blue-500';
+    const textColor = popup.type === 'success' ? 'text-green-800' :
+                      popup.type === 'error' ? 'text-red-800' :
+                      'text-blue-800';
+    const Icon = popup.type === 'success' ? CheckCircle :
+                 popup.type === 'error' ? AlertCircle :
+                 Info;
+    return (
+      <div className="fixed top-0 left-0 right-0 flex justify-center z-[60] pt-4">
+        <div className={`${bgColor} ${textColor} border-l-4 rounded-lg shadow-2xl p-5 flex items-center gap-4 min-w-[350px] max-w-md animate-slideDown`}>
+          <Icon size={28} className={popup.type === 'success' ? 'text-green-500' :
+                                     popup.type === 'error' ? 'text-red-500' :
+                                     'text-blue-500'} />
+          <div className="flex-1">
+            <p className="font-bold text-base mb-1">
+              {popup.type === 'success' ? 'Berhasil!' :
+               popup.type === 'error' ? 'Error!' :
+               'Info'}
+            </p>
+            <p className="text-sm">{popup.message}</p>
+          </div>
+          <button onClick={() => setPopup({ show: false, message: '', type: 'success' })} className="hover:opacity-70 transition-opacity">
+            <X size={20} />
+          </button>
+        </div>
+      </div>
+    );
   };
 
   const tabs = [
@@ -69,12 +120,72 @@ export default function AkuntabilitasPage() {
     setShowForm(true);
   };
 
+  const handleImportExcel = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setImporting(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+
+        if (jsonData.length < 2) {
+          showPopup('File Excel harus memiliki minimal 2 baris (header dan data)', 'error');
+          setImporting(false);
+          return;
+        }
+
+        const headers = jsonData[0] as string[];
+        const rows = jsonData.slice(1) as any[][];
+
+        setPreviewHeaders(headers);
+        setPreviewRows(rows.slice(0, 5)); // Show first 5 rows
+        setPreviewFile(file);
+        setShowPreviewModal(true);
+      };
+      reader.readAsArrayBuffer(file);
+    } catch (err) {
+      console.error('Error reading file:', err);
+      showPopup('Gagal membaca file Excel', 'error');
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const getFieldMappingForSubTab = (subTab: 'tataKelola' | 'sarana'): { key: string, label: string }[] => {
+    if (subTab === 'tataKelola') {
+      return [
+        { key: 'jenis', label: 'Jenis Tata Kelola' },
+        { key: 'nama', label: 'Nama Sistem Informasi' },
+        { key: 'akses', label: 'Akses' },
+        { key: 'unit', label: 'Unit Kerja' },
+        { key: 'link', label: 'Link Bukti' },
+      ];
+    } else { // sarana
+      return [
+        { key: 'nama', label: 'Nama Prasarana' },
+        { key: 'tampung', label: 'Daya Tampung' },
+        { key: 'luas', label: 'Luas Ruang' },
+        { key: 'status', label: 'Status' },
+        { key: 'lisensi', label: 'Lisensi' },
+        { key: 'perangkat', label: 'Perangkat' },
+        { key: 'link', label: 'Link Bukti' },
+      ];
+    }
+  };
+
   const handleSave = async () => {
     let res;
+    // Assuming 'prodi' is available in context or state, perhaps from user login or a selector
+    const prodi = 'Teknologi Informasi'; // Placeholder for 'prodi' - Make this dynamic
     if (editIndex !== null && tabData[editIndex].id) {
-      res = await updateAkuntabilitasData(tabData[editIndex].id, formData);
+      res = await updateAkuntabilitasData(tabData[editIndex].id, activeSubTab, formData, prodi);
     } else {
-      res = await createAkuntabilitasData(activeSubTab, formData);
+      res = await createAkuntabilitasData(activeSubTab, formData, prodi);
     }
 
     if (res.success) {
@@ -85,8 +196,9 @@ export default function AkuntabilitasPage() {
       setTabData(newData);
       saveDraftAkuntabilitas(activeSubTab, newData);
       setShowForm(false);
+      showPopup('Data berhasil disimpan', 'success');
     } else {
-      alert(res.message);
+      showPopup(res.message || 'Gagal menyimpan data', 'error');
     }
   };
 
@@ -97,7 +209,7 @@ export default function AkuntabilitasPage() {
       const updated = tabData.filter((d: any) => d.id !== id);
       setTabData(updated);
       saveDraftAkuntabilitas(activeSubTab, updated);
-      alert("🗑️ Data import berhasil dihapus dari tampilan (belum ada di database).");
+      showPopup("🗑️ Data import berhasil dihapus dari tampilan (belum ada di database).", 'info');
       return;
     }
 
@@ -106,8 +218,52 @@ export default function AkuntabilitasPage() {
       const updated = tabData.filter((d: any) => d.id !== id);
       setTabData(updated);
       saveDraftAkuntabilitas(activeSubTab, updated);
-    } else alert(res.message);
+      showPopup('Data berhasil dihapus', 'success');
+    } else showPopup(res.message || 'Gagal menghapus data', 'error');
   };
+
+
+
+  const handleConfirmImport = async () => {
+    if (!previewFile || !mapping) {
+      showPopup('No file or mapping selected for import.', 'error');
+      return;
+    }
+
+    setImporting(true);
+    try {
+      // Need to convert mapping from { excelHeader: tableFieldKey } to { tableFieldKey: excelHeader }
+      const reverseMapping: Record<string, string> = {};
+      Object.entries(mapping).forEach(([excelHeader, tableFieldKey]) => {
+        if (tableFieldKey) {
+          reverseMapping[tableFieldKey] = excelHeader;
+        }
+      });
+      
+      const res = await importExcelAkuntabilitas(previewFile, activeSubTab, mapping);
+      if (res.success) {
+        // Re-fetch all data to ensure consistency with newly imported data from the database
+        const updatedData = await fetchAkuntabilitasData(activeSubTab); 
+        setTabData(updatedData);
+        saveDraftAkuntabilitas(activeSubTab, updatedData);
+
+        setShowPreviewModal(false);
+        setPreviewFile(null);
+        setPreviewHeaders([]);
+        setPreviewRows([]);
+        setMapping({});
+        showPopup('Data berhasil diimport', 'success');
+      } else {
+        showPopup(res.message || 'Gagal import data', 'error');
+      }
+    } catch (err: any) {
+      console.error('Import error:', err);
+      showPopup(err.message || 'Gagal import data', 'error');
+    } finally {
+      setImporting(false);
+    }
+  };
+
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -146,7 +302,7 @@ export default function AkuntabilitasPage() {
               </div>
             </div>
             <div className="flex gap-2">
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"><Save size={16} /> Save Draft</button>
+              <button onClick={handleSaveDraft} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"><Save size={16} /> Save Draft</button>
             </div>
           </div>
 
@@ -283,6 +439,94 @@ export default function AkuntabilitasPage() {
                 <div className="flex justify-end gap-2 mt-4">
                   <button onClick={() => setShowForm(false)} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100">Batal</button>
                   <button onClick={handleSave} className="px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800">Simpan</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Preview Modal for Excel Import */}
+          {showPreviewModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+              <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-4xl max-h-[80vh] overflow-auto">
+                <h3 className="text-lg font-semibold mb-4">Preview Excel Import</h3>
+                <p className="mb-4">Map the Excel columns to table fields for {activeSubTab.replace('tataKelola', 'Sistem Tata Kelola').replace('sarana', 'Sarana & Prasarana')}:</p>
+
+                <div className="mb-4">
+                  <table className="min-w-full border text-sm">
+                    <thead>
+                      <tr className="bg-gray-50">
+                        <th className="border px-4 py-2 text-left">Excel Column</th>
+                        <th className="border px-4 py-2 text-left">Table Field</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {previewHeaders.map((header, index) => (
+                        <tr key={index}>
+                          <td className="border px-4 py-2 font-medium">{header}</td>
+                          <td className="border px-4 py-2">
+                            <select
+                              value={mapping[header] || ''}
+                              onChange={(e) => setMapping({ ...mapping, [header]: e.target.value })}
+                              className="border p-2 rounded w-full"
+                            >
+                              <option value="">Select Field</option>
+                              {getFieldMappingForSubTab(activeSubTab).map(field => (
+                                <option key={field.key} value={field.key}>
+                                  {field.label}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="mb-4">
+                  <h4 className="font-semibold mb-2">Preview First 5 Rows:</h4>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full border text-xs">
+                      <thead>
+                        <tr className="bg-gray-50">
+                          {previewHeaders.map((header, index) => (
+                            <th key={index} className="border px-2 py-1 text-left">{header}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {previewRows.map((row, index) => (
+                          <tr key={index}>
+                            {row.map((cell, cellIndex) => (
+                              <td key={cellIndex} className="border px-2 py-1">{String(cell)}</td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2">
+                  <button
+                    onClick={() => {
+                      setShowPreviewModal(false);
+                      setPreviewFile(null);
+                      setPreviewHeaders([]);
+                      setPreviewRows([]);
+                      setMapping({});
+                    }}
+                    className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleConfirmImport}
+                    disabled={importing}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {importing ? 'Importing...' : 'Confirm Import'}
+                  </button>
                 </div>
               </div>
             </div>

@@ -4,6 +4,7 @@ import {
   addDiferensiasiMisi,
   updateDiferensiasiMisi,
   deleteDiferensiasiMisi,
+  saveDraft
 } from "../controllers/diferensiasiMisiController.js";
 import { authenticateToken } from "../middleware/authMiddleware.js";
 
@@ -16,5 +17,6 @@ router.get("/", getDiferensiasiMisi);
 router.post("/", addDiferensiasiMisi);
 router.put("/:id", updateDiferensiasiMisi);
 router.delete("/:id", deleteDiferensiasiMisi);
+router.post("/savedraft", authenticateToken, saveDraft);
 
 export default router;

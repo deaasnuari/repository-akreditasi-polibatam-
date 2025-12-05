@@ -1,49 +1,66 @@
-const API_BASE = "http://localhost:5000/api/relevansi-pkm";
+// services/relevansiPkmService.ts
 
-// Helper: Convert camelCase to snake_case for database
-function camelToSnake(obj: any): any {
-  if (!obj || typeof obj !== 'object') return obj;
+export const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/relevansi-pkm';
 
-  const converted: any = {};
-  for (const key in obj) {
-    const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
-    converted[snakeKey] = obj[key];
-  }
-  return converted;
+export type SubTab =
+  | 'sarana-prasarana'
+  | 'pkm-hibah'
+  | 'kerjasama-pkm'
+  | 'diseminasi-pkm'
+  | 'hki-pkm';
+
+export interface DataItem {
+  id?: number;
+  namaprasarana?: string;
+  dayatampung?: number;
+  luasruang?: number;
+  miliksendiri?: string;
+  berlisensi?: string;
+  perangkat?: string;
+  linkbukti?: string;
+  namadtpr?: string;
+  judulpkm?: string;
+  jumlahmahasiswa?: number;
+  jenishibah?: string;
+  sumberdana?: string;
+  durasi?: number;
+  pendanaants2?: number;
+  pendanaants1?: number;
+  pendanaants?: number;
+  judulkerjasama?: string;
+  mitrakerjasama?: string;
+  sumber?: string;
+  juduldiseminasi?: string;
+  jenisdiseminasi?: string;
+  tahunts2?: number;
+  tahunts1?: number;
+  tahunts?: number;
+  judul?: string;
+  jenishki?: string;
+  [key: string]: any; // for dynamic fields
 }
 
-// Helper: Convert snake_case to camelCase for frontend
-function snakeToCamel(obj: any): any {
-  if (!obj || typeof obj !== 'object') return obj;
-
-  if (Array.isArray(obj)) {
-    return obj.map(snakeToCamel);
-  }
-
-  const converted: any = {};
-  for (const key in obj) {
-    const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
-    converted[camelKey] = obj[key];
-  }
-  return converted;
+export interface ApiResponse<T = any> {
+  success: boolean;
+  message?: string;
+  data?: T;
+  error?: string;
 }
 
 /**
- * Ambil user_id dari localStorage. Hanya bisa di client-side.
+ * Get user_id from localStorage. Only available client-side.
  */
 function getUserId() {
   if (typeof window === "undefined") {
-    throw new Error("Harus di client-side. Tunggu sampai browser mount.");
+    throw new Error("Must be client-side. Wait until browser mounts.");
   }
 
-  // Coba ambil dari localStorage dulu
   const idStr = localStorage.getItem("user_id");
   if (idStr) {
     const id = Number(idStr);
     if (!Number.isNaN(id)) return id;
   }
 
-  // Jika tidak ada, coba ambil dari sessionStorage (mengambil key user yang berisi JSON user)
   const userJson = sessionStorage.getItem("user");
   if (userJson) {
     try {
@@ -51,7 +68,6 @@ function getUserId() {
       if (userObj && typeof userObj.id === 'number') {
         return userObj.id;
       }
-      // Also try if id is string number
       if (userObj && typeof userObj.id === 'string' && !isNaN(Number(userObj.id))) {
         return Number(userObj.id);
       }
@@ -60,170 +76,348 @@ function getUserId() {
     }
   }
 
-  // Jika tidak ada, coba ambil dari sessionStorage "user_id" secara khusus masih fallback lama
   const sessionIdStr = sessionStorage.getItem("user_id");
   if (sessionIdStr) {
     const id = Number(sessionIdStr);
     if (!Number.isNaN(id)) return id;
   }
 
-  throw new Error("User ID tidak ditemukan. Pastikan sudah login.");
+  throw new Error("User ID not found. Make sure you are logged in.");
 }
 
-// =======================
-// 🔹 GET data per subtab
-// =======================
-export async function getRelevansiPkm(subtab: string) {
-  const user_id = getUserId();
-  const res = await fetch(`${API_BASE}?subtab=${subtab}&user_id=${user_id}`, {
-    credentials: 'include'
-  });
+class RelevansiPkmService {
+  /**
+   * Fetch data by subtab type
+   */
+  async fetchData(subtab: SubTab): Promise<DataItem[]> {
+    try {
+      const user_id = getUserId();
+      const response = await fetch(`${API_BASE}?subtab=${subtab}&user_id=${user_id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
 
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => null);
-    throw new Error(errorData?.message || `HTTP ${res.status} ${res.statusText}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result: ApiResponse<DataItem[]> = await response.json();
+      return result.data || [];
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      throw error;
+    }
   }
 
-  const json = await res.json();
-  const data = json.data ?? json;
-  // Convert snake_case to camelCase for frontend
-  return Array.isArray(data) ? data.map(snakeToCamel) : snakeToCamel(data);
+  /**
+   * Add new data
+   */
+  async createData(data: DataItem, subtab: SubTab): Promise<ApiResponse> {
+    try {
+      const user_id = getUserId();
+
+      const response = await fetch(API_BASE, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ subtab, user_id, ...data }),
+      });
+
+      const result: ApiResponse = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Failed to add data');
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Error creating data:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update existing data
+   */
+  async updateData(id: number, data: DataItem, subtab: SubTab): Promise<ApiResponse> {
+    try {
+      const response = await fetch(`${API_BASE}/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ ...data, subtab }),
+      });
+
+      const result: ApiResponse = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Failed to update data');
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Error updating data:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete data
+   */
+  async deleteData(id: number): Promise<ApiResponse> {
+    try {
+      const response = await fetch(`${API_BASE}/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+
+      const result: ApiResponse = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Failed to delete data');
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Error deleting data:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Import data from Excel
+   */
+  async importExcel(file: File, subtab: SubTab): Promise<ApiResponse> {
+    try {
+      const user_id = getUserId();
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('subtab', subtab);
+      formData.append('user_id', user_id.toString());
+
+      const response = await fetch(`${API_BASE}/import`, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+        // Content-Type will be automatically set by the browser for FormData
+      });
+
+      const result: ApiResponse = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Failed to import data');
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Error importing data:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Preview Import Excel
+   */
+  async previewImport(file: File, subtab: SubTab): Promise<any> {
+    try {
+      const user_id = getUserId();
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('subtab', subtab);
+      fd.append('user_id', user_id.toString());
+      fd.append('preview', 'true');
+
+      const response = await fetch(`${API_BASE}/import`, { method: 'POST', body: fd, credentials: 'include' });
+      if (!response.ok) throw new Error(`HTTP ${response.status} ${response.statusText}`);
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error previewing import:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Commit Import Excel
+   */
+  async commitImport(file: File, subtab: SubTab, mapping: Record<string, string>): Promise<any> {
+    try {
+      const user_id = getUserId();
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('subtab', subtab);
+      fd.append('user_id', user_id.toString());
+      fd.append('mapping', JSON.stringify(mapping));
+
+      const response = await fetch(`${API_BASE}/import`, { method: 'POST', body: fd, credentials: 'include' });
+      if (!response.ok) throw new Error(`HTTP ${response.status} ${response.statusText}`);
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error committing import:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Export data to Excel
+   */
+  async exportExcel(subtab: SubTab): Promise<Blob> {
+    try {
+      const response = await fetch(`${API_BASE}/export?subtab=${subtab}`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.blob();
+    } catch (error) {
+      console.error('Error exporting data:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Export data to PDF
+   */
+  async exportPDF(subtab: SubTab): Promise<Blob> {
+    try {
+      const response = await fetch(`${API_BASE}/export-pdf?subtab=${subtab}`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.blob();
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Bulk delete - delete multiple data at once
+   */
+  async bulkDelete(ids: number[]): Promise<ApiResponse> {
+    try {
+      const response = await fetch(`${API_BASE}/bulk-delete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ ids }),
+      });
+
+      const result: ApiResponse = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Failed to delete data');
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Error bulk deleting:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get single data by ID
+   */
+  async getDataById(id: number): Promise<DataItem | null> {
+    try {
+      const response = await fetch(`${API_BASE}/${id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result: ApiResponse<DataItem> = await response.json();
+      return result.data || null;
+    } catch (error) {
+      console.error('Error fetching data by ID:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Validate data before submission
+   */
+  validateData(data: DataItem, subtab: SubTab): { valid: boolean; errors: string[] } {
+    const errors: string[] = [];
+
+    switch (subtab) {
+      case 'sarana-prasarana':
+        if (!data.namaprasarana) errors.push('Nama Prasarana must be filled');
+        if (!data.dayatampung || data.dayatampung <= 0) errors.push('Daya Tampung must be greater than 0');
+        break;
+
+      case 'pkm-hibah':
+        if (!data.namadtpr) errors.push('Nama DTPR must be filled');
+        if (!data.judulpkm) errors.push('Judul PKM must be filled');
+        break;
+
+      case 'kerjasama-pkm':
+        if (!data.judulkerjasama) errors.push('Judul Kerjasama must be filled');
+        if (!data.mitrakerjasama) errors.push('Mitra Kerjasama must be filled');
+        break;
+
+      case 'diseminasi-pkm':
+        if (!data.namadtpr) errors.push('Nama DTPR must be filled');
+        if (!data.juduldiseminasi) errors.push('Judul Diseminasi must be filled');
+        break;
+
+      case 'hki-pkm':
+        if (!data.judul) errors.push('Judul must be filled');
+        if (!data.jenishki) errors.push('Jenis HKI must be filled');
+        break;
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors
+    };
+  }
+
+  /**
+   * Download file (for Excel/PDF export)
+   */
+  downloadFile(blob: Blob, filename: string) {
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  }
 }
 
-// =======================
-// 🔹 POST data baru
-// =======================
-export async function saveRelevansiPkm(subtab: string, payload: any) {
-  const user_id = getUserId();
-  const converted = camelToSnake(payload);
-  const res = await fetch(`${API_BASE}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: 'include',
-    body: JSON.stringify({ ...converted, subtab, user_id }), // ✅ Convert camelCase to snake_case
-  });
+// Export singleton instance
+export const relevansiPkmService = new RelevansiPkmService();
 
-  const json = await res.json();
-
-  if (!res.ok) {
-    throw new Error(json.message || json.error || `HTTP ${res.status} ${res.statusText}`);
-  }
-
-  // Convert response data back to camelCase for frontend
-  if (json.data) {
-    json.data = snakeToCamel(json.data);
-  }
-
-  return json;
-}
-
-// =======================
-// 🔹 PUT / Update data
-// =======================
-export async function updateRelevansiPkm(subtab: string, id: number | string, payload: any) {
-  const converted = camelToSnake(payload);
-  const res = await fetch(`${API_BASE}/${id}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    credentials: 'include',
-    body: JSON.stringify({ ...converted, subtab }), // ✅ Convert camelCase to snake_case
-  });
-
-  const json = await res.json();
-
-  if (!res.ok) {
-    throw new Error(json.message || json.error || `HTTP ${res.status} ${res.statusText}`);
-  }
-
-  return json;
-}
-
-// =======================
-// 🔹 DELETE data
-// =======================
-export async function deleteRelevansiPkm(subtab: string, id: number | string) {
-  const res = await fetch(`${API_BASE}/${id}`, {
-    method: "DELETE",
-    credentials: 'include'
-  });
-
-  const json = await res.json();
-
-  if (!res.ok) {
-    throw new Error(json.message || json.error || `HTTP ${res.status} ${res.statusText}`);
-  }
-
-  return json;
-}
-
-// =======================
-// 🔹 PREVIEW import Excel
-// =======================
-export async function previewImport(file: File, subtab: string) {
-  const user_id = getUserId();
-  const fd = new FormData();
-  fd.append("file", file);
-  fd.append("subtab", subtab);
-  fd.append("user_id", user_id.toString());
-  fd.append("preview", "true");
-
-  const res = await fetch(`${API_BASE}/import`, {
-    method: "POST",
-    body: fd,
-    credentials: 'include'
-  });
-
-  const json = await res.json();
-
-  if (!res.ok) {
-    throw new Error(json.message || json.error || `HTTP ${res.status} ${res.statusText}`);
-  }
-
-  return json;
-}
-
-// =======================
-// 🔹 COMMIT import Excel
-// =======================
-export async function commitImport(file: File, subtab: string, mapping?: Record<string, string>) {
-  const user_id = getUserId();
-  const fd = new FormData();
-  fd.append("file", file);
-  fd.append("subtab", subtab);
-  fd.append("user_id", user_id.toString());
-
-  if (mapping) {
-    fd.append("mapping", JSON.stringify(mapping));
-  }
-
-  const res = await fetch(`${API_BASE}/import`, {
-    method: "POST",
-    body: fd,
-    credentials: 'include'
-  });
-
-  const json = await res.json();
-
-  if (!res.ok) {
-    throw new Error(json.message || json.error || `HTTP ${res.status} ${res.statusText}`);
-  }
-
-  return json;
-}
-
-// =======================
-// 🔹 GET ALL data (bonus)
-// =======================
-export async function getAllRelevansiPkm() {
-  const res = await fetch(`${API_BASE}/all`);
-
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => null);
-    throw new Error(errorData?.message || `HTTP ${res.status} ${res.statusText}`);
-  }
-
-  const json = await res.json();
-  // Convert snake_case to camelCase for frontend
-  const data = json.data ?? json;
-  return Array.isArray(data) ? data.map(snakeToCamel) : snakeToCamel(data);
-}
+export default relevansiPkmService;
