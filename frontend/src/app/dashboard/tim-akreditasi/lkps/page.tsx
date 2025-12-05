@@ -401,8 +401,73 @@ export default function LKPSPage() {
     try {
       const fd = new FormData();
       fd.append('file', file);
+      const mappingImport = {
+        'tupoksi': {
+          unitKerja: 'Unit Kerja',
+          namaKetua: 'Nama Ketua',
+          periode: 'Periode',
+          pendidikanTerakhir: 'Pendidikan Terakhir',
+          jabatanFungsional: 'Jabatan Fungsional',
+          tugasPokokDanFungsi: 'Tugas Pokok dan Fungsi',
+        },
+        'pendanaan': {
+          sumberPendanaan: 'Sumber Pendanaan',
+          ts2: 'TS-2',
+          ts1: 'TS-1',
+          ts: 'TS',
+          linkBukti: 'Link Bukti',
+        },
+        'penggunaan-dana': {
+          penggunaanDana: 'Penggunaan Dana',
+          ts2: 'TS-2',
+          ts1: 'TS-1',
+          ts: 'TS',
+          linkBukti: 'Link Bukti',
+        },
+        'ewmp': {
+          no: 'No',
+          namaDTPR: 'Nama DTPR',
+          psSendiri: 'PS Sendiri',
+          psLainPTSendiri: 'PS Lain PT Sendiri',
+          ptLain: 'PT Lain',
+          sksPenelitian: 'SKS Penelitian',
+          sksPengabdian: 'SKS Pengabdian',
+          manajemenPTSendiri: 'Manajemen PT Sendiri',
+          manajemenPTLain: 'Manajemen PT Lain',
+          totalSKS: 'Total SKS',
+        },
+        'ktk': {
+          no: 'No',
+          jenisTenagaKependidikan: 'Jenis Tenaga',
+          s3: 'S3',
+          s2: 'S2',
+          s1: 'S1',
+          d4: 'D4',
+          d3: 'D3',
+          d2: 'D2',
+          d1: 'D1',
+          sma: 'SMA',
+          unitKerja: 'Unit Kerja',
+        },
+        'spmi': {
+          unitSPMI: 'Unit SPMI',
+          namaUnitSPMI: 'Nama Unit',
+          dokumenSPMI: 'Dokumen SPMI',
+          jumlahAuditorMutuInternal: 'Jumlah Auditor',
+          certified: 'Certified',
+          nonCertified: 'Non Certified',
+          frekuensiAudit: 'Frekuensi Audit',
+          buktiCertifiedAuditor: 'Bukti Certified',
+          laporanAudit: 'Laporan Audit',
+        }
+      };
+      fd.append('mapping', JSON.stringify(mappingImport[activeSubTab] || {}));
+      // fd.append('mapping', JSON.stringify(getFormFields(activeSubTab)));
+      console.log(activeSubTab);
+  
 
-      const res = await fetch(`${API_BASE}/preview/${activeSubTab}`, { method: 'POST', body: fd, credentials: 'include' });
+      
+      const res = await fetch(`${API_BASE}/import/${activeSubTab}`, { method: 'POST', body: fd, credentials: 'include' });
 
       if (!res.ok) {
         showPopup('Gagal memproses file', 'error');
@@ -422,16 +487,19 @@ export default function LKPSPage() {
           initialMapping[field] = suggestion as string;
         });
         setMapping(initialMapping);
+        console.log(initialMapping);
 
         setShowPreviewModal(true);
       } else {
         showPopup(json.message || 'Gagal memproses file', 'error');
       }
+      fetchData();
     } catch (err) {
       console.error('Preview error:', err);
       showPopup('Gagal memproses file', 'error');
     } finally {
       setImporting(false);
+      
     }
 
     e.target.value = '';

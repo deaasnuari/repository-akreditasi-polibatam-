@@ -247,11 +247,13 @@ export const importExcel = [
         }
       }
 
+      
       // Parse Excel
       const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       const rows = xlsx.utils.sheet_to_json(sheet, { defval: "" });
-
+      
+      console.log('row: ', rows);
       if (rows.length === 0) {
         return res.status(400).json({
           success: false,
@@ -284,6 +286,8 @@ export const importExcel = [
           const missingFields = fields
             .filter(field => !mappedData[field.key] || mappedData[field.key] === '')
             .map(field => field.label);
+          
+          console.log("missing: ", missingFields);
 
           if (missingFields.length > 0) {
             errors.push({ 

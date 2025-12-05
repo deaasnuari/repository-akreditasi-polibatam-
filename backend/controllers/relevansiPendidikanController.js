@@ -151,7 +151,7 @@ export const importExcel = [
     try {
       const subtab = req.body.subtab;
       const userId = req.user.id; // Ambil user_id dari token JWT
-      const mapping = req.body.mapping ? JSON.parse(req.body.mapping) : {};
+      const mapping = req.body.mappedData ? JSON.parse(req.body.mappedData) : {};
 
       const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -159,6 +159,7 @@ export const importExcel = [
 
       let added = 0;
       let errors = [];
+      console.log("data: ", mapping);
 
       for (let i = 0; i < rows.length; i++) {
         try {

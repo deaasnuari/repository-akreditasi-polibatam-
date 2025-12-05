@@ -247,10 +247,12 @@ export default function RelevansiPendidikanPage() {
         formDataImport.append('file', previewFile);
         formDataImport.append('type', activeSubTab);
         formDataImport.append('mappedData', JSON.stringify(mappedData));
+        
 
         const res = await fetch(`${API_BASE}/import`, {
           method: 'POST',
-          body: formDataImport
+          body: formDataImport,
+          credentials: 'include',
         });
 
         const json = await res.json();
