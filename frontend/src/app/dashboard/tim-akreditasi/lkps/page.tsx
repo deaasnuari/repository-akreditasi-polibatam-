@@ -463,10 +463,7 @@ export default function LKPSPage() {
       };
       fd.append('mapping', JSON.stringify(mappingImport[activeSubTab] || {}));
       // fd.append('mapping', JSON.stringify(getFormFields(activeSubTab)));
-      console.log(activeSubTab);
-  
-
-      
+      console.log(activeSubTab)
       const res = await fetch(`${API_BASE}/import/${activeSubTab}`, { method: 'POST', body: fd, credentials: 'include' });
 
       if (!res.ok) {
