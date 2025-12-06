@@ -255,35 +255,42 @@ export const importExcel = [
 
       let added = 0;
       let errors = [];
-      console.log("data: ", mapping);
-
+      
       for (let i = 0; i < rows.length; i++) {
         try {
           const raw = rows[i];
-          const obj = {};
+          const mappedData = {};
           let recordProdi = req.user.prodi; // Default to user's prodi
+          console.log("data: ", mapping[0]);
 
-          for (const header of Object.keys(mapping)) {
-            const dbField = mapping[header];
-            if (dbField === 'prodi') { // If 'prodi' is explicitly mapped from Excel
-              recordProdi = raw[header];
-            } else if (dbField) {
-              obj[dbField] = raw[header];
+          // for (const header of Object.keys(mapping)) {
+          //   const dbField = mapping[header];
+          //   console.log("key: ", dbField, "value: ", mapping[header]);
+          //   if (dbField === 'prodi') { // If 'prodi' is explicitly mapped from Excel
+          //     recordProdi = raw[header];
+          //   } else if (dbField) {
+          //     obj[dbField] = raw[header];
+          //   }
+          // }
+          Object.entries(mapping[0]).forEach(([dbField, excelColumn]) => {
+            if (dbField !== 'prodi' && excelColumn && raw.hasOwnProperty(excelColumn)) { // Exclude 'prodi' from data JSON
+              mappedData[dbField] = raw[excelColumn];
             }
-          }
+          });
+          console.log("mapp: ", mappedData);
 
           if (!recordProdi) {
             errors.push({ row: i + 1, error: "Prodi tidak ditemukan untuk baris ini." });
             continue;
           }
 
-          const cleanData = normalizeRow(obj);
+          const cleanData = normalizeRow(mappedData);
 
           await prisma.relevansi_pendidikan.create({
             data: {
               subtab,
               user_id: userId,
-              prodi: recordProdi, // Store prodi directly
+              prodi: recordProdi ?? 'Teknik Informatika', // Store prodi directly
               data: cleanData,
             },
           });

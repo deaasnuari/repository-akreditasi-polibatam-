@@ -20,7 +20,6 @@ const tableTitles: Record<SubTab, string> = {
   'kepuasan-pengguna': 'Tabel 2.B.6. Kepuasan Pengguna Lulusan',
   fleksibilitas: 'Tabel 2.C Fleksibilitas Dalam Proses Pembelajaran',
   'rekognisi-apresiasi': 'Tabel 2.D Rekognisi dan Apresiasi Kompetensi Lulusan',
-
 };
 
 export default function RelevansiPendidikanPage() {
@@ -98,7 +97,7 @@ export default function RelevansiPendidikanPage() {
           path: pathname,
           status: 'Draft',
           type: activeSubTab,
-          currentData: data, // Send the entire 'data' state for the active sub-tab
+          currentData: data,
         }),
         credentials: 'include',
       });
@@ -114,8 +113,6 @@ export default function RelevansiPendidikanPage() {
       showPopup(error.message || 'Gagal menyimpan draft. Lihat konsol untuk detail.', 'error');
     }
   };
-
-
 
   const tabs = [
     { label: 'Budaya Mutu', href: '/dashboard/tim-akreditasi/lkps' },
@@ -201,7 +198,7 @@ export default function RelevansiPendidikanPage() {
     });
   };
 
-  // --- Import Excel dengan Preview dan Mapping ---
+  // --- Import Excel ---
   const handleImport = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -225,7 +222,7 @@ export default function RelevansiPendidikanPage() {
         const rows = jsonData.slice(1) as any[][];
 
         setPreviewHeaders(headers);
-        setPreviewRows(rows.slice(0, 5)); // Show first 5 rows
+        setPreviewRows(rows.slice(0, 5));
         setPreviewFile(file);
         setShowPreviewModal(true);
       };
@@ -250,35 +247,20 @@ export default function RelevansiPendidikanPage() {
         const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
         const jsonData = XLSX.utils.sheet_to_json(firstSheet);
 
-        // Create reverse mapping: field -> header
         const reverseMapping: Record<string, string> = {};
         Object.entries(mapping).forEach(([header, field]) => {
           if (field) reverseMapping[field] = header;
         });
 
-        // Map Excel data to table fields based on activeSubTab
         const mappedData = jsonData.map((row: any) => {
-          const mappedItem: any = {};
-
-          // Get field mapping for current subtab
           const fieldMap = getFieldMappingForSubTab(activeSubTab);
-
-          Object.keys(fieldMap).forEach(tableField => {
-            const excelColumn = reverseMapping[tableField];
-            if (excelColumn && row[excelColumn] !== undefined) {
-              mappedItem[tableField] = row[excelColumn];
-            }
-          });
-
-          return mappedItem;
+          return fieldMap;
         });
 
-        // Send to backend
         const formDataImport = new FormData();
         formDataImport.append('file', previewFile);
-        formDataImport.append('type', activeSubTab);
+        formDataImport.append('subtab', activeSubTab);
         formDataImport.append('mappedData', JSON.stringify(mappedData));
-        
 
         const res = await fetch(`${API_BASE}/import`, {
           method: 'POST',
@@ -314,21 +296,21 @@ export default function RelevansiPendidikanPage() {
         return {
           tahun: 'Tahun (TS)',
           daya_tampung: 'Daya Tampung',
-          calon_reguler_diterima: 'Calon Reguler Diterima',
-          calon_reguler_afirmasi: 'Calon Reguler Afirmasi',
-          calon_rpl_diterima: 'Calon RPL Diterima',
-          calon_rpl_afirmasi: 'Calon RPL Afirmasi',
-          calon_kebutuhan_khusus: 'Calon Kebutuhan Khusus',
+          calon_pendaftar: 'Pendaftar',
+          calon_pendaftar_afirmasi: 'Pendaftar Afirmasi',
+          calon_pendaftar_kebutuhan_khusus: 'Pendaftar Kebutuhan Khusus',
           baru_reguler_diterima: 'Baru Reguler Diterima',
           baru_reguler_afirmasi: 'Baru Reguler Afirmasi',
+          baru_reguler_kebutuhan_khusus: 'Baru Reguler Kebutuhan Khusus',
           baru_rpl_diterima: 'Baru RPL Diterima',
           baru_rpl_afirmasi: 'Baru RPL Afirmasi',
-          baru_kebutuhan_khusus: 'Baru Kebutuhan Khusus',
+          baru_rpl_kebutuhan_khusus: 'Baru RPL Kebutuhan Khusus',
           aktif_reguler_diterima: 'Aktif Reguler Diterima',
           aktif_reguler_afirmasi: 'Aktif Reguler Afirmasi',
+          aktif_reguler_kebutuhan_khusus: 'Aktif Reguler Kebutuhan Khusus',
           aktif_rpl_diterima: 'Aktif RPL Diterima',
           aktif_rpl_afirmasi: 'Aktif RPL Afirmasi',
-          aktif_kebutuhan_khusus: 'Aktif Kebutuhan Khusus'
+          aktif_rpl_kebutuhan_khusus: 'Aktif RPL Kebutuhan Khusus'
         };
       case 'keragaman-asal':
         return {
@@ -421,125 +403,102 @@ export default function RelevansiPendidikanPage() {
     }
   };
 
-
-
   // --- Render Table ---
   const renderTable = () => {
     const emptyColSpan = 6;
     return (
       <div className="overflow-x-auto bg-white rounded-lg shadow-md">
         {activeSubTab === 'mahasiswa' ? (
-          // TABEL MAHASISWA - STRUKTUR BARU
+          // TABEL MAHASISWA - STRUKTUR BARU (FIXED)
           <div className="overflow-x-auto">
             <table className="min-w-full text-xs sm:text-sm text-gray-700 border-collapse">
-              <thead className="bg-gray-50 sticky top-0">
-                <tr>
-                  {/* Kolom TS dan Hari Tampung */}
-                  <th rowSpan={3} className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-left font-semibold text-gray-800 bg-gray-100">
-                    TS
-                  </th>
-                  <th rowSpan={3} className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center font-semibold text-gray-800 bg-gray-100">
-                    Hari Tampung
-                  </th>
-
-                  {/* Jumlah Calon Mahasiswa */}
-                  <th colSpan={5} className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center font-semibold text-gray-800 bg-gray-100">
-                    Jumlah Calon Mahasiswa
-                  </th>
-
-                  {/* Jumlah Mahasiswa Baru */}
-                  <th colSpan={5} className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center font-semibold text-gray-800 bg-gray-100">
-                    Jumlah Mahasiswa Baru
-                  </th>
-
-                  {/* Jumlah Mahasiswa Aktif */}
-                  <th colSpan={5} className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center font-semibold text-gray-800 bg-gray-100">
-                    Jumlah Mahasiswa Aktif
-                  </th>
-
-                  {/* Aksi */}
-                  <th rowSpan={3} className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center font-semibold text-gray-800 bg-gray-100 w-16 sm:w-20 sticky right-0 bg-gray-100">
-                    Aksi
-                  </th>
+              <thead className="bg-gray-50 sticky top-0 z-10">
+                {/* Row 1 - Main Headers */}
+                <tr className="bg-gray-200">
+                  <th rowSpan={3} className="border border-gray-300 px-2 sm:px-4 py-2 font-semibold bg-gray-100 min-w-[80px]">TS</th>
+                  <th rowSpan={3} className="border border-gray-300 px-2 sm:px-4 py-2 font-semibold bg-gray-100 min-w-[100px]">Daya<br/>Tampung</th>
+                  <th colSpan={3} className="border border-gray-300 px-2 sm:px-4 py-2 font-semibold text-center bg-gray-100">Jumlah Calon Mahasiswa</th>
+                  <th colSpan={6} className="border border-gray-300 px-2 sm:px-4 py-2 font-semibold text-center bg-gray-100">Jumlah Mahasiswa Baru</th>
+                  <th colSpan={6} className="border border-gray-300 px-2 sm:px-4 py-2 font-semibold text-center bg-gray-100">Jumlah Mahasiswa Aktif</th>
+                  <th rowSpan={3} className="border border-gray-300 px-2 py-2 text-center font-semibold bg-gray-100 sticky right-0 min-w-[100px]">Aksi</th>
                 </tr>
 
-                {/* Row 2 - Sub-headers untuk Reguler dan RPL */}
-                <tr>
-                  <th colSpan={2} className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-gray-700 bg-gray-50">Reguler</th>
-                  <th colSpan={2} className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-gray-700 bg-gray-50">RPL</th>
-                  <th className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-gray-700 bg-gray-50">Total</th>
-
-                  <th colSpan={2} className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-gray-700 bg-gray-50">Reguler</th>
-                  <th colSpan={2} className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-gray-700 bg-gray-50">RPL</th>
-                  <th className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-gray-700 bg-gray-50">Total</th>
-
-                  <th colSpan={2} className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-gray-700 bg-gray-50">Reguler</th>
-                  <th colSpan={2} className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-gray-700 bg-gray-50">RPL</th>
-                  <th className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-gray-700 bg-gray-50">Total</th>
+                {/* Row 2 - Sub Headers */}
+                <tr className="bg-gray-100">
+                  <th rowSpan={2} className="border border-gray-300 px-2 py-2 font-semibold text-center text-xs">Pendaftar</th>
+                  <th rowSpan={2} className="border border-gray-300 px-2 py-2 font-semibold text-center text-xs">Pendaftar<br/>Afirmasi</th>
+                  <th rowSpan={2} className="border border-gray-300 px-2 py-2 font-semibold text-center text-xs">Pendaftar<br/>Kebutuhan<br/>Khusus</th>
+                  
+                  <th colSpan={3} className="border border-gray-300 px-2 py-2 font-semibold text-center bg-blue-50">Reguler</th>
+                  <th colSpan={3} className="border border-gray-300 px-2 py-2 font-semibold text-center bg-green-50">RPL</th>
+                  
+                  <th colSpan={3} className="border border-gray-300 px-2 py-2 font-semibold text-center bg-blue-50">Reguler</th>
+                  <th colSpan={3} className="border border-gray-300 px-2 py-2 font-semibold text-center bg-green-50">RPL</th>
                 </tr>
 
-                {/* Row 3 - Detail columns */}
-                <tr>
-                  <th className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-xs text-gray-700 bg-white">Diterima</th>
-                  <th className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-xs text-gray-700 bg-white">Afirmasi</th>
-                  <th className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-xs text-gray-700 bg-white">Diterima</th>
-                  <th className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-xs text-gray-700 bg-white">Afirmasi</th>
-                  <th className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-xs text-gray-700 bg-white">Kebutuhan Khusus</th>
-
-                  <th className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-xs text-gray-700 bg-white">Diterima</th>
-                  <th className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-xs text-gray-700 bg-white">Afirmasi</th>
-                  <th className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-xs text-gray-700 bg-white">Diterima</th>
-                  <th className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-xs text-gray-700 bg-white">Afirmasi</th>
-                  <th className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-xs text-gray-700 bg-white">Kebutuhan Khusus</th>
-
-                  <th className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-xs text-gray-700 bg-white">Diterima</th>
-                  <th className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-xs text-gray-700 bg-white">Afirmasi</th>
-                  <th className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-xs text-gray-700 bg-white">Diterima</th>
-                  <th className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-xs text-gray-700 bg-white">Afirmasi</th>
-                  <th className="border border-gray-300 px-2 sm:px-4 py-2 text-center font-semibold text-xs text-gray-700 bg-white">Kebutuhan Khusus</th>
+                {/* Row 3 - Detail Headers */}
+                <tr className="bg-gray-50">
+                  {/* Mahasiswa Baru - Reguler */}
+                  <th className="border border-gray-300 px-2 py-2 text-center text-xs font-semibold bg-blue-50">Diterima</th>
+                  <th className="border border-gray-300 px-2 py-2 text-center text-xs font-semibold bg-blue-50">Afirmasi</th>
+                  <th className="border border-gray-300 px-2 py-2 text-center text-xs font-semibold bg-blue-50">Kebutuhan<br/>Khusus</th>
+                  
+                  {/* Mahasiswa Baru - RPL */}
+                  <th className="border border-gray-300 px-2 py-2 text-center text-xs font-semibold bg-green-50">Diterima</th>
+                  <th className="border border-gray-300 px-2 py-2 text-center text-xs font-semibold bg-green-50">Afirmasi</th>
+                  <th className="border border-gray-300 px-2 py-2 text-center text-xs font-semibold bg-green-50">Kebutuhan<br/>Khusus</th>
+                  
+                  {/* Mahasiswa Aktif - Reguler */}
+                  <th className="border border-gray-300 px-2 py-2 text-center text-xs font-semibold bg-blue-50">Diterima</th>
+                  <th className="border border-gray-300 px-2 py-2 text-center text-xs font-semibold bg-blue-50">Afirmasi</th>
+                  <th className="border border-gray-300 px-2 py-2 text-center text-xs font-semibold bg-blue-50">Kebutuhan<br/>Khusus</th>
+                  
+                  {/* Mahasiswa Aktif - RPL */}
+                  <th className="border border-gray-300 px-2 py-2 text-center text-xs font-semibold bg-green-50">Diterima</th>
+                  <th className="border border-gray-300 px-2 py-2 text-center text-xs font-semibold bg-green-50">Afirmasi</th>
+                  <th className="border border-gray-300 px-2 py-2 text-center text-xs font-semibold bg-green-50">Kebutuhan<br/>Khusus</th>
                 </tr>
               </thead>
 
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-200">
                 {data.length === 0 ? (
                   <tr>
-                    <td colSpan={20} className="py-6 text-center text-gray-500">
-                      Belum ada data
-                    </td>
+                    <td colSpan={17} className="py-6 text-center text-gray-500">Belum ada data</td>
                   </tr>
                 ) : (
                   data.map((item, index) => (
-                    <tr key={item.id ?? `row-${index}`} className="hover:bg-gray-50 bg-yellow-50">
-                      <td className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center font-medium">{item.tahun}</td>
-                      <td className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center">{item.daya_tampung || '-'}</td>
+                    <tr key={item.id ?? `row-${index}`} className="bg-yellow-50 hover:bg-gray-100">
+                      <td className="border border-gray-300 px-2 py-2 text-center font-medium">{item.tahun}</td>
+                      <td className="border border-gray-300 px-2 py-2 text-center">{item.daya_tampung || '-'}</td>
 
-                      {/* Jumlah Calon Mahasiswa - Reguler */}
-                      <td className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center">{item.calon_reguler_diterima || '-'}</td>
-                      <td className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center">{item.calon_reguler_afirmasi || '-'}</td>
-                      {/* Jumlah Calon Mahasiswa - RPL */}
-                      <td className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center">{item.calon_rpl_diterima || '-'}</td>
-                      <td className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center">{item.calon_rpl_afirmasi || '-'}</td>
-                      <td className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center font-semibold">{item.calon_kebutuhan_khusus || '-'}</td>
+                      {/* Calon Mahasiswa */}
+                      <td className="border border-gray-300 px-2 py-2 text-center">{(item as any).calon_pendaftar || '-'}</td>
+                      <td className="border border-gray-300 px-2 py-2 text-center">{(item as any).calon_pendaftar_afirmasi || '-'}</td>
+                      <td className="border border-gray-300 px-2 py-2 text-center">{(item as any).calon_pendaftar_kebutuhan_khusus || '-'}</td>
 
-                      {/* Jumlah Mahasiswa Baru - Reguler */}
-                      <td className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center">{item.baru_reguler_diterima || '-'}</td>
-                      <td className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center">{item.baru_reguler_afirmasi || '-'}</td>
-                      {/* Jumlah Mahasiswa Baru - RPL */}
-                      <td className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center">{item.baru_rpl_diterima || '-'}</td>
-                      <td className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center">{item.baru_rpl_afirmasi || '-'}</td>
-                      <td className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center font-semibold">{item.baru_kebutuhan_khusus || '-'}</td>
+                      {/* Mahasiswa Baru - Reguler */}
+                      <td className="border border-gray-300 px-2 py-2 text-center bg-blue-50">{(item as any).baru_reguler_diterima || '-'}</td>
+                      <td className="border border-gray-300 px-2 py-2 text-center bg-blue-50">{(item as any).baru_reguler_afirmasi || '-'}</td>
+                      <td className="border border-gray-300 px-2 py-2 text-center bg-blue-50">{(item as any).baru_reguler_kebutuhan_khusus || '-'}</td>
 
-                      {/* Jumlah Mahasiswa Aktif - Reguler */}
-                      <td className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center">{item.aktif_reguler_diterima || '-'}</td>
-                      <td className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center">{item.aktif_reguler_afirmasi || '-'}</td>
-                      {/* Jumlah Mahasiswa Aktif - RPL */}
-                      <td className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center">{item.aktif_rpl_diterima || '-'}</td>
-                      <td className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center">{item.aktif_rpl_afirmasi || '-'}</td>
-                      <td className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center font-semibold">{item.aktif_kebutuhan_khusus || '-'}</td>
+                      {/* Mahasiswa Baru - RPL */}
+                      <td className="border border-gray-300 px-2 py-2 text-center bg-green-50">{(item as any).baru_rpl_diterima || '-'}</td>
+                      <td className="border border-gray-300 px-2 py-2 text-center bg-green-50">{(item as any).baru_rpl_afirmasi || '-'}</td>
+                      <td className="border border-gray-300 px-2 py-2 text-center bg-green-50">{(item as any).baru_rpl_kebutuhan_khusus || '-'}</td>
+
+                      {/* Mahasiswa Aktif - Reguler */}
+                      <td className="border border-gray-300 px-2 py-2 text-center bg-blue-50">{(item as any).aktif_reguler_diterima || '-'}</td>
+                      <td className="border border-gray-300 px-2 py-2 text-center bg-blue-50">{(item as any).aktif_reguler_afirmasi || '-'}</td>
+                      <td className="border border-gray-300 px-2 py-2 text-center bg-blue-50">{(item as any).aktif_reguler_kebutuhan_khusus || '-'}</td>
+
+                      {/* Mahasiswa Aktif - RPL */}
+                      <td className="border border-gray-300 px-2 py-2 text-center bg-green-50">{(item as any).aktif_rpl_diterima || '-'}</td>
+                      <td className="border border-gray-300 px-2 py-2 text-center bg-green-50">{(item as any).aktif_rpl_afirmasi || '-'}</td>
+                      <td className="border border-gray-300 px-2 py-2 text-center bg-green-50">{(item as any).aktif_rpl_kebutuhan_khusus || '-'}</td>
 
                       {/* Aksi */}
-                      <td className="border border-gray-300 px-2 sm:px-4 py-2 sm:py-3 text-center sticky right-0 bg-yellow-50">
-                        <div className="flex justify-center gap-1 sm:gap-2">
+                      <td className="border border-gray-300 px-2 py-2 text-center sticky right-0 bg-yellow-50">
+                        <div className="flex justify-center gap-2">
                           <button onClick={() => handleEdit(item)} className="text-blue-700 hover:text-blue-900 p-1">
                             <Edit size={16} />
                           </button>
@@ -557,36 +516,35 @@ export default function RelevansiPendidikanPage() {
         ) : (
           // TABEL LAINNYA - STRUKTUR LAMA
           <table className="min-w-full text-sm text-gray-700">
-          <thead className="bg-gray-50">
-            <tr className="text-xs text-gray-700 uppercase">
-              {activeSubTab === 'keragaman-asal' && (
-                <>
-                  <th className="px-4 py-3 text-left">Asal Mahasiswa</th>
-                  <th className="px-4 py-3 text-center">TS-2</th>
-                  <th className="px-4 py-3 text-center">TS-1</th>
-                  <th className="px-4 py-3 text-center">TS</th>
-                  <th className="px-4 py-3 text-center">Link Bukti</th>
-                </>
-              )}
-              {activeSubTab === 'kondisi-jumlah-mahasiswa' && (
-                <>
-                  <th className="px-4 py-3 text-left">Alasan</th>
-                  <th className="px-4 py-3 text-center">TS-2</th>
-                  <th className="px-4 py-3 text-center">TS-1</th>
-                  <th className="px-4 py-3 text-center">TS</th>
-                  <th className="px-4 py-3 text-center">Jumlah</th>
-                </>
-              )}
-              {activeSubTab === 'tabel-pembelajaran' && (
-                <>
-                  <th className="px-4 py-3 text-left">No</th>
-                  <th className="px-4 py-3 text-center">Mata Kuliah</th>
-                  <th className="px-4 py-3 text-center">SKS</th>
-                  <th className="px-4 py-3 text-center">Semester</th> 
-                  <th className="px-4 py-3 text-left">Profil Lulusan </th>
+            <thead className="bg-gray-50">
+              <tr className="text-xs text-gray-700 uppercase">
+                {activeSubTab === 'keragaman-asal' && (
+                  <>
+                    <th className="px-4 py-3 text-left">Asal Mahasiswa</th>
+                    <th className="px-4 py-3 text-center">TS-2</th>
+                    <th className="px-4 py-3 text-center">TS-1</th>
+                    <th className="px-4 py-3 text-center">TS</th>
+                    <th className="px-4 py-3 text-center">Link Bukti</th>
                   </>
                 )}
-
+                {activeSubTab === 'kondisi-jumlah-mahasiswa' && (
+                  <>
+                    <th className="px-4 py-3 text-left">Alasan</th>
+                    <th className="px-4 py-3 text-center">TS-2</th>
+                    <th className="px-4 py-3 text-center">TS-1</th>
+                    <th className="px-4 py-3 text-center">TS</th>
+                    <th className="px-4 py-3 text-center">Jumlah</th>
+                  </>
+                )}
+                {activeSubTab === 'tabel-pembelajaran' && (
+                  <>
+                    <th className="px-4 py-3 text-left">No</th>
+                    <th className="px-4 py-3 text-center">Mata Kuliah</th>
+                    <th className="px-4 py-3 text-center">SKS</th>
+                    <th className="px-4 py-3 text-center">Semester</th>
+                    <th className="px-4 py-3 text-left">Profil Lulusan</th>
+                  </>
+                )}
                 {activeSubTab === 'pemetaan-CPL-PL' && (
                   <>
                     <th className="px-4 py-3 text-left">No</th>
@@ -612,7 +570,7 @@ export default function RelevansiPendidikanPage() {
                   <>
                     <th className="px-4 py-3 text-left">Tahun Lulus</th>
                     <th className="px-4 py-3 text-center">Jumlah Lulusan</th>
-                    <th className="px-4 py-3 text-center">Jumlah Lulusan Yang Terlacak </th>
+                    <th className="px-4 py-3 text-center">Jumlah Lulusan Yang Terlacak</th>
                     <th className="px-4 py-3 text-left">Rata-Rata Waktu Tunggu(Bulan)</th>
                   </>
                 )}
@@ -621,7 +579,7 @@ export default function RelevansiPendidikanPage() {
                     <th className="px-4 py-3 text-left">Tahun Lulus</th>
                     <th className="px-4 py-3 text-center">Jumlah Lulusan</th>
                     <th className="px-4 py-3 text-center">Jumlah Lulusan Yang Terlacak</th>
-                    <th className="px-4 py-3 text-center">Profesi Kerja Bidang Infokom </th>
+                    <th className="px-4 py-3 text-center">Profesi Kerja Bidang Infokom</th>
                     <th className="px-4 py-3 text-left">Profesi Kerja Bidang NonInfokom</th>
                     <th className="px-4 py-3 text-left">Lingkup Kerja Internasional</th>
                     <th className="px-4 py-3 text-left">Lingkup Kerja Nasional</th>
@@ -631,12 +589,12 @@ export default function RelevansiPendidikanPage() {
                 {activeSubTab === 'kepuasan-pengguna' && (
                   <>
                     <th className="px-4 py-3 text-left">No</th>
-                    <th className="px-4 py-3 text-center">Jenin Kemampuan</th>
+                    <th className="px-4 py-3 text-center">Jenis Kemampuan</th>
                     <th className="px-4 py-3 text-center">Sangat Baik</th>
                     <th className="px-4 py-3 text-center">Baik</th>
                     <th className="px-4 py-3 text-left">Cukup</th>
                     <th className="px-4 py-3 text-left">Kurang</th>
-                  <th className="px-4 py-3 text-left">Rencana Tindak Lanjut UPPS/PS</th>
+                    <th className="px-4 py-3 text-left">Rencana Tindak Lanjut UPPS/PS</th>
                   </>
                 )}
                 {activeSubTab === 'fleksibilitas' && (
@@ -658,147 +616,138 @@ export default function RelevansiPendidikanPage() {
                     <th className="px-4 py-3 text-left">Link Bukti</th>
                   </>
                 )}
-              <th className="w-24 px-4 py-3 text-center">Aksi</th>
-            </tr>
-          </thead>
-
-          <tbody className="divide-y divide-gray-100">
-            {data.length === 0 ? (
-              <tr>
-                <td colSpan={emptyColSpan} className="py-6 text-center text-gray-500">
-                  Belum ada data
-                </td>
+                <th className="w-24 px-4 py-3 text-center">Aksi</th>
               </tr>
-            ) : (
-              data.map((item, index) => (
-                <tr key={item.id ?? `row-${index}`} className="hover:bg-gray-50">
-                  {activeSubTab === 'keragaman-asal' && (
-                    <>
-                      <td className="px-4 py-3">{item.asalMahasiswa}</td>
-                      <td className="px-4 py-3 text-center">{item.ts2}</td>
-                      <td className="px-4 py-3 text-center">{item.ts1}</td>
-                      <td className="px-4 py-3 text-center">{item.ts}</td>
-                      <td className="px-4 py-3 text-center">
-                        {item.linkBukti ? (
-                          <a href={item.linkBukti} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
-                            Lihat
-                          </a>
-                        ) : (
-                          '-'
-                        )}
-                      </td>
-                    </>
-                  )}
-                  {activeSubTab === 'kondisi-jumlah-mahasiswa' && (
-                    <>
-                      <td className="px-4 py-3">{item.alasan}</td>
-                      <td className="px-4 py-3 text-center">{item.ts2}</td>
-                      <td className="px-4 py-3 text-center">{item.ts1}</td>
-                      <td className="px-4 py-3 text-center">{item.ts}</td>
-                      <td className="px-4 py-3 text-center">{item.jumlah}</td>
-                    </>
-                  )}
-                  {activeSubTab === 'tabel-pembelajaran' && (
-                    <>
-                      <td className="px-4 py-3">{index + 1}</td>
-                      <td className="px-4 py-3 text-center">{item.mata_kuliah}</td>
-                      <td className="px-4 py-3 text-center">{item.sks}</td>
-                      <td className="px-4 py-3 text-center">{item.semester}</td>
-                      <td className="px-4 py-3">{item.profil_lulusan}</td>
-                    </>
-                  )}
+            </thead>
 
-                  {activeSubTab === 'pemetaan-CPL-PL' && (
-                    <>
-                      <td className="px-4 py-3">{index + 1}</td>
-                      <td className="px-4 py-3">{(item as any).pl1}</td>
-                      <td className="px-4 py-3">{(item as any).pl2}</td>
-                    </>
-                  )}
-
-                  {activeSubTab === 'peta-pemenuhan-CPL' && (
-                    <>
-                      <td className="px-4 py-3">{(item as any).cpl}</td>
-                      <td className="px-4 py-3">{(item as any).cpmk}</td>
-                      {Array.from({ length: 8 }, (_, i) => (
-                        <td key={i} className="px-4 py-3">{(item as any)[`semester${i + 1}`]}</td>
-                      ))}
-                    </>
-                  )}
-
-                  {activeSubTab === 'rata-rata-masa-tunggu-lulusan' && (
-                    <>
-                      <td className="px-4 py-3">{item.tahun}</td>
-                      <td className="px-4 py-3 text-center">{item.jumlah_lulusan}</td>
-                      <td className="px-4 py-3 text-center">{item.aktif}</td>
-                      <td className="px-4 py-3">{item.ts}</td>
-                    </>
-                  )}
-
-                  {activeSubTab === 'kesesuaian-bidang' && (
-                    <>
-                      <td className="px-4 py-3">{item.tahun}</td>
-                      <td className="px-4 py-3 text-center">{item.jumlah_lulusan}</td>
-                      <td className="px-4 py-3 text-center">{item.aktif}</td>
-                      <td className="px-4 py-3">{(item as any).profesi_infokom}</td>
-                      <td className="px-4 py-3">{(item as any).profesi_noninfokom}</td>
-                      <td className="px-4 py-3">{(item as any).lingkup_internasional}</td>
-                      <td className="px-4 py-3">{(item as any).lingkup_nasional}</td>
-                      <td className="px-4 py-3">{(item as any).lingkup_wirausaha}</td>
-                    </>
-                  )}
-
-                  {activeSubTab === 'kepuasan-pengguna' && (
-                    <>
-                      <td className="px-4 py-3">{(item as any).no}</td>
-                      <td className="px-4 py-3">{(item as any).jenis_kemampuan}</td>
-                      <td className="px-4 py-3 text-center">{(item as any).sangat_baik}</td>
-                      <td className="px-4 py-3 text-center">{(item as any).baik}</td>
-                      <td className="px-4 py-3">{(item as any).cukup}</td>
-                      <td className="px-4 py-3">{(item as any).kurang}</td>
-                      <td className="px-4 py-3">{(item as any).rencana_tindak_lanjut}</td>
-                    </>
-                  )}
-
-                  {activeSubTab === 'fleksibilitas' && (
-                    <>
-                      <td className="px-4 py-3">{item.tahun}</td>
-                      <td className="px-4 py-3">{item.ts2}</td>
-                      <td className="px-4 py-3">{item.ts1}</td>
-                      <td className="px-4 py-3">{item.ts}</td>
-                      <td className="px-4 py-3">
-                        {item.linkBukti ? (
-                          <a href={item.linkBukti} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
-                            Lihat
-                          </a>
-                        ) : (
-                          '-'
-                        )}
-                      </td>
-                    </>
-                  )}
-
-                  {activeSubTab === 'rekognisi-apresiasi' && (
-                    <>
-                      <td className="px-4 py-3">{(item as any).sumber_rekognisi}</td>
-                      <td className="px-4 py-3">{(item as any).jenis_pengakuan}</td>
-                      <td className="px-4 py-3">{item.ts2}</td>
-                      <td className="px-4 py-3">{item.ts1}</td>
-                      <td className="px-4 py-3">{item.ts}</td>
-                      <td className="px-4 py-3">
-                        {item.linkBukti ? (
-                          <a href={item.linkBukti} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
-                            Lihat
-                          </a>
-                        ) : (
-                          '-'
-                        )}
-                      </td>
-                    </>
-                  )}
-
-
-                  <td className="px-4 py-3 text-center">
+            <tbody className="divide-y divide-gray-100">
+              {data.length === 0 ? (
+                <tr>
+                  <td colSpan={emptyColSpan} className="py-6 text-center text-gray-500">
+                    Belum ada data
+                  </td>
+                </tr>
+              ) : (
+                data.map((item, index) => (
+                  <tr key={item.id ?? `row-${index}`} className="hover:bg-gray-50">
+                    {activeSubTab === 'keragaman-asal' && (
+                      <>
+                        <td className="px-4 py-3">{item.asalMahasiswa}</td>
+                        <td className="px-4 py-3 text-center">{item.ts2}</td>
+                        <td className="px-4 py-3 text-center">{item.ts1}</td>
+                        <td className="px-4 py-3 text-center">{item.ts}</td>
+                        <td className="px-4 py-3 text-center">
+                          {item.linkBukti ? (
+                            <a href={item.linkBukti} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
+                              Lihat
+                            </a>
+                          ) : (
+                            '-'
+                          )}
+                        </td>
+                      </>
+                    )}
+                    {activeSubTab === 'kondisi-jumlah-mahasiswa' && (
+                      <>
+                        <td className="px-4 py-3">{item.alasan}</td>
+                        <td className="px-4 py-3 text-center">{item.ts2}</td>
+                        <td className="px-4 py-3 text-center">{item.ts1}</td>
+                        <td className="px-4 py-3 text-center">{item.ts}</td>
+                        <td className="px-4 py-3 text-center">{item.jumlah}</td>
+                      </>
+                    )}
+                    {activeSubTab === 'tabel-pembelajaran' && (
+                      <>
+                        <td className="px-4 py-3">{index + 1}</td>
+                        <td className="px-4 py-3 text-center">{item.mata_kuliah}</td>
+                        <td className="px-4 py-3 text-center">{item.sks}</td>
+                        <td className="px-4 py-3 text-center">{item.semester}</td>
+                        <td className="px-4 py-3">{item.profil_lulusan}</td>
+                      </>
+                    )}
+                    {activeSubTab === 'pemetaan-CPL-PL' && (
+                      <>
+                        <td className="px-4 py-3">{index + 1}</td>
+                        <td className="px-4 py-3">{(item as any).pl1}</td>
+                        <td className="px-4 py-3">{(item as any).pl2}</td>
+                      </>
+                    )}
+                    {activeSubTab === 'peta-pemenuhan-CPL' && (
+                      <>
+                        <td className="px-4 py-3">{(item as any).cpl}</td>
+                        <td className="px-4 py-3">{(item as any).cpmk}</td>
+                        {Array.from({ length: 8 }, (_, i) => (
+                          <td key={i} className="px-4 py-3">{(item as any)[`semester${i + 1}`]}</td>
+                        ))}
+                      </>
+                    )}
+                    {activeSubTab === 'rata-rata-masa-tunggu-lulusan' && (
+                      <>
+                        <td className="px-4 py-3">{item.tahun}</td>
+                        <td className="px-4 py-3 text-center">{item.jumlah_lulusan}</td>
+                        <td className="px-4 py-3 text-center">{item.aktif}</td>
+                        <td className="px-4 py-3">{item.ts}</td>
+                      </>
+                    )}
+                    {activeSubTab === 'kesesuaian-bidang' && (
+                      <>
+                        <td className="px-4 py-3">{item.tahun}</td>
+                        <td className="px-4 py-3 text-center">{item.jumlah_lulusan}</td>
+                        <td className="px-4 py-3 text-center">{item.aktif}</td>
+                        <td className="px-4 py-3">{(item as any).profesi_infokom}</td>
+                        <td className="px-4 py-3">{(item as any).profesi_noninfokom}</td>
+                        <td className="px-4 py-3">{(item as any).lingkup_internasional}</td>
+                        <td className="px-4 py-3">{(item as any).lingkup_nasional}</td>
+                        <td className="px-4 py-3">{(item as any).lingkup_wirausaha}</td>
+                      </>
+                    )}
+                    {activeSubTab === 'kepuasan-pengguna' && (
+                      <>
+                        <td className="px-4 py-3">{(item as any).no}</td>
+                        <td className="px-4 py-3">{(item as any).jenis_kemampuan}</td>
+                        <td className="px-4 py-3 text-center">{(item as any).sangat_baik}</td>
+                        <td className="px-4 py-3 text-center">{(item as any).baik}</td>
+                        <td className="px-4 py-3">{(item as any).cukup}</td>
+                        <td className="px-4 py-3">{(item as any).kurang}</td>
+                        <td className="px-4 py-3">{(item as any).rencana_tindak_lanjut}</td>
+                      </>
+                    )}
+                    {activeSubTab === 'fleksibilitas' && (
+                      <>
+                        <td className="px-4 py-3">{item.tahun}</td>
+                        <td className="px-4 py-3">{item.ts2}</td>
+                        <td className="px-4 py-3">{item.ts1}</td>
+                        <td className="px-4 py-3">{item.ts}</td>
+                        <td className="px-4 py-3">
+                          {item.linkBukti ? (
+                            <a href={item.linkBukti} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
+                              Lihat
+                            </a>
+                          ) : (
+                            '-'
+                          )}
+                        </td>
+                      </>
+                    )}
+                    {activeSubTab === 'rekognisi-apresiasi' && (
+                      <>
+                        <td className="px-4 py-3">{(item as any).sumber_rekognisi}</td>
+                        <td className="px-4 py-3">{(item as any).jenis_pengakuan}</td>
+                        <td className="px-4 py-3">{item.ts2}</td>
+                        <td className="px-4 py-3">{item.ts1}</td>
+                        <td className="px-4 py-3">{item.ts}</td>
+                        <td className="px-4 py-3">
+                          {item.linkBukti ? (
+                            <a href={item.linkBukti} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
+                              Lihat
+                            </a>
+                          ) : (
+                            '-'
+                          )}
+                        </td>
+                      </>
+                    )}
+                    <td className="px-4 py-3 text-center">
                       <div className="flex justify-center gap-2">
                         <button onClick={() => handleEdit(item)} className="text-blue-700 hover:text-blue-900">
                           <Edit size={16} />
@@ -808,11 +757,11 @@ export default function RelevansiPendidikanPage() {
                         </button>
                       </div>
                     </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         )}
       </div>
     );
@@ -821,6 +770,7 @@ export default function RelevansiPendidikanPage() {
   // --- Render utama ---
   return (
     <div className="flex w-full bg-gray-100">
+      <PopupNotification />
       <div className="flex-1 w-full">
         <main className="w-full p-2 sm:p-4 md:p-6 max-w-full overflow-x-hidden">
           {/* Header LKPS */}
@@ -841,58 +791,57 @@ export default function RelevansiPendidikanPage() {
 
           {/* Tabs utama */}
           <div className="flex gap-1 sm:gap-2 overflow-x-auto pb-2 mb-4 sm:mb-6">
-                    {tabs.map((tab) => {
-                      const isActive = pathname === tab.href; 
-                      return (
-                        <Link
-                          key={tab.href}
-                          href={tab.href}
-                          className={`px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 whitespace-nowrap ${
-                            isActive
-                              ? 'bg-[#183A64] text-[#ADE7F7] shadow-md scale-105'
-                              : 'bg-gray-100 text-gray-700 hover:bg-[#ADE7F7] hover:text-[#183A64]'
-                          }`}
-                        >
-                          {tab.label}
-                        </Link>
-                      );
-                    })}
-                  </div>
+            {tabs.map((tab) => {
+              const isActive = pathname === tab.href;
+              return (
+                <Link
+                  key={tab.href}
+                  href={tab.href}
+                  className={`px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 whitespace-nowrap ${
+                    isActive
+                      ? 'bg-[#183A64] text-[#ADE7F7] shadow-md scale-105'
+                      : 'bg-gray-100 text-gray-700 hover:bg-[#ADE7F7] hover:text-[#183A64]'
+                  }`}
+                >
+                  {tab.label}
+                </Link>
+              );
+            })}
+          </div>
 
           {/* Konten */}
           <div className="bg-white rounded-lg shadow p-3 sm:p-4 md:p-6">
             {/* Subtab */}
             <div className="flex gap-1 sm:gap-2 border-b pb-2 mb-3 sm:mb-4 overflow-x-auto">
-  {[
-    'mahasiswa',
-    'keragaman-asal',
-    'kondisi-jumlah-mahasiswa',
-    'tabel-pembelajaran',
-    'pemetaan-CPL-PL',
-    'peta-pemenuhan-CPL',
-    'rata-rata-masa-tunggu-lulusan',
-    'kesesuaian-bidang',
-    'kepuasan-pengguna',
-    'fleksibilitas',
-    'rekognisi-apresiasi',
-  ].map((sub) => (
-    <button
-      key={sub}
-      onClick={() => setActiveSubTab(sub as SubTab)}
-      className={`px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm rounded-t-lg font-semibold transition-all duration-200 whitespace-nowrap
-        ${
-          activeSubTab === sub
-            ? 'bg-[#183A64] text-[#ADE7F7]'
-            : 'bg-[#ADE7F7] text-[#183A64] hover:bg-[#90d8ee] hover:text-[#102b4d]'
-        }`}
-    >
-      {sub
-        .replace(/-/g, ' ')
-        .replace(/\b\w/g, (c) => c.toUpperCase())}
-    </button>
-  ))}
-</div>
-
+              {[
+                'mahasiswa',
+                'keragaman-asal',
+                'kondisi-jumlah-mahasiswa',
+                'tabel-pembelajaran',
+                'pemetaan-CPL-PL',
+                'peta-pemenuhan-CPL',
+                'rata-rata-masa-tunggu-lulusan',
+                'kesesuaian-bidang',
+                'kepuasan-pengguna',
+                'fleksibilitas',
+                'rekognisi-apresiasi',
+              ].map((sub) => (
+                <button
+                  key={sub}
+                  onClick={() => setActiveSubTab(sub as SubTab)}
+                  className={`px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm rounded-t-lg font-semibold transition-all duration-200 whitespace-nowrap
+                    ${
+                      activeSubTab === sub
+                        ? 'bg-[#183A64] text-[#ADE7F7]'
+                        : 'bg-[#ADE7F7] text-[#183A64] hover:bg-[#90d8ee] hover:text-[#102b4d]'
+                    }`}
+                >
+                  {sub
+                    .replace(/-/g, ' ')
+                    .replace(/\b\w/g, (c) => c.toUpperCase())}
+                </button>
+              ))}
+            </div>
 
             {/* Judul Subtab & Tabel */}
             <div className="mb-3 sm:mb-4">
@@ -931,194 +880,198 @@ export default function RelevansiPendidikanPage() {
             {renderTable()}
 
             {/* Form Input */}
-                {showForm && (
-                 <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-start md:items-center overflow-auto z-50 p-4">
-                  <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-xl">
-           
-                     {/* Header Form */}
-                      <div className="flex justify-between items-center mb-6">
-                       <h2 className="text-lg font-semibold text-gray-800">
-                        {editIndex !== null ? 'Edit Data' : 'Tambah Data Baru'}
-                      </h2>
-                       <button onClick={() => setShowForm(false)} className="text-gray-500 hover:text-gray-700">
-                         <X size={24} />
-                        </button>
-                    </div>
+            {showForm && (
+              <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-start md:items-center overflow-auto z-50 p-4">
+                <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+                  {/* Header Form */}
+                  <div className="flex justify-between items-center mb-6 sticky top-0 bg-white pb-4 border-b">
+                    <h2 className="text-lg font-semibold text-gray-800">
+                      {editIndex !== null ? 'Edit Data' : 'Tambah Data Baru'}
+                    </h2>
+                    <button onClick={() => setShowForm(false)} className="text-gray-500 hover:text-gray-700">
+                      <X size={24} />
+                    </button>
+                  </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {activeSubTab === 'mahasiswa' && (
+                      <>
+                        <div className="col-span-2">
+                          <h4 className="font-semibold text-gray-700 mb-3">Informasi Dasar</h4>
+                        </div>
+                        <input name="tahun" value={formData.tahun || ''} onChange={handleChange} placeholder="Tahun (TS)" className="border p-3 rounded-lg w-full" />
+                        <input name="daya_tampung" type="number" value={formData.daya_tampung || ''} onChange={handleChange} placeholder="Daya Tampung" className="border p-3 rounded-lg w-full" />
+                        
+                        <div className="col-span-2 mt-4">
+                          <h4 className="font-semibold text-gray-700 mb-3">Jumlah Calon Mahasiswa</h4>
+                        </div>
+                        <input name="calon_pendaftar" type="number" value={(formData as any).calon_pendaftar || ''} onChange={handleChange} placeholder="Pendaftar" className="border p-3 rounded-lg w-full" />
+                        <input name="calon_pendaftar_afirmasi" type="number" value={(formData as any).calon_pendaftar_afirmasi || ''} onChange={handleChange} placeholder="Pendaftar Afirmasi" className="border p-3 rounded-lg w-full" />
+                        <input name="calon_pendaftar_kebutuhan_khusus" type="number" value={(formData as any).calon_pendaftar_kebutuhan_khusus || ''} onChange={handleChange} placeholder="Pendaftar Kebutuhan Khusus" className="border p-3 rounded-lg w-full" />
+                        
+                        <div className="col-span-2 mt-4">
+                          <h4 className="font-semibold text-gray-700 mb-3">Mahasiswa Baru - Reguler</h4>
+                        </div>
+                        <input name="baru_reguler_diterima" type="number" value={(formData as any).baru_reguler_diterima || ''} onChange={handleChange} placeholder="Diterima" className="border p-3 rounded-lg w-full" />
+                        <input name="baru_reguler_afirmasi" type="number" value={(formData as any).baru_reguler_afirmasi || ''} onChange={handleChange} placeholder="Afirmasi" className="border p-3 rounded-lg w-full" />
+                        <input name="baru_reguler_kebutuhan_khusus" type="number" value={(formData as any).baru_reguler_kebutuhan_khusus || ''} onChange={handleChange} placeholder="Kebutuhan Khusus" className="border p-3 rounded-lg w-full" />
+                        
+                        <div className="col-span-2 mt-4">
+                          <h4 className="font-semibold text-gray-700 mb-3">Mahasiswa Baru - RPL</h4>
+                        </div>
+                        <input name="baru_rpl_diterima" type="number" value={(formData as any).baru_rpl_diterima || ''} onChange={handleChange} placeholder="Diterima" className="border p-3 rounded-lg w-full" />
+                        <input name="baru_rpl_afirmasi" type="number" value={(formData as any).baru_rpl_afirmasi || ''} onChange={handleChange} placeholder="Afirmasi" className="border p-3 rounded-lg w-full" />
+                        <input name="baru_rpl_kebutuhan_khusus" type="number" value={(formData as any).baru_rpl_kebutuhan_khusus || ''} onChange={handleChange} placeholder="Kebutuhan Khusus" className="border p-3 rounded-lg w-full" />
+                        
+                        <div className="col-span-2 mt-4">
+                          <h4 className="font-semibold text-gray-700 mb-3">Mahasiswa Aktif - Reguler</h4>
+                        </div>
+                        <input name="aktif_reguler_diterima" type="number" value={(formData as any).aktif_reguler_diterima || ''} onChange={handleChange} placeholder="Diterima" className="border p-3 rounded-lg w-full" />
+                        <input name="aktif_reguler_afirmasi" type="number" value={(formData as any).aktif_reguler_afirmasi || ''} onChange={handleChange} placeholder="Afirmasi" className="border p-3 rounded-lg w-full" />
+                        <input name="aktif_reguler_kebutuhan_khusus" type="number" value={(formData as any).aktif_reguler_kebutuhan_khusus || ''} onChange={handleChange} placeholder="Kebutuhan Khusus" className="border p-3 rounded-lg w-full" />
+                        
+                        <div className="col-span-2 mt-4">
+                          <h4 className="font-semibold text-gray-700 mb-3">Mahasiswa Aktif - RPL</h4>
+                        </div>
+                        <input name="aktif_rpl_diterima" type="number" value={(formData as any).aktif_rpl_diterima || ''} onChange={handleChange} placeholder="Diterima" className="border p-3 rounded-lg w-full" />
+                        <input name="aktif_rpl_afirmasi" type="number" value={(formData as any).aktif_rpl_afirmasi || ''} onChange={handleChange} placeholder="Afirmasi" className="border p-3 rounded-lg w-full" />
+                        <input name="aktif_rpl_kebutuhan_khusus" type="number" value={(formData as any).aktif_rpl_kebutuhan_khusus || ''} onChange={handleChange} placeholder="Kebutuhan Khusus" className="border p-3 rounded-lg w-full" />
+                      </>
+                    )}
+
                     {activeSubTab === 'keragaman-asal' && (
                       <>
                         <input name="asalMahasiswa" value={formData.asalMahasiswa || ''} onChange={handleChange} placeholder="Asal Mahasiswa" className="border p-3 rounded-lg w-full" />
                         <input name="ts2" value={formData.ts2 || ''} onChange={handleChange} placeholder="TS-2" className="border p-3 rounded-lg w-full" />
                         <input name="ts1" value={formData.ts1 || ''} onChange={handleChange} placeholder="TS-1" className="border p-3 rounded-lg w-full" />
                         <input name="ts" value={formData.ts || ''} onChange={handleChange} placeholder="TS" className="border p-3 rounded-lg w-full" />
-                        <input name="linkBukti" value={formData.linkBukti || ''} onChange={handleChange} placeholder="Link Bukti" className="border p-3 rounded-lg w-full" />
+                        <input name="linkBukti" value={formData.linkBukti || ''} onChange={handleChange} placeholder="Link Bukti" className="border p-3 rounded-lg w-full col-span-2" />
                       </>
                     )}
 
                     {activeSubTab === 'kondisi-jumlah-mahasiswa' && (
                       <>
-                        <input name="alasan" value={formData.alasan || ''} onChange={handleChange} placeholder="Alasan" className="border p-3 rounded-lg w-full" />
+                        <input name="alasan" value={formData.alasan || ''} onChange={handleChange} placeholder="Alasan" className="border p-3 rounded-lg w-full col-span-2" />
                         <input name="ts2" value={formData.ts2 || ''} onChange={handleChange} placeholder="TS-2" className="border p-3 rounded-lg w-full" />
                         <input name="ts1" value={formData.ts1 || ''} onChange={handleChange} placeholder="TS-1" className="border p-3 rounded-lg w-full" />
                         <input name="ts" value={formData.ts || ''} onChange={handleChange} placeholder="TS" className="border p-3 rounded-lg w-full" />
-                        <input name="jumlah" value={formData.jumlah || ''} onChange={handleChange} placeholder="Jumlah" className="border p-3 rounded-lg w-full" />
+                        <input name="jumlah" type="number" value={formData.jumlah || ''} onChange={handleChange} placeholder="Jumlah" className="border p-3 rounded-lg w-full" />
                       </>
                     )}
 
-                    {activeSubTab === 'mahasiswa' && (
-                      <>
-                        <input name="tahun" value={formData.tahun || ''} onChange={handleChange} placeholder="Tahun (TS)" className="border p-3 rounded-lg w-full" />
-                        <input name="daya_tampung" value={formData.daya_tampung || ''} onChange={handleChange} placeholder="Daya Tampung" className="border p-3 rounded-lg w-full" />
-                        <input name="calon_reguler_diterima" value={(formData as any).calon_reguler_diterima || ''} onChange={handleChange} placeholder="Calon Reguler Diterima" className="border p-3 rounded-lg w-full" />
-                        <input name="calon_reguler_afirmasi" value={(formData as any).calon_reguler_afirmasi || ''} onChange={handleChange} placeholder="Calon Reguler Afirmasi" className="border p-3 rounded-lg w-full" />
-                        <input name="calon_rpl_diterima" value={(formData as any).calon_rpl_diterima || ''} onChange={handleChange} placeholder="Calon RPL Diterima" className="border p-3 rounded-lg w-full" />
-                        <input name="calon_rpl_afirmasi" value={(formData as any).calon_rpl_afirmasi || ''} onChange={handleChange} placeholder="Calon RPL Afirmasi" className="border p-3 rounded-lg w-full" />
-                        <input name="calon_kebutuhan_khusus" value={(formData as any).calon_kebutuhan_khusus || ''} onChange={handleChange} placeholder="Calon Kebutuhan Khusus" className="border p-3 rounded-lg w-full" />
-                        <input name="baru_reguler_diterima" value={(formData as any).baru_reguler_diterima || ''} onChange={handleChange} placeholder="Baru Reguler Diterima" className="border p-3 rounded-lg w-full" />
-                        <input name="baru_reguler_afirmasi" value={(formData as any).baru_reguler_afirmasi || ''} onChange={handleChange} placeholder="Baru Reguler Afirmasi" className="border p-3 rounded-lg w-full" />
-                        <input name="baru_rpl_diterima" value={(formData as any).baru_rpl_diterima || ''} onChange={handleChange} placeholder="Baru RPL Diterima" className="border p-3 rounded-lg w-full" />
-                        <input name="baru_rpl_afirmasi" value={(formData as any).baru_rpl_afirmasi || ''} onChange={handleChange} placeholder="Baru RPL Afirmasi" className="border p-3 rounded-lg w-full" />
-                        <input name="baru_kebutuhan_khusus" value={(formData as any).baru_kebutuhan_khusus || ''} onChange={handleChange} placeholder="Baru Kebutuhan Khusus" className="border p-3 rounded-lg w-full" />
-                        <input name="aktif_reguler_diterima" value={(formData as any).aktif_reguler_diterima || ''} onChange={handleChange} placeholder="Aktif Reguler Diterima" className="border p-3 rounded-lg w-full" />
-                        <input name="aktif_reguler_afirmasi" value={(formData as any).aktif_reguler_afirmasi || ''} onChange={handleChange} placeholder="Aktif Reguler Afirmasi" className="border p-3 rounded-lg w-full" />
-                        <input name="aktif_rpl_diterima" value={(formData as any).aktif_rpl_diterima || ''} onChange={handleChange} placeholder="Aktif RPL Diterima" className="border p-3 rounded-lg w-full" />
-                        <input name="aktif_rpl_afirmasi" value={(formData as any).aktif_rpl_afirmasi || ''} onChange={handleChange} placeholder="Aktif RPL Afirmasi" className="border p-3 rounded-lg w-full" />
-                        <input name="aktif_kebutuhan_khusus" value={(formData as any).aktif_kebutuhan_khusus || ''} onChange={handleChange} placeholder="Aktif Kebutuhan Khusus" className="border p-3 rounded-lg w-full" />
-                      </>
-                    )}
                     {activeSubTab === 'tabel-pembelajaran' && (
                       <>
                         <input name="mata_kuliah" value={formData.mata_kuliah || ''} onChange={handleChange} placeholder="Mata Kuliah" className="border p-3 rounded-lg w-full" />
-                        <input name="sks" value={formData.sks || ''} onChange={handleChange} placeholder="SKS" className="border p-3 rounded-lg w-full" />
-                        <input name="semester" value={formData.semester || ''} onChange={handleChange} placeholder="Semester" className="border p-3 rounded-lg w-full" />
+                        <input name="sks" type="number" value={formData.sks || ''} onChange={handleChange} placeholder="SKS" className="border p-3 rounded-lg w-full" />
+                        <input name="semester" type="number" value={formData.semester || ''} onChange={handleChange} placeholder="Semester" className="border p-3 rounded-lg w-full" />
                         <input name="profil_lulusan" value={formData.profil_lulusan || ''} onChange={handleChange} placeholder="Profil Lulusan" className="border p-3 rounded-lg w-full" />
                       </>
                     )}
+
                     {activeSubTab === 'pemetaan-CPL-PL' && (
-                        <>
+                      <>
+                        <input name="pl1" value={(formData as any).pl1 || ''} onChange={handleChange} placeholder="PL1" className="border p-3 rounded-lg w-full" />
+                        <input name="pl2" value={(formData as any).pl2 || ''} onChange={handleChange} placeholder="PL2" className="border p-3 rounded-lg w-full" />
+                      </>
+                    )}
+
+                    {activeSubTab === 'peta-pemenuhan-CPL' && (
+                      <>
+                        <input name="cpl" value={(formData as any).cpl || ''} onChange={handleChange} placeholder="CPL" className="border p-3 rounded-lg w-full" />
+                        <input name="cpmk" value={(formData as any).cpmk || ''} onChange={handleChange} placeholder="CPMK" className="border p-3 rounded-lg w-full" />
+                        {Array.from({ length: 8 }, (_, i) => (
                           <input
-                            name="profil_lulusan"
-                            value={formData.profil_lulusan || ''}
+                            key={i}
+                            name={`semester${i + 1}`}
+                            value={(formData as any)[`semester${i + 1}`] || ''}
                             onChange={handleChange}
-                            placeholder="No"
+                            placeholder={`Semester ${i + 1}`}
                             className="border p-3 rounded-lg w-full"
                           />
-                          <input
-                            name="pl1"
-                            value={(formData as any).pl1 || ''}
-                            onChange={handleChange}
-                            placeholder="PL1"
-                            className="border p-3 rounded-lg w-full"
-                          />
-                          <input
-                            name="pl2"
-                            value={(formData as any).pl2 || ''}
-                            onChange={handleChange}
-                            placeholder="PL2"
-                            className="border p-3 rounded-lg w-full"
-                          />
-                        </>
-                      )}
+                        ))}
+                      </>
+                    )}
 
-                      {activeSubTab === 'peta-pemenuhan-CPL' && (
-                        <>
-                          <input name="cpl" value={(formData as any).cpl || ''} onChange={handleChange} placeholder="CPL" className="border p-3 rounded-lg w-full" />
-                          <input name="cpmk" value={(formData as any).cpmk || ''} onChange={handleChange} placeholder="CPMK" className="border p-3 rounded-lg w-full" />
-                          {Array.from({ length: 8 }, (_, i) => (
-                            <input
-                              key={i}
-                              name={`semester${i + 1}`}
-                              value={(formData as any)[`semester${i + 1}`] || ''}
-                              onChange={handleChange}
-                              placeholder={`Semester ${i + 1}`}
-                              className="border p-3 rounded-lg w-full"
-                            />
-                          ))}
-                        </>
-                      )}
+                    {activeSubTab === 'rata-rata-masa-tunggu-lulusan' && (
+                      <>
+                        <input name="tahun" value={formData.tahun || ''} onChange={handleChange} placeholder="Tahun Lulus" className="border p-3 rounded-lg w-full" />
+                        <input name="jumlah_lulusan" type="number" value={formData.jumlah_lulusan || ''} onChange={handleChange} placeholder="Jumlah Lulusan" className="border p-3 rounded-lg w-full" />
+                        <input name="aktif" type="number" value={formData.aktif || ''} onChange={handleChange} placeholder="Jumlah Lulusan Yang Terlacak" className="border p-3 rounded-lg w-full" />
+                        <input name="ts" type="number" value={formData.ts || ''} onChange={handleChange} placeholder="Rata-rata Waktu Tunggu (Bulan)" className="border p-3 rounded-lg w-full" />
+                      </>
+                    )}
 
-                      {activeSubTab === 'rata-rata-masa-tunggu-lulusan' && (
-                        <>
-                          <input name="tahun" value={formData.tahun || ''} onChange={handleChange} placeholder="Tahun Lulus" className="border p-3 rounded-lg w-full" />
-                          <input name="jumlah_lulusan" value={formData.jumlah_lulusan || ''} onChange={handleChange} placeholder="Jumlah Lulusan" className="border p-3 rounded-lg w-full" />
-                          <input name="aktif" value={formData.aktif || ''} onChange={handleChange} placeholder="Jumlah Lulusan Yang Terlacak" className="border p-3 rounded-lg w-full" />
-                          <input name="ts" value={formData.ts || ''} onChange={handleChange} placeholder="Rata-rata Waktu Tunggu (Bulan)" className="border p-3 rounded-lg w-full" />
-                        </>
-                      )}
+                    {activeSubTab === 'kesesuaian-bidang' && (
+                      <>
+                        <input name="tahun" value={formData.tahun || ''} onChange={handleChange} placeholder="Tahun Lulus" className="border p-3 rounded-lg w-full" />
+                        <input name="jumlah_lulusan" type="number" value={formData.jumlah_lulusan || ''} onChange={handleChange} placeholder="Jumlah Lulusan" className="border p-3 rounded-lg w-full" />
+                        <input name="aktif" type="number" value={formData.aktif || ''} onChange={handleChange} placeholder="Jumlah Lulusan Yang Terlacak" className="border p-3 rounded-lg w-full" />
+                        <input name="profesi_infokom" type="number" value={(formData as any).profesi_infokom || ''} onChange={handleChange} placeholder="Profesi Kerja Bidang Infokom" className="border p-3 rounded-lg w-full" />
+                        <input name="profesi_noninfokom" type="number" value={(formData as any).profesi_noninfokom || ''} onChange={handleChange} placeholder="Profesi Kerja Bidang NonInfokom" className="border p-3 rounded-lg w-full" />
+                        <input name="lingkup_internasional" type="number" value={(formData as any).lingkup_internasional || ''} onChange={handleChange} placeholder="Lingkup Kerja Internasional" className="border p-3 rounded-lg w-full" />
+                        <input name="lingkup_nasional" type="number" value={(formData as any).lingkup_nasional || ''} onChange={handleChange} placeholder="Lingkup Kerja Nasional" className="border p-3 rounded-lg w-full" />
+                        <input name="lingkup_wirausaha" type="number" value={(formData as any).lingkup_wirausaha || ''} onChange={handleChange} placeholder="Lingkup Kerja Wirausaha" className="border p-3 rounded-lg w-full" />
+                      </>
+                    )}
 
-                      {activeSubTab === 'kesesuaian-bidang' && (
-                        <>
-                          <input name="tahun" value={formData.tahun || ''} onChange={handleChange} placeholder="Tahun Lulus" className="border p-3 rounded-lg w-full" />
-                          <input name="jumlah_lulusan" value={formData.jumlah_lulusan || ''} onChange={handleChange} placeholder="Jumlah Lulusan" className="border p-3 rounded-lg w-full" />
-                          <input name="aktif" value={formData.aktif || ''} onChange={handleChange} placeholder="Jumlah Lulusan Yang Terlacak" className="border p-3 rounded-lg w-full" />
-                          <input name="profesi_infokom" value={(formData as any).profesi_infokom || ''} onChange={handleChange} placeholder="Profesi Kerja Bidang Infokom" className="border p-3 rounded-lg w-full" />
-                          <input name="profesi_noninfokom" value={(formData as any).profesi_noninfokom || ''} onChange={handleChange} placeholder="Profesi Kerja Bidang NonInfokom" className="border p-3 rounded-lg w-full" />
-                          <input name="lingkup_internasional" value={(formData as any).lingkup_internasional || ''} onChange={handleChange} placeholder="Lingkup Kerja Internasional" className="border p-3 rounded-lg w-full" />
-                          <input name="lingkup_nasional" value={(formData as any).lingkup_nasional || ''} onChange={handleChange} placeholder="Lingkup Kerja Nasional" className="border p-3 rounded-lg w-full" />
-                          <input name="lingkup_wirausaha" value={(formData as any).lingkup_wirausaha || ''} onChange={handleChange} placeholder="Lingkup Kerja Wirausaha" className="border p-3 rounded-lg w-full" />
-                        </>
-                      )}
+                    {activeSubTab === 'kepuasan-pengguna' && (
+                      <>
+                        <input name="no" type="number" value={(formData as any).no || ''} onChange={handleChange} placeholder="No" className="border p-3 rounded-lg w-full" />
+                        <input name="jenis_kemampuan" value={(formData as any).jenis_kemampuan || ''} onChange={handleChange} placeholder="Jenis Kemampuan" className="border p-3 rounded-lg w-full" />
+                        <input name="sangat_baik" type="number" value={(formData as any).sangat_baik || ''} onChange={handleChange} placeholder="Sangat Baik" className="border p-3 rounded-lg w-full" />
+                        <input name="baik" type="number" value={(formData as any).baik || ''} onChange={handleChange} placeholder="Baik" className="border p-3 rounded-lg w-full" />
+                        <input name="cukup" type="number" value={(formData as any).cukup || ''} onChange={handleChange} placeholder="Cukup" className="border p-3 rounded-lg w-full" />
+                        <input name="kurang" type="number" value={(formData as any).kurang || ''} onChange={handleChange} placeholder="Kurang" className="border p-3 rounded-lg w-full" />
+                        <input name="rencana_tindak_lanjut" value={(formData as any).rencana_tindak_lanjut || ''} onChange={handleChange} placeholder="Rencana Tindak Lanjut UPPS/PS" className="border p-3 rounded-lg w-full col-span-2" />
+                      </>
+                    )}
 
-                      {activeSubTab === 'kepuasan-pengguna' && (
-                        <>
-                          <input name="no" value={(formData as any).no || ''} onChange={handleChange} placeholder="No" className="border p-3 rounded-lg w-full" />
-                          <input name="jenis_kemampuan" value={(formData as any).jenis_kemampuan || ''} onChange={handleChange} placeholder="Jenis Kemampuan" className="border p-3 rounded-lg w-full" />
-                          <input name="sangat_baik" value={(formData as any).sangat_baik || ''} onChange={handleChange} placeholder="Sangat Baik" className="border p-3 rounded-lg w-full" />
-                          <input name="baik" value={(formData as any).baik || ''} onChange={handleChange} placeholder="Baik" className="border p-3 rounded-lg w-full" />
-                          <input name="cukup" value={(formData as any).cukup || ''} onChange={handleChange} placeholder="Cukup" className="border p-3 rounded-lg w-full" />
-                          <input name="kurang" value={(formData as any).kurang || ''} onChange={handleChange} placeholder="Kurang" className="border p-3 rounded-lg w-full" />
-                          <input name="rencana_tindak_lanjut" value={(formData as any).rencana_tindak_lanjut || ''} onChange={handleChange} placeholder="Rencana Tindak Lanjut UPPS/PS" className="border p-3 rounded-lg w-full" />
-                        </>
-                      )}
+                    {activeSubTab === 'fleksibilitas' && (
+                      <>
+                        <input name="tahun" value={formData.tahun || ''} onChange={handleChange} placeholder="Tahun Akademik" className="border p-3 rounded-lg w-full" />
+                        <input name="ts2" value={formData.ts2 || ''} onChange={handleChange} placeholder="TS-2" className="border p-3 rounded-lg w-full" />
+                        <input name="ts1" value={formData.ts1 || ''} onChange={handleChange} placeholder="TS-1" className="border p-3 rounded-lg w-full" />
+                        <input name="ts" value={formData.ts || ''} onChange={handleChange} placeholder="TS" className="border p-3 rounded-lg w-full" />
+                        <input name="linkBukti" value={formData.linkBukti || ''} onChange={handleChange} placeholder="Link Bukti" className="border p-3 rounded-lg w-full col-span-2" />
+                      </>
+                    )}
 
-                      {activeSubTab === 'fleksibilitas' && (
-                        <>
-                          <input name="tahun" value={formData.tahun || ''} onChange={handleChange} placeholder="Tahun Akademik" className="border p-3 rounded-lg w-full" />
-                          <input name="ts2" value={formData.ts2 || ''} onChange={handleChange} placeholder="TS-2" className="border p-3 rounded-lg w-full" />
-                          <input name="ts1" value={formData.ts1 || ''} onChange={handleChange} placeholder="TS-1" className="border p-3 rounded-lg w-full" />
-                          <input name="ts" value={formData.ts || ''} onChange={handleChange} placeholder="TS" className="border p-3 rounded-lg w-full" />
-                          <input name="linkBukti" value={formData.linkBukti || ''} onChange={handleChange} placeholder="Link Bukti" className="border p-3 rounded-lg w-full" />
-                        </>
-                      )}
-
-                      {activeSubTab === 'rekognisi-apresiasi' && (
-                        <>
-                          <input name="sumber_rekognisi" value={(formData as any).sumber_rekognisi || ''} onChange={handleChange} placeholder="Sumber Rekognisi" className="border p-3 rounded-lg w-full" />
-                          <input name="jenis_pengakuan" value={(formData as any).jenis_pengakuan || ''} onChange={handleChange} placeholder="Jenis Pengakuan Lulusan (Rekognisi)" className="border p-3 rounded-lg w-full" />
-                          <input name="ts2" value={formData.ts2 || ''} onChange={handleChange} placeholder="TS-2" className="border p-3 rounded-lg w-full" />
-                          <input name="ts1" value={formData.ts1 || ''} onChange={handleChange} placeholder="TS-1" className="border p-3 rounded-lg w-full" />
-                          <input name="ts" value={formData.ts || ''} onChange={handleChange} placeholder="TS" className="border p-3 rounded-lg w-full" />
-                          <input name="linkBukti" value={formData.linkBukti || ''} onChange={handleChange} placeholder="Link Bukti" className="border p-3 rounded-lg w-full" />
-                        </>
-                      )}
-
-
-
-
-
+                    {activeSubTab === 'rekognisi-apresiasi' && (
+                      <>
+                        <input name="sumber_rekognisi" value={(formData as any).sumber_rekognisi || ''} onChange={handleChange} placeholder="Sumber Rekognisi" className="border p-3 rounded-lg w-full" />
+                        <input name="jenis_pengakuan" value={(formData as any).jenis_pengakuan || ''} onChange={handleChange} placeholder="Jenis Pengakuan Lulusan (Rekognisi)" className="border p-3 rounded-lg w-full" />
+                        <input name="ts2" value={formData.ts2 || ''} onChange={handleChange} placeholder="TS-2" className="border p-3 rounded-lg w-full" />
+                        <input name="ts1" value={formData.ts1 || ''} onChange={handleChange} placeholder="TS-1" className="border p-3 rounded-lg w-full" />
+                        <input name="ts" value={formData.ts || ''} onChange={handleChange} placeholder="TS" className="border p-3 rounded-lg w-full" />
+                        <input name="linkBukti" value={formData.linkBukti || ''} onChange={handleChange} placeholder="Link Bukti" className="border p-3 rounded-lg w-full" />
+                      </>
+                    )}
                   </div>
 
-                  <div className="mt-6 flex justify-end gap-2">
-                  {editIndex !== null && (
-                    <button
-                      onClick={async () => {
-                        if (!formData.id) return;
-                        if (!confirm('Yakin hapus data ini?')) return;
-                        await handleDelete(formData.id);
-                        setShowForm(false);
-                      }}
-                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                  <div className="mt-6 flex justify-end gap-2 sticky bottom-0 bg-white pt-4 border-t">
+                    {editIndex !== null && (
+                      <button
+                        onClick={async () => {
+                          if (!formData.id) return;
+                          if (!confirm('Yakin hapus data ini?')) return;
+                          await handleDelete(formData.id);
+                          setShowForm(false);
+                        }}
+                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                      >
+                        Hapus
+                      </button>
+                    )}
+                    <button 
+                      onClick={() => setShowForm(false)} 
+                      className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
                     >
-                      Hapus
+                      Batal
                     </button>
-                  )}
-
-                  <button onClick={handleSave} className="px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800">
-                    Simpan
-                  </button>
-                </div>
-
+                    <button onClick={handleSave} className="px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800">
+                      Simpan
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
