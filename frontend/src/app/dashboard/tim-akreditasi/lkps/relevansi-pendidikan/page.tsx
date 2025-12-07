@@ -44,6 +44,8 @@ export default function RelevansiPendidikanPage() {
     message: '',
     type: 'success',
   });
+  const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; id: number | null }>({ open: false, id: null });
+  const [incompleteModal, setIncompleteModal] = useState<{ open: boolean; missing: string[] }>({ open: false, missing: [] });
 
   // --- Fungsi Popup ---
   const showPopup = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
@@ -145,23 +147,52 @@ export default function RelevansiPendidikanPage() {
     setShowForm(true);
   };
 
+  const requiredFieldsBySubtab: Record<SubTab, string[]> = {
+    mahasiswa: ['tahun', 'daya_tampung'],
+    'keragaman-asal': ['asalMahasiswa', 'ts2', 'ts1', 'ts'],
+    'kondisi-jumlah-mahasiswa': ['alasan', 'ts2', 'ts1', 'ts', 'jumlah'],
+    'tabel-pembelajaran': ['mata_kuliah', 'sks', 'semester', 'profil_lulusan'],
+    'pemetaan-CPL-PL': ['pl1', 'pl2'],
+    'peta-pemenuhan-CPL': ['cpl', 'cpmk', 'semester1', 'semester2', 'semester3', 'semester4', 'semester5', 'semester6', 'semester7', 'semester8'],
+    'rata-rata-masa-tunggu-lulusan': ['tahun', 'jumlah_lulusan', 'aktif', 'ts'],
+    'kesesuaian-bidang': ['tahun', 'jumlah_lulusan', 'aktif', 'profesi_infokom', 'profesi_noninfokom', 'lingkup_internasional', 'lingkup_nasional', 'lingkup_wirausaha'],
+    'kepuasan-pengguna': ['no', 'jenis_kemampuan', 'sangat_baik', 'baik', 'cukup', 'kurang', 'rencana_tindak_lanjut'],
+    fleksibilitas: ['tahun', 'ts2', 'ts1', 'ts'],
+    'rekognisi-apresiasi': ['sumber_rekognisi', 'jenis_pengakuan', 'ts2', 'ts1', 'ts'],
+  };
+
+  const validateRequired = (subtab: SubTab, payload: Record<string, any>): string[] => {
+    const req = requiredFieldsBySubtab[subtab] || [];
+    return req.filter((key) => payload[key] === undefined || payload[key] === null || String(payload[key]).trim() === '');
+  };
+
+  const performSave = async () => {
+    setErrorMsg(null);
+    const result = formData.id
+      ? await relevansiPendidikanService.updateData(formData.id, formData, activeSubTab)
+      : await relevansiPendidikanService.createData(formData, activeSubTab);
+
+    if (result.success) {
+      setShowForm(false);
+      setFormData({});
+      setEditIndex(null);
+      fetchData();
+      showPopup('Data berhasil disimpan', 'success');
+    } else {
+      setErrorMsg(result.message || 'Gagal menyimpan data');
+      showPopup(result.message || 'Gagal menyimpan data', 'error');
+    }
+  };
+
   const handleSave = async () => {
     try {
-      setErrorMsg(null);
-      const result = formData.id
-        ? await relevansiPendidikanService.updateData(formData.id, formData, activeSubTab)
-        : await relevansiPendidikanService.createData(formData, activeSubTab);
-
-      if (result.success) {
-        setShowForm(false);
-        setFormData({});
-        setEditIndex(null);
-        fetchData();
-        showPopup('Data berhasil disimpan', 'success');
-      } else {
-        setErrorMsg(result.message || 'Gagal menyimpan data');
-        showPopup(result.message || 'Gagal menyimpan data', 'error');
+      const missing = validateRequired(activeSubTab, formData || {});
+      if (missing.length > 0) {
+        setIncompleteModal({ open: true, missing });
+        return;
       }
+
+      await performSave();
     } catch (err: any) {
       console.error('Save error:', err);
       setErrorMsg(err.message || String(err));
@@ -177,14 +208,18 @@ export default function RelevansiPendidikanPage() {
   };
 
   const handleDelete = async (id?: number) => {
-    if (!id || !confirm('Yakin hapus data ini?')) return;
+    if (!id) return;
     try {
       const result = await relevansiPendidikanService.deleteData(id);
       if (result.success) {
         setData(prev => prev.filter(d => d.id !== id));
+        showPopup('Data berhasil dihapus', 'success');
+      } else {
+        showPopup('Gagal menghapus data', 'error');
       }
     } catch (err) {
       console.error('Delete error:', err);
+      showPopup('Terjadi kesalahan saat menghapus', 'error');
     }
   };
 
@@ -502,7 +537,7 @@ export default function RelevansiPendidikanPage() {
                           <button onClick={() => handleEdit(item)} className="text-blue-700 hover:text-blue-900 p-1">
                             <Edit size={16} />
                           </button>
-                          <button onClick={() => handleDelete(item.id)} className="text-red-600 hover:text-red-800 p-1">
+                          <button onClick={() => setConfirmDelete({ open: true, id: item.id ?? null })} className="text-red-600 hover:text-red-800 p-1">
                             <Trash2 size={16} />
                           </button>
                         </div>
@@ -752,7 +787,7 @@ export default function RelevansiPendidikanPage() {
                         <button onClick={() => handleEdit(item)} className="text-blue-700 hover:text-blue-900">
                           <Edit size={16} />
                         </button>
-                        <button onClick={() => handleDelete(item.id)} className="text-red-600 hover:text-red-800">
+                        <button onClick={() => setConfirmDelete({ open: true, id: item.id ?? null })} className="text-red-600 hover:text-red-800">
                           <Trash2 size={16} />
                         </button>
                       </div>
@@ -1053,9 +1088,7 @@ export default function RelevansiPendidikanPage() {
                       <button
                         onClick={async () => {
                           if (!formData.id) return;
-                          if (!confirm('Yakin hapus data ini?')) return;
-                          await handleDelete(formData.id);
-                          setShowForm(false);
+                          setConfirmDelete({ open: true, id: formData.id });
                         }}
                         className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
                       >
@@ -1164,6 +1197,66 @@ export default function RelevansiPendidikanPage() {
               </div>
             )}
           </div>
+
+          {confirmDelete.open && (
+            <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4">
+              <div className="bg-white w-full max-w-md rounded-lg shadow-xl">
+                <div className="p-4 border-b flex items-center gap-2">
+                  <AlertCircle className="text-red-600" size={20} />
+                  <h3 className="font-semibold text-gray-800">Konfirmasi Hapus</h3>
+                </div>
+                <div className="p-4 text-sm text-gray-700">
+                  Apakah Anda yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.
+                </div>
+                <div className="p-4 border-t flex justify-end gap-2">
+                  <button
+                    onClick={() => setConfirmDelete({ open: false, id: null })}
+                    className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    onClick={async () => {
+                      const id = confirmDelete.id ?? undefined;
+                      setConfirmDelete({ open: false, id: null });
+                      await handleDelete(id);
+                      setShowForm(false);
+                    }}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                  >
+                    Hapus
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {incompleteModal.open && (
+            <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4">
+              <div className="bg-white w-full max-w-md rounded-lg shadow-xl">
+                <div className="p-4 border-b">
+                  <h3 className="font-semibold text-gray-800">Data Tidak Lengkap</h3>
+                </div>
+                <div className="p-4 text-sm text-gray-700 space-y-2">
+                  <p>Mohon lengkapi semua field yang wajib diisi sebelum menyimpan data.</p>
+                </div>
+                <div className="p-4 border-t flex justify-end gap-2">
+                  <button
+                    onClick={() => setIncompleteModal({ open: false, missing: [] })}
+                    className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    onClick={() => setIncompleteModal({ open: false, missing: [] })}
+                    className="px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800"
+                  >
+                    Ya, Lanjutkan
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </main>
       </div>
     </div>
