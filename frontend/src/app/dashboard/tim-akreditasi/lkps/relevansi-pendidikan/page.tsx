@@ -444,54 +444,54 @@ export default function RelevansiPendidikanPage() {
     return (
       <div className="overflow-x-auto bg-white rounded-lg shadow-md">
         {activeSubTab === 'mahasiswa' ? (
-          // TABEL MAHASISWA - STRUKTUR BARU (FIXED)
+          // TABEL MAHASISWA - STRUKTUR AWAL (MULTI-HEADER) TANPA WARNA
           <div className="overflow-x-auto">
             <table className="min-w-full text-xs sm:text-sm text-gray-700 border-collapse">
               <thead className="bg-gray-50 sticky top-0 z-10">
                 {/* Row 1 - Main Headers */}
-                <tr className="bg-gray-200">
-                  <th rowSpan={3} className="border border-gray-300 px-2 sm:px-4 py-2 font-semibold bg-gray-100 min-w-[80px]">TS</th>
-                  <th rowSpan={3} className="border border-gray-300 px-2 sm:px-4 py-2 font-semibold bg-gray-100 min-w-[100px]">Daya<br/>Tampung</th>
-                  <th colSpan={3} className="border border-gray-300 px-2 sm:px-4 py-2 font-semibold text-center bg-gray-100">Jumlah Calon Mahasiswa</th>
-                  <th colSpan={6} className="border border-gray-300 px-2 sm:px-4 py-2 font-semibold text-center bg-gray-100">Jumlah Mahasiswa Baru</th>
-                  <th colSpan={6} className="border border-gray-300 px-2 sm:px-4 py-2 font-semibold text-center bg-gray-100">Jumlah Mahasiswa Aktif</th>
-                  <th rowSpan={3} className="border border-gray-300 px-2 py-2 text-center font-semibold bg-gray-100 sticky right-0 min-w-[100px]">Aksi</th>
+                <tr>
+                  <th rowSpan={3} className="border border-gray-300 px-2 sm:px-4 py-2 font-semibold min-w-[80px]">TS</th>
+                  <th rowSpan={3} className="border border-gray-300 px-2 sm:px-4 py-2 font-semibold min-w-[100px]">Daya<br/>Tampung</th>
+                  <th colSpan={3} className="border border-gray-300 px-2 sm:px-4 py-2 font-semibold text-center">Jumlah Calon Mahasiswa</th>
+                  <th colSpan={6} className="border border-gray-300 px-2 sm:px-4 py-2 font-semibold text-center">Jumlah Mahasiswa Baru</th>
+                  <th colSpan={6} className="border border-gray-300 px-2 sm:px-4 py-2 font-semibold text-center">Jumlah Mahasiswa Aktif</th>
+                  <th rowSpan={3} className="border border-gray-300 px-2 py-2 text-center font-semibold sticky right-0 min-w-[100px] bg-white">Aksi</th>
                 </tr>
 
                 {/* Row 2 - Sub Headers */}
-                <tr className="bg-gray-100">
+                <tr>
                   <th rowSpan={2} className="border border-gray-300 px-2 py-2 font-semibold text-center text-xs">Pendaftar</th>
                   <th rowSpan={2} className="border border-gray-300 px-2 py-2 font-semibold text-center text-xs">Pendaftar<br/>Afirmasi</th>
                   <th rowSpan={2} className="border border-gray-300 px-2 py-2 font-semibold text-center text-xs">Pendaftar<br/>Kebutuhan<br/>Khusus</th>
                   
-                  <th colSpan={3} className="border border-gray-300 px-2 py-2 font-semibold text-center bg-blue-50">Reguler</th>
-                  <th colSpan={3} className="border border-gray-300 px-2 py-2 font-semibold text-center bg-green-50">RPL</th>
+                  <th colSpan={3} className="border border-gray-300 px-2 py-2 font-semibold text-center">Reguler</th>
+                  <th colSpan={3} className="border border-gray-300 px-2 py-2 font-semibold text-center">RPL</th>
                   
-                  <th colSpan={3} className="border border-gray-300 px-2 py-2 font-semibold text-center bg-blue-50">Reguler</th>
-                  <th colSpan={3} className="border border-gray-300 px-2 py-2 font-semibold text-center bg-green-50">RPL</th>
+                  <th colSpan={3} className="border border-gray-300 px-2 py-2 font-semibold text-center">Reguler</th>
+                  <th colSpan={3} className="border border-gray-300 px-2 py-2 font-semibold text-center">RPL</th>
                 </tr>
 
                 {/* Row 3 - Detail Headers */}
-                <tr className="bg-gray-50">
+                <tr>
                   {/* Mahasiswa Baru - Reguler */}
-                  <th className="border border-gray-300 px-2 py-2 text-center text-xs font-semibold bg-blue-50">Diterima</th>
-                  <th className="border border-gray-300 px-2 py-2 text-center text-xs font-semibold bg-blue-50">Afirmasi</th>
-                  <th className="border border-gray-300 px-2 py-2 text-center text-xs font-semibold bg-blue-50">Kebutuhan<br/>Khusus</th>
+                  <th className="border border-gray-300 px-2 py-2 text-center text-xs font-semibold">Diterima</th>
+                  <th className="border border-gray-300 px-2 py-2 text-center text-xs font-semibold">Afirmasi</th>
+                  <th className="border border-gray-300 px-2 py-2 text-center text-xs font-semibold">Kebutuhan<br/>Khusus</th>
                   
                   {/* Mahasiswa Baru - RPL */}
-                  <th className="border border-gray-300 px-2 py-2 text-center text-xs font-semibold bg-green-50">Diterima</th>
-                  <th className="border border-gray-300 px-2 py-2 text-center text-xs font-semibold bg-green-50">Afirmasi</th>
-                  <th className="border border-gray-300 px-2 py-2 text-center text-xs font-semibold bg-green-50">Kebutuhan<br/>Khusus</th>
+                  <th className="border border-gray-300 px-2 py-2 text-center text-xs font-semibold">Diterima</th>
+                  <th className="border border-gray-300 px-2 py-2 text-center text-xs font-semibold">Afirmasi</th>
+                  <th className="border border-gray-300 px-2 py-2 text-center text-xs font-semibold">Kebutuhan<br/>Khusus</th>
                   
                   {/* Mahasiswa Aktif - Reguler */}
-                  <th className="border border-gray-300 px-2 py-2 text-center text-xs font-semibold bg-blue-50">Diterima</th>
-                  <th className="border border-gray-300 px-2 py-2 text-center text-xs font-semibold bg-blue-50">Afirmasi</th>
-                  <th className="border border-gray-300 px-2 py-2 text-center text-xs font-semibold bg-blue-50">Kebutuhan<br/>Khusus</th>
+                  <th className="border border-gray-300 px-2 py-2 text-center text-xs font-semibold">Diterima</th>
+                  <th className="border border-gray-300 px-2 py-2 text-center text-xs font-semibold">Afirmasi</th>
+                  <th className="border border-gray-300 px-2 py-2 text-center text-xs font-semibold">Kebutuhan<br/>Khusus</th>
                   
                   {/* Mahasiswa Aktif - RPL */}
-                  <th className="border border-gray-300 px-2 py-2 text-center text-xs font-semibold bg-green-50">Diterima</th>
-                  <th className="border border-gray-300 px-2 py-2 text-center text-xs font-semibold bg-green-50">Afirmasi</th>
-                  <th className="border border-gray-300 px-2 py-2 text-center text-xs font-semibold bg-green-50">Kebutuhan<br/>Khusus</th>
+                  <th className="border border-gray-300 px-2 py-2 text-center text-xs font-semibold">Diterima</th>
+                  <th className="border border-gray-300 px-2 py-2 text-center text-xs font-semibold">Afirmasi</th>
+                  <th className="border border-gray-300 px-2 py-2 text-center text-xs font-semibold">Kebutuhan<br/>Khusus</th>
                 </tr>
               </thead>
 
@@ -502,7 +502,7 @@ export default function RelevansiPendidikanPage() {
                   </tr>
                 ) : (
                   data.map((item, index) => (
-                    <tr key={item.id ?? `row-${index}`} className="bg-yellow-50 hover:bg-gray-100">
+                    <tr key={item.id ?? `row-${index}`} className="hover:bg-gray-50">
                       <td className="border border-gray-300 px-2 py-2 text-center font-medium">{item.tahun}</td>
                       <td className="border border-gray-300 px-2 py-2 text-center">{item.daya_tampung || '-'}</td>
 
@@ -512,27 +512,27 @@ export default function RelevansiPendidikanPage() {
                       <td className="border border-gray-300 px-2 py-2 text-center">{(item as any).calon_pendaftar_kebutuhan_khusus || '-'}</td>
 
                       {/* Mahasiswa Baru - Reguler */}
-                      <td className="border border-gray-300 px-2 py-2 text-center bg-blue-50">{(item as any).baru_reguler_diterima || '-'}</td>
-                      <td className="border border-gray-300 px-2 py-2 text-center bg-blue-50">{(item as any).baru_reguler_afirmasi || '-'}</td>
-                      <td className="border border-gray-300 px-2 py-2 text-center bg-blue-50">{(item as any).baru_reguler_kebutuhan_khusus || '-'}</td>
+                      <td className="border border-gray-300 px-2 py-2 text-center">{(item as any).baru_reguler_diterima || '-'}</td>
+                      <td className="border border-gray-300 px-2 py-2 text-center">{(item as any).baru_reguler_afirmasi || '-'}</td>
+                      <td className="border border-gray-300 px-2 py-2 text-center">{(item as any).baru_reguler_kebutuhan_khusus || '-'}</td>
 
                       {/* Mahasiswa Baru - RPL */}
-                      <td className="border border-gray-300 px-2 py-2 text-center bg-green-50">{(item as any).baru_rpl_diterima || '-'}</td>
-                      <td className="border border-gray-300 px-2 py-2 text-center bg-green-50">{(item as any).baru_rpl_afirmasi || '-'}</td>
-                      <td className="border border-gray-300 px-2 py-2 text-center bg-green-50">{(item as any).baru_rpl_kebutuhan_khusus || '-'}</td>
+                      <td className="border border-gray-300 px-2 py-2 text-center">{(item as any).baru_rpl_diterima || '-'}</td>
+                      <td className="border border-gray-300 px-2 py-2 text-center">{(item as any).baru_rpl_afirmasi || '-'}</td>
+                      <td className="border border-gray-300 px-2 py-2 text-center">{(item as any).baru_rpl_kebutuhan_khusus || '-'}</td>
 
                       {/* Mahasiswa Aktif - Reguler */}
-                      <td className="border border-gray-300 px-2 py-2 text-center bg-blue-50">{(item as any).aktif_reguler_diterima || '-'}</td>
-                      <td className="border border-gray-300 px-2 py-2 text-center bg-blue-50">{(item as any).aktif_reguler_afirmasi || '-'}</td>
-                      <td className="border border-gray-300 px-2 py-2 text-center bg-blue-50">{(item as any).aktif_reguler_kebutuhan_khusus || '-'}</td>
+                      <td className="border border-gray-300 px-2 py-2 text-center">{(item as any).aktif_reguler_diterima || '-'}</td>
+                      <td className="border border-gray-300 px-2 py-2 text-center">{(item as any).aktif_reguler_afirmasi || '-'}</td>
+                      <td className="border border-gray-300 px-2 py-2 text-center">{(item as any).aktif_reguler_kebutuhan_khusus || '-'}</td>
 
                       {/* Mahasiswa Aktif - RPL */}
-                      <td className="border border-gray-300 px-2 py-2 text-center bg-green-50">{(item as any).aktif_rpl_diterima || '-'}</td>
-                      <td className="border border-gray-300 px-2 py-2 text-center bg-green-50">{(item as any).aktif_rpl_afirmasi || '-'}</td>
-                      <td className="border border-gray-300 px-2 py-2 text-center bg-green-50">{(item as any).aktif_rpl_kebutuhan_khusus || '-'}</td>
+                      <td className="border border-gray-300 px-2 py-2 text-center">{(item as any).aktif_rpl_diterima || '-'}</td>
+                      <td className="border border-gray-300 px-2 py-2 text-center">{(item as any).aktif_rpl_afirmasi || '-'}</td>
+                      <td className="border border-gray-300 px-2 py-2 text-center">{(item as any).aktif_rpl_kebutuhan_khusus || '-'}</td>
 
                       {/* Aksi */}
-                      <td className="border border-gray-300 px-2 py-2 text-center sticky right-0 bg-yellow-50">
+                      <td className="border border-gray-300 px-2 py-2 text-center sticky right-0 bg-white">
                         <div className="flex justify-center gap-2">
                           <button onClick={() => handleEdit(item)} className="text-blue-700 hover:text-blue-900 p-1">
                             <Edit size={16} />
