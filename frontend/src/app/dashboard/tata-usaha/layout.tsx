@@ -13,7 +13,7 @@ import {
   ChevronLeft,
   LogOut,
 } from 'lucide-react';
-import { logout } from '@/services/auth';
+import { logout, getRoleDisplayName } from '@/services/auth';
 
 // ðŸ”” Import komponen modal dari shadcn/ui
 import {
@@ -42,7 +42,8 @@ export default function LayoutTataUsaha({
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [open, setOpen] = useState(false);
-  const [user, setUser] = useState<{ username: string; role: string } | null>(null);
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
+  const [user, setUser] = useState<{ username: string; role: string; photo?: string; email?: string } | null>(null);
   const pathname = usePathname();
   const router = useRouter();
   const [checking, setChecking] = useState(true);
@@ -94,6 +95,9 @@ export default function LayoutTataUsaha({
         }
         // store user for display in sidebar
         setUser(current);
+        if (current.photo) {
+          setProfilePhoto(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/${current.photo}`);
+        }
       } catch (err) {
         router.push('/auth');
         return;
@@ -152,18 +156,25 @@ export default function LayoutTataUsaha({
       >
         {/* Sidebar Header */}
         <div className="p-4 border-b border-[#ADE7F7]/30 flex items-center gap-3">
-          <div className="w-12 h-12 bg-[#ADE7F7] rounded-full flex items-center justify-center text-[#183A64] font-bold shadow-md flex-shrink-0">
-            R
+          <div className="w-12 h-12 bg-[#ADE7F7] rounded-full flex items-center justify-center text-[#183A64] font-bold shadow-md flex-shrink-0 overflow-hidden">
+            {profilePhoto ? (
+              <img src={profilePhoto} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
+              user?.username.charAt(0).toUpperCase()
+            )}
           </div>
 
           {sidebarOpen && (
-            <div>
+            <div className="flex-1">
               <h2 className="text-[#ADE7F7] text-base font-bold leading-tight">
                 Repository Akreditasi
               </h2>
               <p className="text-[#ADE7F7]/80 text-xs font-bold">POLIBATAM</p>
               {user && (
-                <p className="text-sm text-[#ADE7F7]/90 mt-2 font-medium">Halo, {user.username}</p>
+                <div className="mt-2">
+                  <p className="text-xs text-gray-300">{user.email}</p>
+                  <p className="text-xs text-gray-300">{getRoleDisplayName(user.role)}</p>
+                </div>
               )}
             </div>
           )}

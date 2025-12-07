@@ -7,6 +7,7 @@ import { fileURLToPath } from "url";
 
 // Routes
 import authRoutes from './routes/authRoutes.js';
+import userRoutes from './routes/userRoutes.js';
 import relevansiPenelitianRoutes from "./routes/relevansiPenelitian.js";
 import relevansiPendidikanRoutes from "./routes/relevansiPendidikan.js";
 import diferensiasiMisiRoutes from './routes/diferensiasiMisi.js';
@@ -68,6 +69,7 @@ app.use("/api/matriks-penilaian", matriksPenilaianAkreditasiRoutes);
 app.use("/api/akreditasi", akreditasiRoutes);
 app.use('/api/manajemen-akun', manajemenAkunRoutes);
 app.use('/api/bukti-pendukung', buktiPendukungRoutes);
+app.use('/api/user', userRoutes);
 
 app.get("/", (req, res) => res.send("Server berjalan 🚀"));
 

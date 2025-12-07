@@ -98,13 +98,13 @@ export const getCurrentUser = async () => {
       const serverSlug = roleToSlug(data.data.role);
       if (tabRole && tabRole !== serverSlug) return null;
       return {
-        username: data.data.username,
+        ...data.data,
         role: serverSlug,
       };
     }
 
     return {
-      username: data.data.username,
+      ...data.data,
       role: roleToSlug(data.data.role),
     };
   } catch {

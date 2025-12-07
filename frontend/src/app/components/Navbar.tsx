@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Poppins } from 'next/font/google';
 import { useState, useEffect } from 'react';
-import { User } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -13,6 +12,8 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { updateUserProfile } from '@/services/userService';
+import { getCurrentUser } from '@/services/auth';
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -23,14 +24,12 @@ export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
 
-  // === Kondisi untuk menyembunyikan menu ===
   const hideMenu =
     pathname.startsWith('/dashboard') ||
     pathname === '/login';
 
   const isDashboard = pathname.startsWith('/dashboard');
 
-  // Profile states
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [profileForm, setProfileForm] = useState({
@@ -40,17 +39,21 @@ export default function Navbar() {
     confirmPassword: ''
   });
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
-  const [user, setUser] = useState<{ username: string; role: string } | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [user, setUser] = useState<{ username: string; role: string; photo?: string } | null>(null);
 
   useEffect(() => {
     if (isDashboard) {
       let mounted = true;
       (async () => {
         try {
-          const { getCurrentUser } = await import('@/services/auth');
-          const current = await getCurrentUser();
-          if (!mounted) return;
-          setUser(current);
+          const currentUser = await getCurrentUser();
+          if (mounted) {
+            setUser(currentUser);
+            if (currentUser?.photo) {
+              setProfilePhoto(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/${currentUser.photo}`);
+            }
+          }
         } catch (err) {
           // Handle error
         }
@@ -59,7 +62,50 @@ export default function Navbar() {
     }
   }, [isDashboard]);
 
-  // === Scroll Helper ===
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setProfilePhoto(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSaveChanges = async () => {
+    if (!user) return;
+
+    const formData = new FormData();
+    if (profileForm.username) {
+      formData.append('username', profileForm.username);
+    }
+    if (profileForm.newPassword && profileForm.newPassword === profileForm.confirmPassword) {
+      formData.append('currentPassword', profileForm.currentPassword);
+      formData.append('newPassword', profileForm.newPassword);
+    }
+    if (selectedFile) {
+      formData.append('photo', selectedFile);
+    }
+
+    try {
+      const result = await updateUserProfile(formData);
+      if (result.success) {
+        setUser(result.data);
+        if (result.data.photo) {
+          setProfilePhoto(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/${result.data.photo}`);
+        }
+        setProfileModalOpen(false);
+      } else {
+        // Handle error
+        console.error(result.msg);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   const handleScrollTo = (targetId?: string) => {
     const scrollNow = () => {
       if (!targetId) {
@@ -87,7 +133,6 @@ export default function Navbar() {
           ${poppins.className}
         `}
       >
-        {/* === LOGO === */}
         <div className="flex items-center gap-5 cursor-pointer">
           <img
             src="/Polibatam.png"
@@ -97,14 +142,24 @@ export default function Navbar() {
           <span className="text-lg md:text-xl font-bold">ReDDA POLIBATAM</span>
         </div>
 
-        {/* === MENU === */}
         {!hideMenu && (
           <div className="flex gap-2 md:gap-3 lg:gap-4 items-center">
-            {[
-              { label: 'Beranda', id: undefined },
-              { label: 'Fitur', id: 'fitur' },
-              { label: 'Tentang', id: 'tentang' },
-              { label: 'Kontak', id: 'kontak' },
+            {[{
+              label: 'Beranda',
+              id: undefined
+            },
+            {
+              label: 'Fitur',
+              id: 'fitur'
+            },
+            {
+              label: 'Tentang',
+              id: 'tentang'
+            },
+            {
+              label: 'Kontak',
+              id: 'kontak'
+            },
             ].map((item) => (
               <button
                 key={item.label}
@@ -132,7 +187,6 @@ export default function Navbar() {
           </div>
         )}
 
-        {/* === PROFILE SECTION FOR DASHBOARD === */}
         {isDashboard && user && (
           <div className="flex items-center gap-4">
             <div className="relative">
@@ -144,7 +198,7 @@ export default function Navbar() {
                   {profilePhoto ? (
                     <img src={profilePhoto} alt="Profile" className="w-full h-full object-cover" />
                   ) : (
-                    'R'
+                    user.username.charAt(0).toUpperCase()
                   )}
                 </div>
                 <span className="text-sm font-medium">Halo, {user.username}</span>
@@ -155,6 +209,12 @@ export default function Navbar() {
                     onClick={() => {
                       setProfileDropdownOpen(false);
                       setProfileModalOpen(true);
+                      setProfileForm({
+                        username: user.username,
+                        currentPassword: '',
+                        newPassword: '',
+                        confirmPassword: ''
+                      });
                     }}
                     className="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
                   >
@@ -167,10 +227,8 @@ export default function Navbar() {
         )}
       </nav>
 
-      {/* Profile Modal */}
       <Dialog open={profileModalOpen} onOpenChange={setProfileModalOpen}>
           <DialogContent className="sm:max-w-[425px]">
-            {/* Hidden fields to discourage browser credential autofill in the profile modal */}
             <input type="text" style={{ display: 'none' }} autoComplete="username" tabIndex={-1} />
             <input type="password" style={{ display: 'none' }} autoComplete="current-password" tabIndex={-1} />
             <DialogHeader>
@@ -184,17 +242,9 @@ export default function Navbar() {
               <input
                 id="profilePhoto"
                 type="file"
+                name="photo"
                 accept="image/*"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                      setProfilePhoto(e.target?.result as string);
-                    };
-                    reader.readAsDataURL(file);
-                  }
-                }}
+                onChange={handleFileChange}
                 className="col-span-3 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#183A64]"
               />
             </div>
@@ -264,6 +314,7 @@ export default function Navbar() {
                 setProfileForm({
                   username: '',
                   currentPassword: '',
+  
                   newPassword: '',
                   confirmPassword: ''
                 });
@@ -273,17 +324,7 @@ export default function Navbar() {
             </Button>
             <Button
               type="button"
-              onClick={() => {
-                // Handle save profile logic here
-                console.log('Saving profile:', profileForm);
-                setProfileModalOpen(false);
-                setProfileForm({
-                  username: '',
-                  currentPassword: '',
-                  newPassword: '',
-                  confirmPassword: ''
-                });
-              }}
+              onClick={handleSaveChanges}
               className="bg-[#183A64] hover:bg-[#2A4F85]"
             >
               Save Changes

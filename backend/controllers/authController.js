@@ -114,7 +114,8 @@ export const getCurrentUser = async (req, res) => {
         email: true,
         nama_lengkap: true,
         role: true,
-        status: true
+        status: true,
+        photo: true
       }
     });
 

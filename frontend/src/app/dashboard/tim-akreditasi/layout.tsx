@@ -17,7 +17,7 @@ import {
   User,
   ChevronDown,
 } from 'lucide-react';
-import { logout } from '@/services/auth';
+import { logout, getRoleDisplayName } from '@/services/auth';
 import {
   AlertDialog,
   AlertDialogTrigger,
@@ -46,7 +46,7 @@ export default function LayoutTimAkreditasi({
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [open, setOpen] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
-  const [user, setUser] = useState<{ username: string; role: string } | null>(null);
+  const [user, setUser] = useState<{ username: string; role: string; photo?: string; email?: string } | null>(null);
   const pathname = usePathname();
   const router = useRouter();
   const [checking, setChecking] = useState(true);
@@ -95,6 +95,9 @@ export default function LayoutTimAkreditasi({
           return;
         }
         setUser(current);
+        if (current.photo) {
+          setProfilePhoto(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/${current.photo}`);
+        }
       } catch (err) {
         router.push('/auth');
         return;
@@ -112,7 +115,7 @@ export default function LayoutTimAkreditasi({
         try {
           const userData = JSON.parse(e.newValue);
           if (userData.role === 'tim-akreditasi') {
-            setUser({ username: userData.username, role: userData.role });
+            setUser({ username: userData.username, role: userData.role, email: userData.email });
           }
         } catch {}
       }
@@ -164,7 +167,7 @@ export default function LayoutTimAkreditasi({
             {profilePhoto ? (
               <img src={profilePhoto} alt="Profile" className="w-full h-full object-cover" />
             ) : (
-              'R'
+              user?.username.charAt(0).toUpperCase()
             )}
           </div>
 
@@ -174,6 +177,12 @@ export default function LayoutTimAkreditasi({
                 Repository Akreditasi
               </h2>
               <p className="text-[#ADE7F7]/80 text-xs font-bold">POLIBATAM</p>
+              {user && (
+                <div className="mt-2">
+                  <p className="text-xs text-gray-300">{user.email}</p>
+                  <p className="text-xs text-gray-300">{getRoleDisplayName(user.role)}</p>
+                </div>
+              )}
             </div>
           )}
         </div>
