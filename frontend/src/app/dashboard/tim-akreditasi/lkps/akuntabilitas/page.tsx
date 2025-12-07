@@ -33,6 +33,8 @@ export default function AkuntabilitasPage() {
     message: '',
     type: 'success',
   });
+  const [incompleteModal, setIncompleteModal] = useState<{ open: boolean; missing: string[] }>({ open: false, missing: [] });
+  const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; id: string | null }>({ open: false, id: null });
 
   // --- Fungsi Popup ---
   const showPopup = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
@@ -178,33 +180,52 @@ export default function AkuntabilitasPage() {
     }
   };
 
-  const handleSave = async () => {
-    let res;
-    // Assuming 'prodi' is available in context or state, perhaps from user login or a selector
-    const prodi = 'Teknologi Informasi'; // Placeholder for 'prodi' - Make this dynamic
-    if (editIndex !== null && tabData[editIndex].id) {
-      res = await updateAkuntabilitasData(tabData[editIndex].id, activeSubTab, formData, prodi);
-    } else {
-      res = await createAkuntabilitasData(activeSubTab, formData, prodi);
-    }
+  // Field wajib per subtab
+  const requiredFieldsBySubtab: Record<'tataKelola' | 'sarana', string[]> = {
+    tataKelola: ['jenis', 'nama', 'akses', 'unit'],
+    sarana: ['nama', 'tampung', 'luas', 'status', 'lisensi', 'perangkat'],
+  };
 
-    if (res.success) {
-      const newData =
-        editIndex !== null
-          ? tabData.map((d, i) => (i === editIndex ? { ...d, data: formData } : d))
-          : [...tabData, res.data];
-      setTabData(newData);
-      saveDraftAkuntabilitas(activeSubTab, newData);
-      setShowForm(false);
-      showPopup('Data berhasil disimpan', 'success');
-    } else {
-      showPopup(res.message || 'Gagal menyimpan data', 'error');
+  const validateRequired = (subtab: 'tataKelola' | 'sarana', payload: Record<string, any>): string[] => {
+    const req = requiredFieldsBySubtab[subtab] || [];
+    return req.filter((key) => payload[key] === undefined || payload[key] === null || String(payload[key]).trim() === '');
+  };
+
+  const handleSave = async () => {
+    try {
+      const missing = validateRequired(activeSubTab, formData || {});
+      if (missing.length > 0) {
+        setIncompleteModal({ open: true, missing });
+        return;
+      }
+
+      let res;
+      const prodi = 'Teknologi Informasi';
+      if (editIndex !== null && tabData[editIndex].id) {
+        res = await updateAkuntabilitasData(tabData[editIndex].id, activeSubTab, formData, prodi);
+      } else {
+        res = await createAkuntabilitasData(activeSubTab, formData, prodi);
+      }
+
+      if (res.success) {
+        const newData =
+          editIndex !== null
+            ? tabData.map((d, i) => (i === editIndex ? { ...d, data: formData } : d))
+            : [...tabData, res.data];
+        setTabData(newData);
+        saveDraftAkuntabilitas(activeSubTab, newData);
+        setShowForm(false);
+        showPopup('Data berhasil disimpan', 'success');
+      } else {
+        showPopup(res.message || 'Gagal menyimpan data', 'error');
+      }
+    } catch (err: any) {
+      console.error('Save error:', err);
+      showPopup(err.message || 'Gagal menyimpan data', 'error');
     }
   };
 
   const handleDelete = async (id: string | null | undefined) => {
-    if (!confirm('Yakin ingin menghapus data ini?')) return;
-
     if (!id) {
       const updated = tabData.filter((d: any) => d.id !== id);
       setTabData(updated);
@@ -401,7 +422,7 @@ export default function AkuntabilitasPage() {
                             <button onClick={() => { setFormData(item.data); setEditIndex(i); setShowForm(true); }} className="text-blue-600 hover:text-blue-800 transition" title="Edit">
                               <Edit size={16} />
                             </button>
-                            <button onClick={() => handleDelete(item.id)} className="text-red-600 hover:text-red-800 transition" title="Hapus">
+                            <button onClick={() => setConfirmDelete({ open: true, id: item.id ?? null })} className="text-red-600 hover:text-red-800 transition" title="Hapus">
                               <Trash2 size={16} />
                             </button>
                           </div>
@@ -437,7 +458,7 @@ export default function AkuntabilitasPage() {
                   ))}
                 </div>
                 <div className="flex justify-end gap-2 mt-4">
-                  <button onClick={() => setShowForm(false)} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100">Batal</button>
+                  <button onClick={() => setShowForm(false)} className="px-4 py-2 border border-red-300 rounded-lg hover:bg-red-100">Batal</button>
                   <button onClick={handleSave} className="px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800">Simpan</button>
                 </div>
               </div>
@@ -526,6 +547,65 @@ export default function AkuntabilitasPage() {
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
                   >
                     {importing ? 'Importing...' : 'Confirm Import'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        {incompleteModal.open && (
+            <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4">
+              <div className="bg-white w-full max-w-md rounded-lg shadow-xl">
+                <div className="p-4 border-b">
+                  <h3 className="font-semibold text-gray-800">Data Tidak Lengkap</h3>
+                </div>
+                <div className="p-4 text-sm text-gray-700 space-y-2">
+                  <p>Mohon lengkapi semua field yang wajib diisi sebelum menyimpan data.</p>
+                </div>
+                <div className="p-4 border-t flex justify-end gap-2">
+                  <button
+                    onClick={() => setIncompleteModal({ open: false, missing: [] })}
+                    className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    onClick={() => setIncompleteModal({ open: false, missing: [] })}
+                    className="px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800"
+                  >
+                    Ya, Lanjutkan
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {confirmDelete.open && (
+            <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4">
+              <div className="bg-white w-full max-w-md rounded-lg shadow-xl">
+                <div className="p-4 border-b flex items-center gap-2">
+                  <AlertCircle className="text-red-600" size={20} />
+                  <h3 className="font-semibold text-gray-800">Konfirmasi Hapus</h3>
+                </div>
+                <div className="p-4 text-sm text-gray-700">
+                  Apakah Anda yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.
+                </div>
+                <div className="p-4 border-t flex justify-end gap-2">
+                  <button
+                    onClick={() => setConfirmDelete({ open: false, id: null })}
+                    className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    onClick={async () => {
+                      const id = confirmDelete.id;
+                      setConfirmDelete({ open: false, id: null });
+                      await handleDelete(id as any);
+                      setShowForm(false);
+                    }}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                  >
+                    Hapus
                   </button>
                 </div>
               </div>
