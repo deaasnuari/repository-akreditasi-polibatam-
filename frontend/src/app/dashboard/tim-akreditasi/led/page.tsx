@@ -1,18 +1,18 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Plus, Trash, Save, Info } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { getAllLEDData, saveLEDTab } from '../../../../services/ledService';
- 
 
 type Row2Col = { id: string; pernyataan: string; keterlaksanaan: string; pelaksanaan: string; bukti_pendukung: string };
 type RowEval = {
   id: string;
   pernyataan: string;
   keterlaksanaan: string;
-  pelaksanaan: string;
-  bukti_pendukung: string;
+  pelaksanaan?: string;
+  bukti_pendukung?: string;
   evaluasi: string;
   tindak_lanjut: string;
   hasil_optimalisasi: string;
@@ -21,41 +21,38 @@ type RowEval = {
 type TabData = {
   penetapanA: Row2Col[];
   penetapanB: Row2Col[];
-  penetapanC?: Row2Col[];
-  penetapanD?: Row2Col[];
+  penetapanC: Row2Col[];
+  penetapanD: Row2Col[];
   pelaksanaanA: Row2Col[];
   pelaksanaanB: Row2Col[];
-  pelaksanaanC?: Row2Col[];
-  pelaksanaanD?: Row2Col[];
+  pelaksanaanC: Row2Col[];
+  pelaksanaanD: Row2Col[];
   pengendalianA: Row2Col[];
   pengendalianB: Row2Col[];
-  pengendalianC?: Row2Col[];
-  pengendalianD?: Row2Col[];
+  pengendalianC: Row2Col[];
+  pengendalianD: Row2Col[];
   peningkatanA: Row2Col[];
   peningkatanB: Row2Col[];
-  peningkatanC?: Row2Col[];
-  peningkatanD?: Row2Col[];
-  evalRows: RowEval[];
+  peningkatanC: Row2Col[];
+  peningkatanD: Row2Col[];
+  evalA: RowEval[];
+  evalB: RowEval[];
+  evalC: RowEval[];
 };
 
 const uid = (p = '') => p + Math.random().toString(36).substring(2, 9);
 
-/**
- * Ambil user_id dari localStorage atau sessionStorage. Hanya bisa di client-side.
- */
 function getUserId() {
   if (typeof window === "undefined") {
     throw new Error("Harus di client-side. Tunggu sampai browser mount.");
   }
 
-  // Coba ambil dari localStorage dulu
   const idStr = localStorage.getItem("user_id");
   if (idStr) {
     const id = Number(idStr);
     if (!Number.isNaN(id)) return id;
   }
 
-  // Jika tidak ada, coba ambil dari sessionStorage (mengambil key user yang berisi JSON user)
   const userJson = sessionStorage.getItem("user");
   if (userJson) {
     try {
@@ -63,7 +60,6 @@ function getUserId() {
       if (userObj && typeof userObj.id === 'number') {
         return userObj.id;
       }
-      // Also try if id is string number
       if (userObj && typeof userObj.id === 'string' && !isNaN(Number(userObj.id))) {
         return Number(userObj.id);
       }
@@ -72,7 +68,6 @@ function getUserId() {
     }
   }
 
-  // Jika tidak ada, coba ambil dari sessionStorage "user_id" secara khusus masih fallback lama
   const sessionIdStr = sessionStorage.getItem("user_id");
   if (sessionIdStr) {
     const id = Number(sessionIdStr);
@@ -108,28 +103,19 @@ const createEmptyTab = (): TabData => ({
   peningkatanB: [{ id: uid('ib-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
   peningkatanC: [{ id: uid('ic-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
   peningkatanD: [{ id: uid('id-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
-  evalRows: [
-    {
-      id: uid('ev-'),
-      pernyataan: '',
-      keterlaksanaan: '',
-      pelaksanaan: '',
-      bukti_pendukung: '',
-      evaluasi: '',
-      tindak_lanjut: '',
-      hasil_optimalisasi: '',
-    },
-  ],
+  evalA: [{ id: uid('eva-'), pernyataan: '', keterlaksanaan: '', evaluasi: '', tindak_lanjut: '', hasil_optimalisasi: '' }],
+  evalB: [{ id: uid('evb-'), pernyataan: '', keterlaksanaan: '', evaluasi: '', tindak_lanjut: '', hasil_optimalisasi: '' }],
+  evalC: [{ id: uid('evc-'), pernyataan: '', keterlaksanaan: '', evaluasi: '', tindak_lanjut: '', hasil_optimalisasi: '' }],
 });
 
 export default function BudayaMutuLEDPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [isClient, setIsClient] = useState(false);
   const [activeTab, setActiveTab] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      const param = new URLSearchParams(window.location.search).get('tab');
-      const valid = tabs.map(([k]) => k);
-      if (param && valid.includes(param)) return param;
-    }
+    const param = searchParams.get('tab');
+    const valid = tabs.map(([k]) => k);
+    if (param && valid.includes(param)) return param;
     return 'budaya-mutu';
   });
   const [loading, setLoading] = useState(false);
@@ -139,30 +125,33 @@ export default function BudayaMutuLEDPage() {
     setIsClient(true);
   }, []);
 
-  // Sinkronkan tab aktif ke URL (?tab=...)
   useEffect(() => {
     if (!isClient) return;
-    try {
-      const url = new URL(window.location.href);
-      if (url.searchParams.get('tab') !== activeTab) {
-        url.searchParams.set('tab', activeTab);
-        window.history.replaceState({}, '', url.toString());
-      }
-    } catch (e) {
-      // abaikan jika environment tidak mendukung URL API
+    const currentTab = searchParams.get('tab');
+    if (currentTab !== activeTab) {
+      const newSearchParams = new URLSearchParams(searchParams);
+      newSearchParams.set('tab', activeTab);
+      router.replace(`?${newSearchParams.toString()}`, { scroll: false });
     }
-  }, [activeTab, isClient]);
+  }, [activeTab, isClient, searchParams, router]);
 
   useEffect(() => {
     if (!isClient) return;
 
     const loadData = async () => {
       try {
-        // Load from localStorage
         const stored = localStorage.getItem('budaya_mutu_led_data');
         if (stored) {
           const parsed = JSON.parse(stored);
-          setTabData(parsed);
+          // Ensure all tabs have all required fields
+          const updatedData: Record<string, TabData> = {};
+          tabs.forEach(([key]) => {
+            updatedData[key] = {
+              ...createEmptyTab(),
+              ...(parsed[key] || {})
+            };
+          });
+          setTabData(updatedData);
         } else {
           const initialTabs: Record<string, TabData> = {};
           tabs.forEach(([key]) => {
@@ -188,13 +177,8 @@ export default function BudayaMutuLEDPage() {
   const handleSave = useCallback(async (notify = true, auto = false) => {
     const activeLabel = tabs.find(([k]) => k === activeTab)?.[1] || activeTab;
     try {
-      // Get user_id
       const user_id = getUserId();
-
-      // Save to database
       await saveLEDTab(user_id, activeTab, tabData[activeTab]);
-
-      // Save to localStorage
       localStorage.setItem('budaya_mutu_led_data', JSON.stringify(tabData));
 
       if (notify && !auto) {
@@ -273,7 +257,6 @@ export default function BudayaMutuLEDPage() {
     });
   }, [activeTab]);
 
-  
   if (!isClient) return null;
 
   if (loading) {
@@ -286,20 +269,39 @@ export default function BudayaMutuLEDPage() {
 
   const currentTabData = tabData[activeTab] || createEmptyTab();
 
-  // Determine if tables should be extended based on active tab
-  const isExtended = (sectionKey: keyof TabData): boolean | 'partial' => {
-    if (activeTab === 'budaya-mutu' || activeTab === 'relevansi-pendidikan' || activeTab === 'relevansi-penelitian' || activeTab === 'relevansi-pkm' || activeTab === 'akuntabilitas') {
-      if (sectionKey.startsWith('pelaksanaan')) return true;
-      if (sectionKey.startsWith('pengendalian')) return false;
+  // Fungsi untuk menentukan apakah tabel harus extended (4 kolom)
+  const isExtended = (sectionKey: keyof TabData): boolean => {
+    // Extended hanya untuk section PELAKSANAAN pada tab tertentu
+    const extendedTabs = ['budaya-mutu', 'relevansi-pendidikan', 'relevansi-penelitian', 'relevansi-pkm', 'akuntabilitas'];
+    const isPelaksanaanSection = String(sectionKey).startsWith('pelaksanaan');
+    return isPelaksanaanSection && extendedTabs.includes(activeTab);
+  };
+
+  // Fungsi untuk menentukan tabel mana yang ditampilkan
+  const shouldShowTable = (tableKey: string): boolean => {
+    // Diferensiasi Misi: hanya Tabel A
+    if (activeTab === 'diferensiasi-misi') {
+      return tableKey.endsWith('A');
     }
-    return false;
+    
+    // Relevansi Pendidikan: Tabel A, B, C, D
+    if (activeTab === 'relevansi-pendidikan') {
+      return true; // Tampilkan semua tabel A, B, C, D
+    }
+    
+    // Relevansi Penelitian & PkM: Tabel A, B, C
+    if (activeTab === 'relevansi-penelitian' || activeTab === 'relevansi-pkm') {
+      return tableKey.endsWith('A') || tableKey.endsWith('B') || tableKey.endsWith('C');
+    }
+    
+    // Default (Budaya Mutu, Akuntabilitas): Tabel A, B
+    return tableKey.endsWith('A') || tableKey.endsWith('B');
   };
 
   return (
     <div className="min-h-screen bg-white w-full">
       <Toaster position="top-right" richColors />
       <div className="w-full space-y-3 sm:space-y-4 md:space-y-6">
-        {/* Header */}
         <div className="bg-gradient-to-r from-[#183A64] to-[#2C5F8D] text-white p-3 sm:p-4 md:p-6 rounded-lg shadow-lg">
           <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">LAPORAN EVALUASI DIRI</h1>
           <p className="text-xs sm:text-sm mt-2 opacity-90">
@@ -307,7 +309,6 @@ export default function BudayaMutuLEDPage() {
           </p>
         </div>
 
-        {/* Tabs Navigation */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1 sm:gap-2 bg-gray-100 p-1.5 sm:p-2 rounded-lg shadow-sm">
           {tabs.map(([val, label]) => (
             <button
@@ -324,7 +325,6 @@ export default function BudayaMutuLEDPage() {
           ))}
         </div>
 
-        {/* Content Area */}
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-3 sm:p-4 md:p-6">
           <h2 className="text-lg sm:text-xl md:text-2xl text-[#183A64] font-semibold border-b-4 border-[#183A64] pb-2 mb-3 sm:mb-4">
             {tabs.find(([key]) => key === activeTab)?.[1]}
@@ -335,7 +335,7 @@ export default function BudayaMutuLEDPage() {
             <div className="text-xs sm:text-sm text-gray-700">
               <p className="font-medium mb-1">Panduan Pengisian:</p>
               <ul className="list-disc list-inside space-y-0.5 sm:space-y-1">
-                <li>Lengkapi tabel dengan pernyataan standar dan keterlaksanaannya</li>
+                <li>Lengkapi tabel dengan pernyataan standar dan indikatornya</li>
                 <li>Gunakan tombol <strong>Tambah Baris</strong> untuk menambah data baru</li>
                 <li>Gunakan tombol <strong>Hapus</strong> untuk menghapus baris (minimal 1 baris)</li>
                 <li>Data akan otomatis tersimpan setiap 30 detik</li>
@@ -349,18 +349,22 @@ export default function BudayaMutuLEDPage() {
               <span className="bg-[#183A64] text-white px-2 sm:px-3 py-0.5 sm:py-1 rounded text-xs sm:text-sm">1</span>
               Penetapan
             </h3>
-            <div className="mb-3 sm:mb-4">
-              <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-1.5 sm:mb-2">Tabel A</h4>
-              <Table2Col
-                rows={currentTabData.penetapanA}
-                sectionKey="penetapanA"
-                onAdd={handleAddRow}
-                onRemove={handleRemoveRow}
-                onUpdate={handleUpdateRow}
-                extended={isExtended('penetapanA')}
-              />
-            </div>
-            {activeTab !== 'diferensiasi-misi' && (
+            
+            {shouldShowTable('penetapanA') && (
+              <div className="mb-3 sm:mb-4">
+                <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-1.5 sm:mb-2">Tabel A</h4>
+                <Table2Col
+                  rows={currentTabData.penetapanA}
+                  sectionKey="penetapanA"
+                  onAdd={handleAddRow}
+                  onRemove={handleRemoveRow}
+                  onUpdate={handleUpdateRow}
+                  extended={isExtended('penetapanA')}
+                />
+              </div>
+            )}
+            
+            {shouldShowTable('penetapanB') && (
               <div className="mb-3 sm:mb-4">
                 <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-1.5 sm:mb-2">Tabel B</h4>
                 <Table2Col
@@ -373,11 +377,12 @@ export default function BudayaMutuLEDPage() {
                 />
               </div>
             )}
-            {(activeTab === 'relevansi-pendidikan' || activeTab === 'relevansi-penelitian' || activeTab === 'relevansi-pkm') && (
+            
+            {shouldShowTable('penetapanC') && (
               <div className="mb-3 sm:mb-4">
                 <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-1.5 sm:mb-2">Tabel C</h4>
                 <Table2Col
-                  rows={currentTabData.penetapanC || []}
+                  rows={currentTabData.penetapanC}
                   sectionKey="penetapanC"
                   onAdd={handleAddRow}
                   onRemove={handleRemoveRow}
@@ -386,11 +391,12 @@ export default function BudayaMutuLEDPage() {
                 />
               </div>
             )}
-            {activeTab === 'relevansi-pendidikan' && (
-              <div>
+            
+            {shouldShowTable('penetapanD') && (
+              <div className="mb-3 sm:mb-4">
                 <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-1.5 sm:mb-2">Tabel D</h4>
                 <Table2Col
-                  rows={currentTabData.penetapanD || []}
+                  rows={currentTabData.penetapanD}
                   sectionKey="penetapanD"
                   onAdd={handleAddRow}
                   onRemove={handleRemoveRow}
@@ -407,18 +413,22 @@ export default function BudayaMutuLEDPage() {
               <span className="bg-[#183A64] text-white px-2 sm:px-3 py-0.5 sm:py-1 rounded text-xs sm:text-sm">2</span>
               Pelaksanaan
             </h3>
-            <div className="mb-3 sm:mb-4">
-              <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-1.5 sm:mb-2">Tabel A</h4>
-              <Table2Col
-                rows={currentTabData.pelaksanaanA}
-                sectionKey="pelaksanaanA"
-                onAdd={handleAddRow}
-                onRemove={handleRemoveRow}
-                onUpdate={handleUpdateRow}
-                extended={isExtended('pelaksanaanA')}
-              />
-            </div>
-            {activeTab !== 'diferensiasi-misi' && (
+            
+            {shouldShowTable('pelaksanaanA') && (
+              <div className="mb-3 sm:mb-4">
+                <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-1.5 sm:mb-2">Tabel A</h4>
+                <Table2Col
+                  rows={currentTabData.pelaksanaanA}
+                  sectionKey="pelaksanaanA"
+                  onAdd={handleAddRow}
+                  onRemove={handleRemoveRow}
+                  onUpdate={handleUpdateRow}
+                  extended={isExtended('pelaksanaanA')}
+                />
+              </div>
+            )}
+            
+            {shouldShowTable('pelaksanaanB') && (
               <div className="mb-3 sm:mb-4">
                 <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-1.5 sm:mb-2">Tabel B</h4>
                 <Table2Col
@@ -431,11 +441,12 @@ export default function BudayaMutuLEDPage() {
                 />
               </div>
             )}
-            {(activeTab === 'relevansi-pendidikan' || activeTab === 'relevansi-penelitian' || activeTab === 'relevansi-pkm') && (
+            
+            {shouldShowTable('pelaksanaanC') && (
               <div className="mb-3 sm:mb-4">
                 <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-1.5 sm:mb-2">Tabel C</h4>
                 <Table2Col
-                  rows={currentTabData.pelaksanaanC || []}
+                  rows={currentTabData.pelaksanaanC}
                   sectionKey="pelaksanaanC"
                   onAdd={handleAddRow}
                   onRemove={handleRemoveRow}
@@ -444,11 +455,12 @@ export default function BudayaMutuLEDPage() {
                 />
               </div>
             )}
-            {activeTab === 'relevansi-pendidikan' && (
-              <div>
+            
+            {shouldShowTable('pelaksanaanD') && (
+              <div className="mb-3 sm:mb-4">
                 <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-1.5 sm:mb-2">Tabel D</h4>
                 <Table2Col
-                  rows={currentTabData.pelaksanaanD || []}
+                  rows={currentTabData.pelaksanaanD}
                   sectionKey="pelaksanaanD"
                   onAdd={handleAddRow}
                   onRemove={handleRemoveRow}
@@ -459,128 +471,45 @@ export default function BudayaMutuLEDPage() {
             )}
           </div>
 
-          {/* Evaluasi Section */}
-          <SectionEval
-            evalRows={currentTabData.evalRows}
-            onAdd={handleAddRow}
-            onRemove={handleRemoveRow}
-            onUpdate={handleUpdateRow}
-          />
-
-          {/* Pengendalian Section */}
+          {/* EVALUASI, PENGENDALIAN, PENINGKATAN Section */}
           <div className="mb-6 sm:mb-8">
             <h3 className="font-semibold text-[#183A64] text-base sm:text-lg mb-2 sm:mb-3 flex items-center gap-2">
-              <span className="bg-[#183A64] text-white px-2 sm:px-3 py-0.5 sm:py-1 rounded text-xs sm:text-sm">4</span>
-              Pengendalian
+              <span className="bg-[#183A64] text-white px-2 sm:px-3 py-0.5 sm:py-1 rounded text-xs sm:text-sm">3</span>
+              EVALUASI, PENGENDALIAN, PENINGKATAN
             </h3>
             <div className="mb-3 sm:mb-4">
               <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-1.5 sm:mb-2">Tabel A</h4>
-              <Table2Col
-                rows={currentTabData.pengendalianA}
-                sectionKey="pengendalianA"
+              <SectionEval
+                titleSuffix="A"
+                sectionKey="evalA"
+                evalRows={currentTabData.evalA}
                 onAdd={handleAddRow}
                 onRemove={handleRemoveRow}
                 onUpdate={handleUpdateRow}
-                extended={isExtended('pengendalianA')}
               />
             </div>
-            {activeTab !== 'diferensiasi-misi' && (
-              <div className="mb-3 sm:mb-4">
-                <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-1.5 sm:mb-2">Tabel B</h4>
-                <Table2Col
-                  rows={currentTabData.pengendalianB}
-                  sectionKey="pengendalianB"
-                  onAdd={handleAddRow}
-                  onRemove={handleRemoveRow}
-                  onUpdate={handleUpdateRow}
-                  extended={isExtended('pengendalianB')}
-                />
-              </div>
-            )}
-            {(activeTab === 'relevansi-pendidikan' || activeTab === 'relevansi-penelitian' || activeTab === 'relevansi-pkm') && (
-              <div className="mb-3 sm:mb-4">
-                <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-1.5 sm:mb-2">Tabel C</h4>
-                <Table2Col
-                  rows={currentTabData.pengendalianC || []}
-                  sectionKey="pengendalianC"
-                  onAdd={handleAddRow}
-                  onRemove={handleRemoveRow}
-                  onUpdate={handleUpdateRow}
-                  extended={isExtended('pengendalianC')}
-                />
-              </div>
-            )}
-            {activeTab === 'relevansi-pendidikan' && (
-              <div>
-                <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-1.5 sm:mb-2">Tabel D</h4>
-                <Table2Col
-                  rows={currentTabData.pengendalianD || []}
-                  sectionKey="pengendalianD"
-                  onAdd={handleAddRow}
-                  onRemove={handleRemoveRow}
-                  onUpdate={handleUpdateRow}
-                  extended={isExtended('pengendalianD')}
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Peningkatan Section */}
-          <div className="mb-6 sm:mb-8">
-            <h3 className="font-semibold text-[#183A64] text-base sm:text-lg mb-2 sm:mb-3 flex items-center gap-2">
-              <span className="bg-[#183A64] text-white px-2 sm:px-3 py-0.5 sm:py-1 rounded text-xs sm:text-sm">5</span>
-              Peningkatan
-            </h3>
             <div className="mb-3 sm:mb-4">
-              <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-1.5 sm:mb-2">Tabel A</h4>
-              <Table2Col
-                rows={currentTabData.peningkatanA}
-                sectionKey="peningkatanA"
+              <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-1.5 sm:mb-2">Tabel B</h4>
+              <SectionEval
+                titleSuffix="B"
+                sectionKey="evalB"
+                evalRows={currentTabData.evalB}
                 onAdd={handleAddRow}
                 onRemove={handleRemoveRow}
                 onUpdate={handleUpdateRow}
-                extended={isExtended('peningkatanA')}
               />
             </div>
-            {activeTab !== 'diferensiasi-misi' && (
-              <div className="mb-3 sm:mb-4">
-                <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-1.5 sm:mb-2">Tabel B</h4>
-                <Table2Col
-                  rows={currentTabData.peningkatanB}
-                  sectionKey="peningkatanB"
-                  onAdd={handleAddRow}
-                  onRemove={handleRemoveRow}
-                  onUpdate={handleUpdateRow}
-                  extended={isExtended('peningkatanB')}
-                />
-              </div>
-            )}
-            {activeTab !== 'budaya-mutu' && activeTab !== 'akuntabilitas' && activeTab !== 'diferensiasi-misi' && (
-              <div className="mb-3 sm:mb-4">
-                <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-1.5 sm:mb-2">Tabel C</h4>
-                <Table2Col
-                  rows={currentTabData.peningkatanC || []}
-                  sectionKey="peningkatanC"
-                  onAdd={handleAddRow}
-                  onRemove={handleRemoveRow}
-                  onUpdate={handleUpdateRow}
-                  extended={isExtended('peningkatanC')}
-                />
-              </div>
-            )}
-            {activeTab !== 'budaya-mutu' && activeTab !== 'relevansi-penelitian' && activeTab !== 'relevansi-pkm' && activeTab !== 'akuntabilitas' && activeTab !== 'diferensiasi-misi' && (
-              <div>
-                <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-1.5 sm:mb-2">Tabel D</h4>
-                <Table2Col
-                  rows={currentTabData.peningkatanD || []}
-                  sectionKey="peningkatanD"
-                  onAdd={handleAddRow}
-                  onRemove={handleRemoveRow}
-                  onUpdate={handleUpdateRow}
-                  extended={isExtended('peningkatanD')}
-                />
-              </div>
-            )}
+            <div>
+              <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-1.5 sm:mb-2">Tabel C</h4>
+              <SectionEval
+                titleSuffix="C"
+                sectionKey="evalC"
+                evalRows={currentTabData.evalC}
+                onAdd={handleAddRow}
+                onRemove={handleRemoveRow}
+                onUpdate={handleUpdateRow}
+              />
+            </div>
           </div>
 
           <div className="flex justify-end gap-2 sm:gap-3 mt-4 sm:mt-6 pt-3 sm:pt-4 border-t">
@@ -608,11 +537,11 @@ interface Table2ColProps {
   onAdd: (sectionKey: keyof TabData, template: any) => void;
   onRemove: (sectionKey: keyof TabData, id: string) => void;
   onUpdate: (sectionKey: keyof TabData, id: string, field: string, value: string) => void;
-  extended?: boolean | 'partial';
+  extended?: boolean;
 }
 
 export function Table2Col({ rows, sectionKey, onAdd, onRemove, onUpdate, extended = false }: Table2ColProps) {
-   const safeRows = Array.isArray(rows) && rows.length > 0
+  const safeRows = Array.isArray(rows) && rows.length > 0
     ? rows
     : [{ id: uid('default-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }];
 
@@ -634,22 +563,20 @@ export function Table2Col({ rows, sectionKey, onAdd, onRemove, onUpdate, extende
         <table className="w-full border-collapse text-xs sm:text-sm">
           <thead className="bg-[#ADE7F7]/40">
             <tr>
-              <th className="border border-gray-300 p-2 sm:p-3 text-left font-semibold text-[#183A64]">
+              <th className="border border-gray-300 p-2 sm:p-3 text-left font-semibold text-[#183A64] min-w-[200px]">
                 Pernyataan Standar
               </th>
-              <th className="border border-gray-300 p-2 sm:p-3 text-left font-semibold text-[#183A64]">
-                Keterlaksanaan
+              <th className="border border-gray-300 p-2 sm:p-3 text-left font-semibold text-[#183A64] min-w-[200px]">
+                Indikator
               </th>
               {extended && (
                 <>
-                  <th className="border border-gray-300 p-2 sm:p-3 text-left font-semibold text-[#183A64]">
+                  <th className="border border-gray-300 p-2 sm:p-3 text-left font-semibold text-[#183A64] min-w-[200px]">
                     Pelaksanaan
                   </th>
-                  {extended !== 'partial' && (
-                    <th className="border border-gray-300 p-2 sm:p-3 text-left font-semibold text-[#183A64]">
-                      Bukti Pendukung
-                    </th>
-                  )}
+                  <th className="border border-gray-300 p-2 sm:p-3 text-left font-semibold text-[#183A64] min-w-[200px]">
+                    Bukti Pendukung
+                  </th>
                 </>
               )}
               <th className="border border-gray-300 p-2 sm:p-3 w-16 sm:w-24 text-center font-semibold text-[#183A64]">
@@ -678,7 +605,7 @@ export function Table2Col({ rows, sectionKey, onAdd, onRemove, onUpdate, extende
                     value={r.keterlaksanaan || ''}
                     onChange={(e) => onUpdate(sectionKey, r.id, 'keterlaksanaan', e.target.value)}
                     className="w-full min-h-[60px] sm:min-h-[80px] border border-gray-300 rounded p-1.5 sm:p-2 text-xs sm:text-sm resize-y focus:border-[#183A64] focus:ring-2 focus:ring-[#ADE7F7]/50 focus:outline-none"
-                    placeholder="Isi keterlaksanaan..."
+                    placeholder="Isi indikator..."
                   />
                 </td>
                 {extended && (
@@ -691,16 +618,14 @@ export function Table2Col({ rows, sectionKey, onAdd, onRemove, onUpdate, extende
                         placeholder="Isi pelaksanaan..."
                       />
                     </td>
-                    {extended !== 'partial' && (
-                      <td className="border border-gray-300 p-1.5 sm:p-2 align-top">
-                        <textarea
-                          value={r.bukti_pendukung || ''}
-                          onChange={(e) => onUpdate(sectionKey, r.id, 'bukti_pendukung', e.target.value)}
-                          className="w-full min-h-[60px] sm:min-h-[80px] border border-gray-300 rounded p-1.5 sm:p-2 text-xs sm:text-sm resize-y focus:border-[#183A64] focus:ring-2 focus:ring-[#ADE7F7]/50 focus:outline-none"
-                          placeholder="Isi bukti pendukung..."
-                        />
-                      </td>
-                    )}
+                    <td className="border border-gray-300 p-1.5 sm:p-2 align-top">
+                      <textarea
+                        value={r.bukti_pendukung || ''}
+                        onChange={(e) => onUpdate(sectionKey, r.id, 'bukti_pendukung', e.target.value)}
+                        className="w-full min-h-[60px] sm:min-h-[80px] border border-gray-300 rounded p-1.5 sm:p-2 text-xs sm:text-sm resize-y focus:border-[#183A64] focus:ring-2 focus:ring-[#ADE7F7]/50 focus:outline-none"
+                        placeholder="Isi bukti pendukung..."
+                      />
+                    </td>
                   </>
                 )}
                 <td className="border border-gray-300 p-1.5 sm:p-2 text-center align-top">
@@ -736,12 +661,14 @@ export function Table2Col({ rows, sectionKey, onAdd, onRemove, onUpdate, extende
 
 interface SectionEvalProps {
   evalRows: RowEval[];
+  sectionKey: keyof TabData;
+  titleSuffix: 'A' | 'B' | 'C';
   onAdd: (sectionKey: keyof TabData, template: any) => void;
   onRemove: (sectionKey: keyof TabData, id: string) => void;
   onUpdate: (sectionKey: keyof TabData, id: string, field: string, value: string) => void;
 }
 
-export function SectionEval({ evalRows, onAdd, onRemove, onUpdate }: SectionEvalProps) {
+export function SectionEval({ evalRows, sectionKey, titleSuffix, onAdd, onRemove, onUpdate }: SectionEvalProps) {
   const safeRows = Array.isArray(evalRows) && evalRows.length > 0
     ? evalRows
     : [{
@@ -756,7 +683,7 @@ export function SectionEval({ evalRows, onAdd, onRemove, onUpdate }: SectionEval
   const handleAddClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    onAdd('evalRows', {
+    onAdd(sectionKey, {
       pernyataan: '',
       keterlaksanaan: '',
       evaluasi: '',
@@ -768,16 +695,11 @@ export function SectionEval({ evalRows, onAdd, onRemove, onUpdate }: SectionEval
   const handleRemoveClick = (e: React.MouseEvent<HTMLButtonElement>, id: string) => {
     e.preventDefault();
     e.stopPropagation();
-    onRemove('evalRows', id);
+    onRemove(sectionKey, id);
   };
 
-  
   return (
-    <div className="mb-6 sm:mb-8">
-      <h3 className="font-semibold text-[#183A64] text-base sm:text-lg mb-2 sm:mb-3 flex items-center gap-2">
-        <span className="bg-[#183A64] text-white px-2 sm:px-3 py-0.5 sm:py-1 rounded text-xs sm:text-sm">3</span>
-        Evaluasi
-      </h3>
+    <div>
       <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-xs sm:text-sm">
@@ -787,7 +709,7 @@ export function SectionEval({ evalRows, onAdd, onRemove, onUpdate }: SectionEval
                   Pernyataan Standar
                 </th>
                 <th className="border border-gray-300 p-2 sm:p-3 text-left font-semibold text-[#183A64]">
-                  Keterlaksanaan
+                  Indikator
                 </th>
                 <th className="border border-gray-300 p-2 sm:p-3 text-left font-semibold text-[#183A64]">
                   Evaluasi
@@ -816,7 +738,7 @@ export function SectionEval({ evalRows, onAdd, onRemove, onUpdate }: SectionEval
                       <td key={field} className="border border-gray-300 p-1.5 sm:p-2 align-top">
                         <textarea
                           value={r[field] || ''}
-                          onChange={(e) => onUpdate('evalRows', r.id, field, e.target.value)}
+                          onChange={(e) => onUpdate(sectionKey, r.id, field, e.target.value)}
                           className="w-full min-h-[50px] sm:min-h-[60px] border border-gray-300 rounded p-1 sm:p-2 text-xs sm:text-sm resize-y focus:border-[#183A64] focus:ring-2 focus:ring-[#ADE7F7]/50 focus:outline-none"
                           placeholder={`Isi ${field.replace('_', ' ')}...`}
                         />

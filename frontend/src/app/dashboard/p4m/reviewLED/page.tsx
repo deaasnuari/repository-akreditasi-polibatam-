@@ -273,7 +273,7 @@ export default function BudayaMutuLEDPage() {
             <div className="text-sm text-gray-700">
               <p className="font-medium mb-1">Panduan Pengisian:</p>
               <ul className="list-disc list-inside space-y-1">
-                <li>Lengkapi tabel dengan pernyataan standar dan keterlaksanaannya</li>
+                <li>Lengkapi tabel dengan pernyataan standar dan indikatornya</li>
                 <li>Gunakan tombol <strong>Tambah Baris</strong> untuk menambah data baru</li>
                 <li>Gunakan tombol <strong>Hapus</strong> untuk menghapus baris (minimal 1 baris)</li>
                 <li>Data akan otomatis tersimpan setiap 30 detik</li>
@@ -400,7 +400,7 @@ function Table2Col({ rows, sectionKey, onAdd, onRemove, onUpdate }: Table2ColPro
                 Pernyataan Standar
               </th>
               <th className="border border-gray-300 p-3 text-left w-1/2 font-semibold text-[#183A64]">
-                Keterlaksanaan
+                Indikator
               </th>
               <th className="border border-gray-300 p-3 w-24 text-center font-semibold text-[#183A64]">
                 Aksi
@@ -428,7 +428,7 @@ function Table2Col({ rows, sectionKey, onAdd, onRemove, onUpdate }: Table2ColPro
                     value={r.keterlaksanaan || ''}
                     onChange={(e) => onUpdate(sectionKey, r.id, 'keterlaksanaan', e.target.value)}
                     className="w-full min-h-[80px] border border-gray-300 rounded p-2 text-sm resize-y focus:border-[#183A64] focus:ring-2 focus:ring-[#ADE7F7]/50 focus:outline-none"
-                    placeholder="Isi keterlaksanaan..."
+                    placeholder="Isi indikator..."
                   />
                 </td>
                 <td className="border border-gray-300 p-2 text-center align-top">
@@ -516,7 +516,7 @@ function SectionEval({ evalRows, onAdd, onRemove, onUpdate }: SectionEvalProps) 
                   Pernyataan Standar
                 </th>
                 <th className="border border-gray-300 p-3 text-left font-semibold text-[#183A64]">
-                  Keterlaksanaan
+                  Indikator
                 </th>
                 <th className="border border-gray-300 p-3 text-left font-semibold text-[#183A64]">
                   Evaluasi

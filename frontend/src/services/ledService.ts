@@ -67,31 +67,49 @@ export async function getAllLEDData(user_id: number): Promise<Record<string, Tab
 /* ==================== SAVE LED TAB ==================== */
 export async function saveLEDTab(
   user_id: number,
-  subtab: string,
+  tab_key: string,
   data: TabData
 ): Promise<any> {
   try {
+    // Ambil role dari session/local storage jika tersedia
+    let role: string | undefined;
+    if (typeof window !== 'undefined') {
+      try {
+        const userStr = sessionStorage.getItem('user') || localStorage.getItem('user');
+        if (userStr) {
+          const userObj = JSON.parse(userStr);
+          if (userObj && typeof userObj.role === 'string') {
+            role = userObj.role;
+          }
+        }
+      } catch {}
+    }
+    // Fallback default role jika tidak ditemukan
+    if (!role) role = 'TIM_AKREDITASI';
+
     const res = await fetch(`${API_BASE_LED}/${user_id}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        subtab,
+        subtab: tab_key,
         data,
+        role,
       }),
     });
 
     const text = await res.text();
-    let json;
+    let json: any = null;
     try {
-      json = JSON.parse(text);
+      json = text ? JSON.parse(text) : null;
     } catch {
-      json = null;
+      // abaikan, gunakan text mentah
     }
 
     if (!res.ok) {
-      throw new Error(`Gagal menyimpan: ${res.status} ${text}`);
+      const serverMessage = json?.message || text || 'Unknown error';
+      throw new Error(`Gagal menyimpan: ${res.status} ${serverMessage}`);
     }
 
     return json;
