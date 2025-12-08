@@ -168,10 +168,31 @@ class MatriksPenilaianService {
     }
   }
 
+  async getScoresByProdi(prodiId: number, role: string): Promise<ApiResponse<any[]>> {
+    try {
+      const response = await fetch(`${API_BASE}/scores/${prodiId}?role=${role}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching scores:', error);
+      throw error;
+    }
+  }
+
   /**
    * Simpan skor individual
    */
-  async saveScore(data: { prodi_id: number; criteria_item_id: number; skor_prodi: number }): Promise<ApiResponse> {
+  async saveScore(data: { prodi_id: number; criteria_item_id: number; skor_prodi: number; role: string }): Promise<ApiResponse> {
     try {
       const response = await fetch(`${API_BASE}/scores`, {
         method: 'POST',

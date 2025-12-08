@@ -21,6 +21,7 @@ export default function MatriksPenilaianPage() {
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [scenarioName, setScenarioName] = useState('');
   const [user, setUser] = useState<User | null>(null);
+  const [userLoaded, setUserLoaded] = useState(false);
 
   const canEdit = user?.role === 'tim-akreditasi';
 
@@ -29,27 +30,60 @@ export default function MatriksPenilaianPage() {
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
+    setUserLoaded(true); // Indicate that user loading is complete
+  }, []); // Empty dependency array means this runs once on mount
 
-    const fetchAndSetCriteria = async () => {
+  useEffect(() => {
+    if (!userLoaded) return; // Wait until user data is loaded from sessionStorage
+
+    const fetchData = async () => {
+      setLoading(true);
       try {
-        setLoading(true);
+        // 1. Fetch criteria definitions
         const fetchedCriteria = await matriksPenilaianService.fetchKriteria();
-        const initializedCriteria = fetchedCriteria.map(c => ({
+        let initialCriteria = fetchedCriteria.map(c => ({
           ...c,
-          skorInput: c.skorInput || 0,
-          skorTerbobot: c.skorTerbobot || 0,
+          skorInput: 0, // Initialize to 0, will be overwritten by saved scores
+          skorTerbobot: 0,
         }));
-        setCriteria(initializedCriteria);
+
+        // 2. Fetch saved scores if user is available and authenticated
+        if (user && user.id && user.role) { // Only fetch scores if user is authenticated and role is available
+          const savedScoresResponse = await matriksPenilaianService.getScoresByProdi(user.id, user.role);
+          const savedScores = savedScoresResponse.data;
+
+          if (savedScores && savedScores.length > 0) {
+            // Apply saved scores to criteria
+            initialCriteria = initialCriteria.map(criterion => {
+              const matchedScore = savedScores.find(
+                (score: any) =>
+                  score.criteria_item_id === criterion.id && score.role === user.role // Match by criterion ID and user's role
+              );
+              if (matchedScore) {
+                const calculatedSkorTerbobot = matriksPenilaianService.calculateSkorTerbobot(
+                  matchedScore.skor_prodi,
+                  criterion.bobot
+                );
+                return {
+                  ...criterion,
+                  skorInput: matchedScore.skor_prodi,
+                  skorTerbobot: calculatedSkorTerbobot,
+                };
+              }
+              return criterion;
+            });
+          }
+        }
+        setCriteria(initialCriteria);
       } catch (error) {
-        console.error('Failed to fetch criteria:', error);
-        // Optionally, set some error state to show in the UI
+        console.error('Failed to fetch data:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchAndSetCriteria();
-  }, []);
+    fetchData();
+  }, [user, userLoaded]); // Dependencies include user and userLoaded
 
   const calculateTotalScore = () => {
     return matriksPenilaianService.calculateTotalScore(criteria);
@@ -78,6 +112,7 @@ export default function MatriksPenilaianPage() {
         prodi_id: user.id,
         criteria_item_id: id,
         skor_prodi: val,
+        role: user.role,
       });
     } catch (error) {
       console.error('Failed to save score:', error);
