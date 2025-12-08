@@ -29,6 +29,7 @@ export default function RelevansiPkmPage() {
     message: '',
     type: 'success',
   });
+  const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; id: number | null }>({ open: false, id: null });
 
   const showPopup = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     setPopup({ show: true, message, type });
@@ -227,7 +228,6 @@ export default function RelevansiPkmPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Hapus data ini?')) return;
     try {
       setErrorMsg(null);
       await relevansiPkmService.deleteData(id);
@@ -310,7 +310,7 @@ export default function RelevansiPkmPage() {
         <td className="px-6 py-4 text-center">
           <div className="flex gap-2 justify-center">
             <button onClick={()=>openEdit(item)} className="text-blue-600 hover:text-blue-800 transition" title="Edit"><Edit size={16} /></button>
-            <button onClick={()=>item.id && handleDelete(item.id)} className="text-red-600 hover:text-red-800 transition" title="Hapus"><Trash2 size={16} /></button>
+            <button onClick={()=>setConfirmDelete({ open: true, id: item.id ?? null })} className="text-red-600 hover:text-red-800 transition" title="Hapus"><Trash2 size={16} /></button>
           </div>
         </td>
       </tr>
@@ -466,6 +466,38 @@ export default function RelevansiPkmPage() {
           )}
 
         </main>
+
+        {confirmDelete.open && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4">
+            <div className="bg-white w-full max-w-md rounded-lg shadow-xl">
+              <div className="p-4 border-b flex items-center gap-2">
+                <AlertCircle className="text-red-600" size={20} />
+                <h3 className="font-semibold text-gray-800">Konfirmasi Hapus</h3>
+              </div>
+              <div className="p-4 text-sm text-gray-700">
+                Apakah Anda yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.
+              </div>
+              <div className="p-4 border-t flex justify-end gap-2">
+                <button
+                  onClick={() => setConfirmDelete({ open: false, id: null })}
+                  className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={async () => {
+                    const id = confirmDelete.id ?? undefined;
+                    setConfirmDelete({ open: false, id: null });
+                    await handleDelete(id);
+                  }}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                >
+                  Hapus
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <style>{`
           @keyframes slideDown {

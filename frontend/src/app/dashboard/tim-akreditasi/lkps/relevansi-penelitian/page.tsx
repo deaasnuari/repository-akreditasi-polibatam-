@@ -31,6 +31,7 @@ export default function RelevansiPenelitianPage() {
     message: '',
     type: 'success',
   });
+  const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; id: number | null }>({ open: false, id: null });
 
   // --- Fungsi Popup ---
   const showPopup = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
@@ -234,7 +235,6 @@ export default function RelevansiPenelitianPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Hapus data ini?')) return;
     try {
       setErrorMsg(null);
       await relevansiPenelitianService.deleteData(id);
@@ -320,7 +320,7 @@ export default function RelevansiPenelitianPage() {
         <td className="px-6 py-4 text-center">
           <div className="flex gap-2 justify-center">
             <button onClick={()=>openEdit(item)} className="text-blue-600 hover:text-blue-800 transition" title="Edit"><Edit size={16} /></button>
-            <button onClick={()=>item.id && handleDelete(item.id)} className="text-red-600 hover:text-red-800 transition" title="Hapus"><Trash2 size={16} /></button>
+            <button onClick={()=>setConfirmDelete({ open: true, id: item.id ?? null })} className="text-red-600 hover:text-red-800 transition" title="Hapus"><Trash2 size={16} /></button>
           </div>
         </td>
       </tr>
@@ -413,79 +413,214 @@ export default function RelevansiPenelitianPage() {
               </div>
             </div>
 
-            {/* Tabel */}
-            <div className="overflow-x-auto bg-white rounded-lg shadow-md">
-              {errorMsg && <div className="p-4 bg-red-50 text-red-700 border-t border-red-100">Error: {errorMsg}</div>}
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">{renderColumns()}</thead>
-                <tbody className="bg-white divide-y divide-gray-200">{renderRows()}</tbody>
-              </table>
-            </div>
-          </div>
+                      {/* Tabel */}
 
-          {/* Form Modal */}
-          {showForm && (
-            <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
-              <div className="bg-white p-6 sm:p-8 rounded-lg shadow-lg w-full max-w-xl sm:max-w-3xl max-h-[90vh] overflow-y-auto">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-lg font-semibold text-gray-800">{editIndex!==null?'Edit Data':'Tambah Data Baru'}</h2>
-                  <button onClick={()=>setShowForm(false)} className="text-gray-500 hover:text-gray-700"><X size={24} /></button>
-                </div>
-                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {(subtabFields[activeSubTab]||[]).map(f => (
-                    <div key={f.key}>
-                      <label className="block text-sm text-gray-700 mb-1">{f.label}</label>
-                      <input name={f.key} value={formData[f.key]??''} onChange={handleChange} type={f.type} className="w-full px-3 py-2 border rounded" />
-                    </div>
-                  ))}
-                </div>
-                <div className="flex flex-col sm:flex-row justify-end gap-2 mt-6">
-                  <button onClick={()=>setShowForm(false)} className="w-full sm:w-auto px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300">Batal</button>
-                  <button onClick={handleSave} className="w-full sm:w-auto px-4 py-2 bg-blue-700 text-white rounded hover:bg-blue-800">{saving?'Menyimpan...':'Simpan'}</button>
-                </div>
-              </div>
-            </div>
-          )}
+                        <div className="overflow-x-auto bg-white rounded-lg shadow-md">
 
-          {/* Preview Modal */}
-          {showPreviewModal && (
-            <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
-              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-semibold">Preview Import — mapping kolom</h3>
-                  <button onClick={()=>setShowPreviewModal(false)} className="text-gray-500">Tutup</button>
-                </div>
-                <div className="grid grid-cols-1 gap-3">
-                  <div className="flex gap-2 mb-2">
-                    <button onClick={applySuggestions} className="px-3 py-1 bg-green-600 text-white rounded text-sm">Auto Map</button>
+                          {errorMsg && <div className="p-4 bg-red-50 text-red-700 border-t border-red-100">Error: {errorMsg}</div>}
+
+                          <table className="min-w-full divide-y divide-gray-200">
+
+                            <thead className="bg-gray-50">{renderColumns()}</thead>
+
+                            <tbody className="bg-white divide-y divide-gray-200">{renderRows()}</tbody>
+
+                          </table>
+
+                        </div>
+
+                      </div>
+
+            
+
+                      {/* Form Modal */}
+
+                      {showForm && (
+
+                        <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
+
+                          <div className="bg-white p-6 sm:p-8 rounded-lg shadow-lg w-full max-w-xl sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+
+                            <div className="flex justify-between items-center mb-6">
+
+                              <h2 className="text-lg font-semibold text-gray-800">{editIndex!==null?'Edit Data':'Tambah Data Baru'}</h2>
+
+                              <button onClick={()=>setShowForm(false)} className="text-gray-500 hover:text-gray-700"><X size={24} /></button>
+
+                            </div>
+
+                            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+
+                              {(subtabFields[activeSubTab]||[]).map(f => (
+
+                                <div key={f.key}>
+
+                                  <label className="block text-sm text-gray-700 mb-1">{f.label}</label>
+
+                                  <input name={f.key} value={formData[f.key]??''} onChange={handleChange} type={f.type} className="w-full px-3 py-2 border rounded" />
+
+                                </div>
+
+                              ))}
+
+                            </div>
+
+                            <div className="flex flex-col sm:flex-row justify-end gap-2 mt-6">
+
+                              <button onClick={()=>setShowForm(false)} className="w-full sm:w-auto px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300">Batal</button>
+
+                              <button onClick={handleSave} className="w-full sm:w-auto px-4 py-2 bg-blue-700 text-white rounded hover:bg-blue-800">{saving?'Menyimpan...':'Simpan'}</button>
+
+                            </div>
+
+                          </div>
+
+                        </div>
+
+                      )}
+
+            
+
+                      {/* Preview Modal */}
+
+                      {showPreviewModal && (
+
+                        <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
+
+                          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+
+                            <div className="flex justify-between items-center mb-4">
+
+                              <h3 className="font-semibold">Preview Import — mapping kolom</h3>
+
+                              <button onClick={()=>setShowPreviewModal(false)} className="text-gray-500">Tutup</button>
+
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-3">
+
+                              <div className="flex gap-2 mb-2">
+
+                                <button onClick={applySuggestions} className="px-3 py-1 bg-green-600 text-white rounded text-sm">Auto Map</button>
+
+                              </div>
+
+                              {previewHeaders.map(h => (
+
+                                <div key={h} className="flex gap-3 items-center">
+
+                                  <div className="min-w-[160px] text-sm font-medium">{h}</div>
+
+                                  <select value={mapping[h]??''} onChange={e=>setMapping({...mapping,[h]:e.target.value})} className="border px-2 py-1">
+
+                                    <option value="">-- tidak dipetakan --</option>
+
+                                    {(subtabFields[activeSubTab]||[]).map(f=> <option key={f.key} value={f.key}>{f.key}</option>)}
+
+                                  </select>
+
+                                </div>
+
+                              ))}
+
+                            </div>
+
+                            <div className="mt-6">
+
+                              <button onClick={handleCommitImport} className="px-4 py-2 bg-blue-700 text-white rounded hover:bg-blue-800">{importing?'Menyimpan...':'Simpan Import'}</button>
+
+                            </div>
+
+                          </div>
+
+                        </div>
+
+                      )}
+
+            
+
+                      {confirmDelete.open && (
+
+                        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4">
+
+                          <div className="bg-white w-full max-w-md rounded-lg shadow-xl">
+
+                            <div className="p-4 border-b flex items-center gap-2">
+
+                              <AlertCircle className="text-red-600" size={20} />
+
+                              <h3 className="font-semibold text-gray-800">Konfirmasi Hapus</h3>
+
+                            </div>
+
+                            <div className="p-4 text-sm text-gray-700">
+
+                              Apakah Anda yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.
+
+                            </div>
+
+                            <div className="p-4 border-t flex justify-end gap-2">
+
+                              <button
+
+                                onClick={() => setConfirmDelete({ open: false, id: null })}
+
+                                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+
+                              >
+
+                                Batal
+
+                              </button>
+
+                              <button
+
+                                onClick={async () => {
+
+                                  const id = confirmDelete.id ?? undefined;
+
+                                  setConfirmDelete({ open: false, id: null });
+
+                                  await handleDelete(id);
+
+                                }}
+
+                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+
+                              >
+
+                                Hapus
+
+                              </button>
+
+                            </div>
+
+                          </div>
+
+                        </div>
+
+                      )}
+
+                    </main>
+
+            
+
+                    <style>{`
+
+                      @keyframes slideDown {
+
+                        from { transform: translateY(-100%); opacity: 0; }
+
+                        to { transform: translateY(0); opacity: 1; }
+
+                      }
+
+                      .animate-slideDown { animation: slideDown 0.3s ease-out; }
+
+                    `}</style>
+
                   </div>
-                  {previewHeaders.map(h => (
-                    <div key={h} className="flex gap-3 items-center">
-                      <div className="min-w-[160px] text-sm font-medium">{h}</div>
-                      <select value={mapping[h]??''} onChange={e=>setMapping({...mapping,[h]:e.target.value})} className="border px-2 py-1">
-                        <option value="">-- tidak dipetakan --</option>
-                        {(subtabFields[activeSubTab]||[]).map(f=> <option key={f.key} value={f.key}>{f.key}</option>)}
-                      </select>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-6">
-                  <button onClick={handleCommitImport} className="px-4 py-2 bg-blue-700 text-white rounded hover:bg-blue-800">{importing?'Menyimpan...':'Simpan Import'}</button>
-                </div>
-              </div>
-            </div>
-          )}
 
-        </main>
-
-        <style>{`
-          @keyframes slideDown {
-            from { transform: translateY(-100%); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-          }
-          .animate-slideDown { animation: slideDown 0.3s ease-out; }
-        `}</style>
-      </div>
-    </div>
+                </div>
   );
 }
