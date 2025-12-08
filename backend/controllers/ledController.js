@@ -36,7 +36,7 @@ export const getAllLEDData = async (req, res) => {
 export const saveLEDTab = async (req, res) => {
   try {
     const { user_id } = req.params;
-    const { subtab, data } = req.body;
+    const { subtab, data, role } = req.body;
 
     const parsedUserId = Number(user_id);
     if (Number.isNaN(parsedUserId)) {
@@ -60,6 +60,7 @@ export const saveLEDTab = async (req, res) => {
         user_id: parsedUserId,
         subtab,
         data,
+        role,
       },
     });
 
