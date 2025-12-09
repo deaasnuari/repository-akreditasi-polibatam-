@@ -491,7 +491,6 @@ export default function RelevansiPkmPage() {
 
         </main>
 
-<<<<<<< Updated upstream
         {confirmDelete.open && (
           <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4">
             <div className="bg-white w-full max-w-md rounded-lg shadow-xl">
@@ -511,15 +510,21 @@ export default function RelevansiPkmPage() {
                 </button>
                 <button
                   onClick={async () => {
-                    const id = confirmDelete.id ?? undefined;
+                    const id = confirmDelete.id;
                     setConfirmDelete({ open: false, id: null });
-                    await handleDelete(id);
+                    if (id !== null) {
+                      await handleDelete(id);
+                    }
                   }}
                   className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
                 >
                   Hapus
                 </button>
-=======
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Modal Catatan P4M */}
         {showP4MNotes && selectedItemForNotes && (
           <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-start md:items-center overflow-auto z-50 p-4">
@@ -548,7 +553,6 @@ export default function RelevansiPkmPage() {
               )}
               <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
                 <button onClick={() => setShowP4MNotes(false)} className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition">Tutup</button>
->>>>>>> Stashed changes
               </div>
             </div>
           </div>
