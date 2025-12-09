@@ -84,3 +84,85 @@ export const getBuktiPendukungForUser = async (req, res) => {
     res.status(500).json({ message: 'Terjadi kesalahan pada server saat mengambil data', error: error.message });
   }
 };
+
+/**
+ * Rekap bagian Bukti Pendukung untuk kebutuhan halaman export.
+ * Kembalikan array dengan shape: { id, kode_bagian, nama_bagian, deskripsi, tanggal_update, status }
+ */
+export const getRekapBagian = async (req, res) => {
+  const userId = req.user?.id;
+  if (!userId) {
+    return res.status(401).json({ message: 'User tidak terautentikasi atau token tidak valid' });
+  }
+  try {
+    // Ambil semua bukti pendukung milik user
+    const items = await prisma.buktiPendukung.findMany({
+      where: { userId },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    // Kelompokkan berdasarkan bagian. Asumsi: field nama menyimpan informasi bagian
+    // Contoh konvensi: nama = "A1 - Visi & Misi - Dokumen X".
+    // Jika Anda punya kolom kodeBagian/namaBagian tersendiri di DB, ganti mapping di bawah sesuai kolom tersebut.
+    const groups = new Map();
+
+    for (const it of items) {
+      // Heuristik ekstraksi kode dan nama bagian dari field nama
+      // Format yang didukung: "<KODE> - <NAMA BAGIAN> - ..." atau "<KODE> - <NAMA BAGIAN>"
+      let kode = 'UNK';
+      let nama = 'Bagian Tidak Dikenal';
+      let deskripsi = it.nama || 'Bukti pendukung';
+
+      if (typeof it.nama === 'string' && it.nama.includes('-')) {
+        const parts = it.nama.split('-').map(s => s.trim());
+        if (parts.length >= 2) {
+          kode = parts[0] || kode;
+          nama = parts[1] || nama;
+          deskripsi = parts.slice(2).join(' - ') || deskripsi;
+        }
+      }
+
+      const key = `${kode}::${nama}`;
+      const current = groups.get(key) || { id: undefined, kode_bagian: kode, nama_bagian: nama, deskripsi: '', tanggal_update: undefined, dokumen: [], statusRaw: [] };
+
+      current.dokumen.push(it);
+      current.statusRaw.push((it.status || '').toLowerCase());
+      // Tanggal update bagian = max updatedAt
+      const ts = new Date(it.updatedAt || it.createdAt || Date.now()).toISOString();
+      current.tanggal_update = !current.tanggal_update || ts > current.tanggal_update ? ts : current.tanggal_update;
+      // Simpan deskripsi paling informatif sekali saja
+      if (!current.deskripsi) current.deskripsi = deskripsi;
+
+      groups.set(key, current);
+    }
+
+    // Tentukan status bagian berdasarkan status dokumen di dalamnya
+    const mapStatus = (statusList) => {
+      // Contoh aturan:
+      // - Jika ada satupun yang bukan 'lengkap' => "Belum Lengkap"
+      // - Jika semuanya 'lengkap' => "Siap Export"
+      // - Jika kosong (tidak ada dokumen) => "Kelengkapan"
+      if (!statusList || statusList.length === 0) return 'Kelengkapan';
+      const allLower = statusList.map(s => String(s || '').toLowerCase());
+      const allLengkap = allLower.every(s => s === 'lengkap' || s === 'complete' || s === 'siap export');
+      return allLengkap ? 'Siap Export' : 'Belum Lengkap';
+    };
+
+    // Bangun array rekap akhir
+    let autoId = 1;
+    const rekap = Array.from(groups.values()).map(g => ({
+      id: autoId++,
+      kode_bagian: g.kode_bagian,
+      nama_bagian: g.nama_bagian,
+      deskripsi: g.deskripsi || `${g.nama_bagian} - Bukti Pendukung`,
+      tanggal_update: g.tanggal_update || new Date().toISOString(),
+      status: mapStatus(g.statusRaw),
+    }));
+
+    // Jika tidak ada dokumen sama sekali, kembalikan array kosong
+    return res.json(rekap);
+  } catch (error) {
+    console.error('Error saat mengambil rekap bukti pendukung:', error);
+    res.status(500).json({ message: 'Terjadi kesalahan pada server saat mengambil rekap', error: error.message });
+  }
+};
