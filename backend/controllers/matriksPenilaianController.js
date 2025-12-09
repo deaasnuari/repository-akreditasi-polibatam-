@@ -39,7 +39,6 @@ export const getKriteria = async (req, res) => {
 export const getScoresByProdi = async (req, res) => {
   try {
     const { prodiId } = req.params;
-    const { role } = req.query; // Extract role from query parameters
     const userId = req.user?.id;
 
     // Validate that user belongs to the requested prodi
@@ -53,14 +52,9 @@ export const getScoresByProdi = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
 
-    if (!role) { // Add validation for role
-      return res.status(400).json({ success: false, message: 'Role query parameter is required' });
-    }
-
     const scores = await prisma.criteria_scores.findMany({
       where: {
         user_id: parseInt(prodiId),
-        role: role, // Add role filter
       },
       include: {
         criterion: true
@@ -90,7 +84,7 @@ export const getScoresByProdi = async (req, res) => {
 export const saveScore = async (req, res) => {
   try {
 
-    const { prodi_id: prodiUserId, criteria_item_id, skor_prodi, role } = req.body;
+    const { prodi_id: prodiUserId, criteria_item_id, skor_prodi } = req.body;
     const userId = req.user?.id;
 
 
@@ -123,10 +117,9 @@ export const saveScore = async (req, res) => {
     // Check if score exists
     const existingScore = await prisma.criteria_scores.findUnique({
       where: {
-        unique_score_per_prodi_role: {
+        unique_score_per_prodi: {
           user_id: numericProdiUserId,
           criteria_item_id: criteria_item_id,
-          role: role,
         },
       },
     });
@@ -167,7 +160,6 @@ export const saveScore = async (req, res) => {
           criteria_item_id: criteria_item_id,
           skor_prodi: skor_prodi,
           skor_terbobot: skor_terbobot,
-          role: role,
         },
       });
 
