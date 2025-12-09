@@ -1,8 +1,9 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { FileText, Download, Save, Edit, Trash2, X } from 'lucide-react';
+import { FileText, Download, Save, Edit, Trash2, X, Eye } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { getReviews as fetchReviews, createReview as postReview } from '@/services/reviewService';
 import {
   fetchAkuntabilitasData,
   createAkuntabilitasData,
@@ -19,6 +20,11 @@ export default function AkuntabilitasPage() {
   const [showForm, setShowForm] = useState(false);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [formData, setFormData] = useState<any>({});
+  const [showDetail, setShowDetail] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<any | null>(null);
+  const [reviewNote, setReviewNote] = useState('');
+  const [notes, setNotes] = useState<any[]>([]);
+  const [loadingNotes, setLoadingNotes] = useState(false);
 
   // Handler import Excel dihilangkan. Data import tidak lagi tersedia via UI.
 
@@ -80,6 +86,34 @@ export default function AkuntabilitasPage() {
       setTabData(updated);
       saveDraftAkuntabilitas(activeSubTab, updated);
     } else alert(res.message);
+  };
+
+  const handleViewDetail = async (item: any) => { 
+    setSelectedItem(item);
+    setReviewNote('');
+    setNotes([]);
+    setShowDetail(true);
+    try {
+      setLoadingNotes(true);
+      const existing = await fetchReviews('akuntabilitas', item.id);
+      setNotes(existing || []);
+    } catch (err) {
+      console.error('Fetch notes error', err);
+    } finally {
+      setLoadingNotes(false);
+    }
+  };
+
+  const handleSaveReview = async () => {
+    if (!selectedItem?.id) return;
+    try {
+      await postReview('akuntabilitas', selectedItem.id, reviewNote || '');
+      const existing = await fetchReviews('akuntabilitas', selectedItem.id);
+      setNotes(existing || []);
+      setReviewNote('');
+    } catch (err) {
+      console.error('Save note error', err);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -204,12 +238,9 @@ export default function AkuntabilitasPage() {
                         ))}
                         <td className="px-6 py-4 text-center">
                           <div className="flex gap-2 justify-center">
-                            <button onClick={() => { setFormData(item.data); setEditIndex(i); setShowForm(true); }} className="text-blue-600 hover:text-blue-800 transition" title="Edit">
-                              <Edit size={16} />
-                            </button>
-                            <button onClick={() => handleDelete(item.id)} className="text-red-600 hover:text-red-800 transition" title="Hapus">
-                              <Trash2 size={16} />
-                            </button>
+                                <button onClick={() => { setSelectedItem(item); setShowDetail(true); }} className="text-blue-700 hover:text-blue-900 inline-flex items-center gap-1" title="Lihat Detail">
+                                  <Eye size={16} />
+                                </button>
                           </div>
                         </td>
                       </tr>
@@ -245,6 +276,57 @@ export default function AkuntabilitasPage() {
                 <div className="flex justify-end gap-2 mt-4">
                   <button onClick={() => setShowForm(false)} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100">Batal</button>
                   <button onClick={handleSave} className="px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800">Simpan</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Modal Detail */}
+          {showDetail && selectedItem && (
+            <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-start md:items-center overflow-auto z-50 p-4">
+              <div className="bg-white p-6 rounded-lg shadow w-full max-w-4xl">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-semibold text-lg">Detail Data</h3>
+                  <button onClick={() => setShowDetail(false)} className="text-gray-600 hover:text-gray-800">✕</button>
+                </div>
+
+                <div className="space-y-4">
+                  {Object.keys(selectedItem.data || selectedItem).map((k) => (
+                    <div key={k} className="bg-gray-50 p-4 rounded">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">{k.replace(/_/g,' ')}</label>
+                      <p className="text-gray-900">{String((selectedItem.data || selectedItem)[k] ?? '-')}</p>
+                    </div>
+                  ))}
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Catatan Sebelumnya</label>
+                      {loadingNotes ? (
+                        <p className="text-sm text-gray-500">Memuat catatan...</p>
+                      ) : notes.length === 0 ? (
+                        <p className="text-sm text-gray-500">Belum ada catatan</p>
+                      ) : (
+                        <div className="space-y-2 max-h-44 overflow-auto">
+                          {notes.map((n) => (
+                            <div key={n.id} className="border rounded p-3 bg-white">
+                              <div className="text-xs text-gray-500">{n.user?.nama_lengkap || n.user?.username} • {new Date(n.created_at).toLocaleString()}</div>
+                              <div className="text-sm text-gray-900 mt-1 whitespace-pre-wrap">{n.note}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Tambahkan Catatan Review (Optional)</label>
+                      <textarea value={reviewNote} onChange={(e)=>setReviewNote(e.target.value)} placeholder="Tambahkan catatan atau komentar review di sini..." rows={4} className="border p-3 rounded-lg w-full bg-white" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 mt-4">
+                  <button onClick={() => setShowDetail(false)} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100">Tutup</button>
+                  <button onClick={handleSaveReview} className="px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800">Simpan Catatan</button>
                 </div>
               </div>
             </div>

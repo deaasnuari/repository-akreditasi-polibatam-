@@ -427,4 +427,10 @@ class RelevansiPenelitianService {
 // Export singleton instance
 export const relevansiPenelitianService = new RelevansiPenelitianService();
 
+// Export function wrappers for convenience
+export const getRelevansiPenelitian = (subtab: SubTab) => relevansiPenelitianService.fetchData(subtab);
+export const saveRelevansiPenelitian = (data: DataItem, subtab: SubTab) => relevansiPenelitianService.createData(data, subtab);
+export const updateRelevansiPenelitian = (id: number, data: DataItem, subtab: SubTab) => relevansiPenelitianService.updateData(id, data, subtab);
+export const deleteRelevansiPenelitian = (id: number) => relevansiPenelitianService.deleteData(id);
+
 export default relevansiPenelitianService;

@@ -50,6 +50,7 @@ export async function getAllLEDData(user_id: number): Promise<Record<string, Tab
         "Content-Type": "application/json",
       },
       cache: "no-store",
+      credentials: "include",
     });
 
     if (!res.ok) {
@@ -97,6 +98,7 @@ export async function saveLEDTab(
         data,
         role,
       }),
+      credentials: "include",
     });
 
     const text = await res.text();
@@ -119,7 +121,101 @@ export async function saveLEDTab(
   }
 }
 
+/* ==================== FETCH ALL LED (Alternative) ==================== */
+export const fetchBudayaMutuLED = async (): Promise<any[]> => {
+  try {
+    const res = await fetch(API_BASE_LED, {
+      credentials: "include",
+    });
+    if (!res.ok) {
+      console.error('Fetch error, status:', res.status);
+      return [];
+    }
+    return await res.json();
+  } catch (err) {
+    console.error('fetchBudayaMutuLED error:', err);
+    return [];
+  }
+};
 
+/* ==================== CREATE LED ==================== */
+export const createBudayaMutuLED = async (data: any): Promise<any> => {
+  try {
+    const res = await fetch(API_BASE_LED, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+      credentials: "include",
+    });
+
+    const text = await res.text();
+    let json;
+    try {
+      json = JSON.parse(text);
+    } catch {
+      json = null;
+    }
+
+    if (!res.ok) throw new Error(`Create failed: ${res.status} ${text}`);
+
+    return json;
+  } catch (err) {
+    console.error('createBudayaMutuLED error:', err);
+    return null;
+  }
+};
+
+/* ==================== UPDATE LED ==================== */
+export const updateBudayaMutuLED = async (id: string, data: any): Promise<any> => {
+  try {
+    const res = await fetch(`${API_BASE_LED}/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+      credentials: "include",
+    });
+
+    const text = await res.text();
+    let json;
+    try {
+      json = JSON.parse(text);
+    } catch {
+      json = null;
+    }
+
+    if (!res.ok) throw new Error(`Update failed: ${res.status} ${text}`);
+
+    return json;
+  } catch (err) {
+    console.error('updateBudayaMutuLED error:', err);
+    return null;
+  }
+};
+
+/* ==================== DELETE LED ==================== */
+export const deleteBudayaMutuLED = async (id: string | number): Promise<any> => {
+  try {
+    const res = await fetch(`${API_BASE_LED}/${id}`, {
+      method: 'DELETE',
+      credentials: "include",
+    });
+
+    const text = await res.text();
+    let json;
+    try {
+      json = JSON.parse(text);
+    } catch {
+      json = null;
+    }
+
+    if (!res.ok) throw new Error(`Delete failed: ${res.status} ${text}`);
+
+    return json;
+  } catch (err) {
+    console.error('deleteBudayaMutuLED error:', err);
+    return null;
+  }
+};
 
 /* ==================== DRAFT FUNCTIONS (LocalStorage) ==================== */
 export const saveDraftBudayaMutuLED = (data: any): void => {

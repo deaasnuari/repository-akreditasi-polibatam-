@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { FileText, Download, Save, Eye } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { getReviews as fetchReviews, createReview as postReview } from '@/services/reviewService';
 
 
 // --- Data item ---
@@ -21,6 +22,9 @@ export default function P4MReviewDiferensiasiMisiPage() {
   const [data, setData] = useState<DataItem[]>([]);
   const [showDetail, setShowDetail] = useState(false);
   const [selectedItem, setSelectedItem] = useState<DataItem | null>(null);
+  const [reviewNote, setReviewNote] = useState('');
+  const [notes, setNotes] = useState<any[]>([]);
+  const [loadingNotes, setLoadingNotes] = useState(false);
   const API_BASE = 'http://localhost:5000/api/diferensiasi-misi';
 
   const tabs = [
@@ -35,7 +39,12 @@ export default function P4MReviewDiferensiasiMisiPage() {
   // --- Fetch Data ---
   const fetchData = async () => {
     try {
-      const res = await fetch(`${API_BASE}?type=visi-misi`);
+      const res = await fetch(`${API_BASE}?type=visi-misi`, {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
       if (!res.ok) throw new Error('Gagal fetch data');
       const json = await res.json();
       console.log('RESPON DARI BACKEND:', json);
@@ -51,9 +60,32 @@ export default function P4MReviewDiferensiasiMisiPage() {
   }, []);
 
   // --- View Detail ---
-  const handleViewDetail = (item: DataItem) => {
+  const handleViewDetail = async (item: DataItem) => {
     setSelectedItem(item);
+    setReviewNote('');
+    setNotes([]);
     setShowDetail(true);
+    try {
+      setLoadingNotes(true);
+      const existing = await fetchReviews('diferensiasi-misi', item.id);
+      setNotes(existing || []);
+    } catch (err) {
+      console.error('Fetch notes error', err);
+    } finally {
+      setLoadingNotes(false);
+    }
+  };
+
+  const handleSaveReview = async () => {
+    if (!selectedItem?.id) return;
+    try {
+      await postReview('diferensiasi-misi', selectedItem.id, reviewNote || '');
+      const existing = await fetchReviews('diferensiasi-misi', selectedItem.id);
+      setNotes(existing || []);
+      setReviewNote('');
+    } catch (err) {
+      console.error('Save note error', err);
+    }
   };
 
   // --- Render utama ---
@@ -199,16 +231,38 @@ export default function P4MReviewDiferensiasiMisiPage() {
                       <p className="text-gray-900 whitespace-pre-wrap">{selectedItem.konten}</p>
                     </div>
 
-                    {/* Area Catatan Review (Optional) */}
-                    <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Catatan Review (Optional)
-                      </label>
-                      <textarea
-                        placeholder="Tambahkan catatan atau komentar review di sini..."
-                        rows={4}
-                        className="border p-3 rounded-lg w-full bg-white"
-                      />
+                    {/* Area Catatan Review */}
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Catatan Sebelumnya</label>
+                        {loadingNotes ? (
+                          <p className="text-sm text-gray-500">Memuat catatan...</p>
+                        ) : notes.length === 0 ? (
+                          <p className="text-sm text-gray-500">Belum ada catatan</p>
+                        ) : (
+                          <div className="space-y-2 max-h-44 overflow-auto">
+                            {notes.map((n) => (
+                              <div key={n.id} className="border rounded p-3 bg-white">
+                                <div className="text-xs text-gray-500">{n.user?.nama_lengkap || n.user?.username} • {new Date(n.created_at).toLocaleString()}</div>
+                                <div className="text-sm text-gray-900 mt-1 whitespace-pre-wrap">{n.note}</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Tambahkan Catatan Review (Optional)
+                        </label>
+                        <textarea
+                          value={reviewNote}
+                          onChange={(e) => setReviewNote(e.target.value)}
+                          placeholder="Tambahkan catatan atau komentar review di sini..."
+                          rows={4}
+                          className="border p-3 rounded-lg w-full bg-white"
+                        />
+                      </div>
                     </div>
                   </div>
 
@@ -220,11 +274,8 @@ export default function P4MReviewDiferensiasiMisiPage() {
                       Tutup
                     </button>
                     <button 
+                      onClick={handleSaveReview}
                       className="px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800"
-                      onClick={() => {
-                        alert('Catatan review disimpan');
-                        setShowDetail(false);
-                      }}
                     >
                       Simpan Catatan
                     </button>

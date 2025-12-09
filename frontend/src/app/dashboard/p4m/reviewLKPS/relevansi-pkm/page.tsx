@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { FileText, Upload, Download, Save, Edit, Trash2, X } from 'lucide-react';
+import { FileText, Upload, Download, Save, Edit, Trash2, X, Eye } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { getReviews as fetchReviews, createReview as postReview } from '@/services/reviewService';
 
 export default function RelevansiPkmPage() {
   const pathname = usePathname();
@@ -13,6 +14,11 @@ export default function RelevansiPkmPage() {
   const [showForm, setShowForm] = useState(false);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [formData, setFormData] = useState<any>({});
+  const [showDetail, setShowDetail] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<any | null>(null);
+  const [reviewNote, setReviewNote] = useState('');
+  const [notes, setNotes] = useState<any[]>([]);
+  const [loadingNotes, setLoadingNotes] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const API_BASE = 'http://localhost:5000/api/relevansi-pkm';
@@ -33,7 +39,12 @@ export default function RelevansiPkmPage() {
   const fetchData = async () => {
     try {
       setErrorMsg(null);
-      const res = await fetch(`${API_BASE}?type=${activeSubTab}`);
+      const res = await fetch(`${API_BASE}?type=${activeSubTab}`, {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
       
       if (!res.ok) {
         const errorData = await res.json().catch(() => null);
@@ -77,6 +88,7 @@ export default function RelevansiPkmPage() {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
+        credentials: 'include',
       });
 
       // Parse response body terlebih dahulu
@@ -110,7 +122,11 @@ export default function RelevansiPkmPage() {
     if (!confirm('Hapus data ini?')) return;
 
     try {
-      const res = await fetch(`${API_BASE}/${item.id}`, { method: 'DELETE' });
+      const res = await fetch(`${API_BASE}/${item.id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' }
+      });
       const json = await res.json();
 
       if (!res.ok) {
@@ -122,6 +138,34 @@ export default function RelevansiPkmPage() {
     } catch (err: any) {
       console.error('❌ Delete error:', err);
       alert(`Gagal menghapus data: ${err?.message || String(err)}`);
+    }
+  };
+
+  const handleViewDetail = async (item: any) => { 
+    setSelectedItem(item); 
+    setReviewNote('');
+    setNotes([]);
+    setShowDetail(true);
+    try {
+      setLoadingNotes(true);
+      const existing = await fetchReviews('relevansi-pkm', item.id);
+      setNotes(existing || []);
+    } catch (err) {
+      console.error('Fetch notes error', err);
+    } finally {
+      setLoadingNotes(false);
+    }
+  };
+
+  const handleSaveReview = async () => {
+    if (!selectedItem?.id) return;
+    try {
+      await postReview('relevansi-pkm', selectedItem.id, reviewNote || '');
+      const existing = await fetchReviews('relevansi-pkm', selectedItem.id);
+      setNotes(existing || []);
+      setReviewNote('');
+    } catch (err) {
+      console.error('Save note error', err);
     }
   };
 
@@ -195,8 +239,9 @@ export default function RelevansiPkmPage() {
         ))}
         <td className="px-6 py-4 text-center">
           <div className="flex gap-2 justify-center">
-            <button onClick={() => openEdit(item)} className="text-blue-600 hover:text-blue-800 transition" title="Edit"><Edit size={16} /></button>
-            <button onClick={() => handleDelete(item)} className="text-red-600 hover:text-red-800 transition" title="Hapus"><Trash2 size={16} /></button>
+            <button onClick={() => handleViewDetail(item)} className="text-blue-700 hover:text-blue-900 inline-flex items-center gap-1" title="Lihat Detail">
+              <Eye size={16} />
+            </button>
           </div>
         </td>
       </tr>
@@ -232,10 +277,10 @@ export default function RelevansiPkmPage() {
               <Link
                 key={tab.href}
                 href={tab.href}
-                className={`px-4 py-2 rounded-lg text-sm transition ${
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   pathname === tab.href
-                    ? 'bg-blue-100 text-blue-900 font-medium'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    ? 'bg-[#183A64] text-[#ADE7F7] shadow-md scale-105'
+                    : 'bg-gray-100 text-gray-700 hover:bg-[#ADE7F7] hover:text-[#183A64]'
                 }`}
               >
                 {tab.label}
@@ -345,6 +390,57 @@ export default function RelevansiPkmPage() {
                   >
                     {saving ? 'Menyimpan...' : 'Simpan'}
                   </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Modal Detail */}
+          {showDetail && selectedItem && (
+            <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-start md:items-center overflow-auto z-50 p-4">
+              <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-4xl">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-lg font-semibold text-gray-800">Detail Data</h2>
+                  <button onClick={() => setShowDetail(false)} className="text-gray-500 hover:text-gray-700">✕</button>
+                </div>
+
+                <div className="space-y-4">
+                  {Object.keys(selectedItem).filter(k => k !== 'id').map(k => (
+                    <div key={k} className="bg-gray-50 p-4 rounded-lg">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">{k.replace(/_/g,' ')}</label>
+                      <p className="text-gray-900 whitespace-pre-wrap">{String(selectedItem[k] ?? '-')}</p>
+                    </div>
+                  ))}
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Catatan Sebelumnya</label>
+                      {loadingNotes ? (
+                        <p className="text-sm text-gray-500">Memuat catatan...</p>
+                      ) : notes.length === 0 ? (
+                        <p className="text-sm text-gray-500">Belum ada catatan</p>
+                      ) : (
+                        <div className="space-y-2 max-h-44 overflow-auto">
+                          {notes.map((n) => (
+                            <div key={n.id} className="border rounded p-3 bg-white">
+                              <div className="text-xs text-gray-500">{n.user?.nama_lengkap || n.user?.username} • {new Date(n.created_at).toLocaleString()}</div>
+                              <div className="text-sm text-gray-900 mt-1 whitespace-pre-wrap">{n.note}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Tambahkan Catatan Review (Optional)</label>
+                      <textarea value={reviewNote} onChange={(e)=>setReviewNote(e.target.value)} placeholder="Tambahkan catatan atau komentar review di sini..." rows={4} className="border p-3 rounded-lg w-full bg-white" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 flex justify-end gap-2">
+                  <button onClick={() => setShowDetail(false)} className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">Tutup</button>
+                  <button onClick={handleSaveReview} className="px-4 py-2 bg-blue-700 text-white rounded hover:bg-blue-800">Simpan Catatan</button>
                 </div>
               </div>
             </div>

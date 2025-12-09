@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { FileText, Download, Save, Eye, X, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { getReviews as fetchReviews, createReview as postReview } from '@/services/reviewService';
 
 export default function P4MReviewBudayaMutuPage() {
   type SubTab = 'tupoksi' | 'pendanaan' | 'penggunaan-dana' | 'ewmp' | 'ktk' | 'spmi';
@@ -30,6 +31,8 @@ export default function P4MReviewBudayaMutuPage() {
   const [showDetail, setShowDetail] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [reviewNote, setReviewNote] = useState('');
+  const [notes, setNotes] = useState<any[]>([]);
+  const [loadingNotes, setLoadingNotes] = useState(false);
 
   // State untuk popup notifikasi
   const [popup, setPopup] = useState<{ 
@@ -112,7 +115,13 @@ export default function P4MReviewBudayaMutuPage() {
 
   const fetchData = async () => {
     try {
-      const res = await fetch(`${API_BASE}?type=${activeSubTab}`);
+      const res = await fetch(`${API_BASE}?type=${activeSubTab}`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
       
       if (!res.ok) {
         console.error(`HTTP error! status: ${res.status}`);
@@ -148,7 +157,13 @@ export default function P4MReviewBudayaMutuPage() {
 
   const fetchStrukturOrganisasi = async () => {
     try {
-      const res = await fetch(`${API_BASE}/struktur`);
+      const res = await fetch(`${API_BASE}/struktur`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
       const json = await res.json();
 
       if (json.success && json.file) {
@@ -160,17 +175,35 @@ export default function P4MReviewBudayaMutuPage() {
     }
   };
 
-  const handleViewDetail = (item: any) => {
+  const handleViewDetail = async (item: any) => {
     setSelectedItem(item);
     setReviewNote('');
+    setNotes([]);
     setShowDetail(true);
+    try {
+      setLoadingNotes(true);
+      const existing = await fetchReviews('budaya-mutu', item.id);
+      setNotes(existing || []);
+    } catch (err) {
+      console.error('Fetch notes error', err);
+    } finally {
+      setLoadingNotes(false);
+    }
   };
 
-  const handleSaveReview = () => {
-    showPopup('Catatan review berhasil disimpan', 'success');
-    setShowDetail(false);
-    setSelectedItem(null);
-    setReviewNote('');
+  const handleSaveReview = async () => {
+    if (!selectedItem?.id) return showPopup('Gagal: item tidak ditemukan', 'error');
+    try {
+      await postReview('budaya-mutu', selectedItem.id, reviewNote || '');
+      showPopup('Catatan review berhasil disimpan', 'success');
+      // refresh notes
+      const existing = await fetchReviews('budaya-mutu', selectedItem.id);
+      setNotes(existing || []);
+      setReviewNote('');
+    } catch (err) {
+      console.error('Save note error', err);
+      showPopup('Gagal menyimpan catatan', 'error');
+    }
   };
 
   const subTabFields: Record<SubTab, { label: string; key: string }[]> = {
@@ -239,11 +272,11 @@ export default function P4MReviewBudayaMutuPage() {
   const renderColumns = () => (
     <tr>
       {subTabFields[activeSubTab].map(col => (
-        <th key={col.key} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+        <th key={col.key} className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
           {col.label}
         </th>
       ))}
-      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+      <th className="px-3 md:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Aksi</th>
     </tr>
   );
 
@@ -260,7 +293,7 @@ export default function P4MReviewBudayaMutuPage() {
     return data.map((item, index) => (
       <tr key={item.id} className="bg-white rounded-lg shadow-sm hover:bg-gray-50 border-b">
         {subTabFields[activeSubTab].map(col => (
-          <td key={col.key} className="px-6 py-4 text-gray-800">
+          <td key={col.key} className="px-3 md:px-6 py-4 text-sm text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis">
             {col.key === 'no' ? (
               index + 1
             ) : col.key === 'linkBukti' || col.key === 'dokumenSPMI' || col.key === 'buktiCertifiedAuditor' || col.key === 'laporanAudit' ? (
@@ -361,7 +394,7 @@ export default function P4MReviewBudayaMutuPage() {
           </div>
 
           {/* Budaya Mutu Tab */}
-          <div className="bg-white rounded-lg shadow-md p-6 space-y-6">
+          <div className="bg-white rounded-lg shadow-md p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
             
             {/* Struktur Organisasi - View Only */}
             <div className="bg-white rounded-lg shadow p-4">
@@ -369,7 +402,7 @@ export default function P4MReviewBudayaMutuPage() {
                 <h3 className="font-bold text-gray-800">Struktur Organisasi</h3>
               </div>
 
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 md:p-6 text-center">
                 {strukturFileUrl ? (
                   <div>
                     {strukturFileUrl.endsWith('.pdf') ? (
@@ -414,14 +447,14 @@ export default function P4MReviewBudayaMutuPage() {
 
             {/* Table Section */}
             <div className="bg-white rounded-lg shadow-md overflow-hidden">
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center px-6 py-4 border-b bg-gray-50 gap-2 md:gap-0">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center px-4 md:px-6 py-4 border-b bg-gray-50 gap-2 md:gap-0">
                 <h3 className="text-lg font-semibold text-gray-900 capitalize">Review Data {activeSubTab}</h3>
                 <h2 className="text-sm text-gray-600">{tableTitles[activeSubTab]}</h2>
               </div>
 
-              <div className="overflow-x-auto px-4 py-2">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+              <div className="overflow-x-auto">
+                <table className="w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50 sticky top-0">
                     {renderColumns()}
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -480,17 +513,37 @@ export default function P4MReviewBudayaMutuPage() {
                       ))}
 
                     {/* Area Catatan Review */}
-                    <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Catatan Review (Optional)
-                      </label>
-                      <textarea
-                        value={reviewNote}
-                        onChange={(e) => setReviewNote(e.target.value)}
-                        placeholder="Tambahkan catatan atau komentar review di sini..."
-                        rows={4}
-                        className="border p-3 rounded-lg w-full bg-white"
-                      />
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Catatan Sebelumnya</label>
+                        {loadingNotes ? (
+                          <p className="text-sm text-gray-500">Memuat catatan...</p>
+                        ) : notes.length === 0 ? (
+                          <p className="text-sm text-gray-500">Belum ada catatan</p>
+                        ) : (
+                          <div className="space-y-2 max-h-44 overflow-auto">
+                            {notes.map((n: any) => (
+                              <div key={n.id} className="border rounded p-3 bg-white">
+                                <div className="text-xs text-gray-500">{n.user?.nama_lengkap || n.user?.username} • {new Date(n.created_at).toLocaleString()}</div>
+                                <div className="text-sm text-gray-900 mt-1 whitespace-pre-wrap">{n.note}</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Tambahkan Catatan Review (Optional)
+                        </label>
+                        <textarea
+                          value={reviewNote}
+                          onChange={(e) => setReviewNote(e.target.value)}
+                          placeholder="Tambahkan catatan atau komentar review di sini..."
+                          rows={4}
+                          className="border p-3 rounded-lg w-full bg-white"
+                        />
+                      </div>
                     </div>
                   </div>
 

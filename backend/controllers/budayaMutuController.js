@@ -19,12 +19,15 @@ export const getData = async (req, res) => {
 
       let whereClause = { type }; // Start with type filter
 
-      if (user_role && user_role.trim().toLowerCase() === 'tim akreditasi') {
-        // 'tim akreditasi' can view all data, but can also filter by prodi if prodiFilter is provided
+      const normalizedRole = user_role ? user_role.trim().toLowerCase() : '';
+      
+      // P4M and Tim Akreditasi can view all data
+      if (normalizedRole === 'p4m' || normalizedRole === 'tim akreditasi') {
+        // Both can view all data, but can also filter by prodi if prodiFilter is provided
         if (prodiFilter) {
           whereClause.prodi = prodiFilter;
         }
-        // No user_id filter for 'tim akreditasi'
+        // No user_id filter for these roles
       } else {
         // Other roles always filter by their user_id
         whereClause.user_id = user_id;

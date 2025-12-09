@@ -420,4 +420,10 @@ class RelevansiPkmService {
 // Export singleton instance
 export const relevansiPkmService = new RelevansiPkmService();
 
+// Export function wrappers for convenience
+export const getRelevansiPkm = (subtab: SubTab) => relevansiPkmService.fetchData(subtab);
+export const saveRelevansiPkm = (data: DataItem, subtab: SubTab) => relevansiPkmService.createData(data, subtab);
+export const updateRelevansiPkm = (id: number, data: DataItem, subtab: SubTab) => relevansiPkmService.updateData(id, data, subtab);
+export const deleteRelevansiPkm = (id: number) => relevansiPkmService.deleteData(id);
+
 export default relevansiPkmService;

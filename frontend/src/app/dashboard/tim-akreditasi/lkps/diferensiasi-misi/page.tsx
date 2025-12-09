@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useEffect, useState, ChangeEvent } from 'react';
-import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Info } from 'lucide-react';
+import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Info, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import * as XLSX from 'xlsx';
+import { getReviews as fetchReviews } from '@/services/reviewService';
 import {
   fetchDiferensiasiMisiData,
   createDiferensiasiMisiData,
@@ -28,11 +30,32 @@ export default function DiferensiasiMisiPage() {
     message: '',
     type: 'success',
   });
+  const [showP4MNotes, setShowP4MNotes] = useState(false);
+  const [selectedItemForNotes, setSelectedItemForNotes] = useState<any>(null);
+  const [p4mNotes, setP4mNotes] = useState<any[]>([]);
+  const [loadingP4mNotes, setLoadingP4mNotes] = useState(false);
 
   // --- Fungsi Popup ---
   const showPopup = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     setPopup({ show: true, message, type });
     setTimeout(() => setPopup({ show: false, message: '', type: 'success' }), 3000);
+  };
+
+  // --- Fungsi untuk melihat catatan P4M ---
+  const handleViewP4mNotes = async (item: any) => {
+    setSelectedItemForNotes(item);
+    setShowP4MNotes(true);
+    setLoadingP4mNotes(true);
+    try {
+      const notes = await fetchReviews('diferensiasi-misi', item.id);
+      setP4mNotes(notes || []);
+    } catch (err) {
+      console.error('Error fetching P4M notes:', err);
+      setP4mNotes([]);
+      showPopup('Gagal memuat catatan P4M', 'error');
+    } finally {
+      setLoadingP4mNotes(false);
+    }
   };
 
   const PopupNotification = () => {
@@ -128,13 +151,11 @@ export default function DiferensiasiMisiPage() {
   const handleSave = async () => {
     try {
       let result;
-      // Placeholder for prodi. You might get this from user context.
-      const prodi = 'Teknologi Informasi'; 
 
       if (formData.id) {
-        result = await updateDiferensiasiMisiData(formData.id, formData, prodi);
+        result = await updateDiferensiasiMisiData(formData.id, formData);
       } else {
-        result = await createDiferensiasiMisiData(formData, prodi);
+        result = await createDiferensiasiMisiData(formData);
       }
 
       if (result.success) {
@@ -180,20 +201,17 @@ export default function DiferensiasiMisiPage() {
       [name]: value,
     });
   };
-
   // --- Import Excel ---
   const handleImport = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Placeholder for prodi. You might get this from user context.
-    const prodi = 'Teknologi Informasi'; 
-    const mapping = {}; // You might need to implement mapping logic here if your import expects it
-
     try {
-      const result = await importExcelDiferensiasiMisi(file, mapping, prodi);
+      showPopup('Mengimport file Excel...', 'info');
+      const result = await importExcelDiferensiasiMisi(file, 'visi-misi');
+      
       if (result.success) {
-        showPopup('Data berhasil diimport', 'success');
+        showPopup(`${result.message}`, 'success');
         fetchData();
       } else {
         showPopup(result.message || 'Gagal import data', 'error');
@@ -202,6 +220,42 @@ export default function DiferensiasiMisiPage() {
       console.error('Import error:', err);
       showPopup('Terjadi kesalahan saat import data', 'error');
     }
+
+    // Reset file input
+    e.target.value = '';
+  };
+
+  // --- Download Template ---
+  const downloadTemplate = () => {
+    // Create a simple Excel template
+    const templateData = [
+      {
+        unit_kerja: 'PT (Perguruan Tinggi)',
+        tipe_data: 'Visi',
+        konten: 'Contoh konten visi dari Perguruan Tinggi'
+      },
+      {
+        unit_kerja: 'UPPS (Unit Pengelola Program Studi)',
+        tipe_data: 'Misi',
+        konten: 'Contoh konten misi dari Unit Pengelola Program Studi'
+      }
+    ];
+
+    // Create worksheet
+    const ws = XLSX.utils.json_to_sheet(templateData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Diferensiasi Misi');
+
+    // Set column widths
+    ws['!cols'] = [
+      { wch: 30 },
+      { wch: 15 },
+      { wch: 40 }
+    ];
+
+    // Download
+    XLSX.writeFile(wb, 'Template_Diferensiasi_Misi.xlsx');
+    showPopup('Template berhasil diunduh', 'success');
   };
 
   // --- Render utama ---
@@ -253,7 +307,7 @@ export default function DiferensiasiMisiPage() {
 
             {/* Tombol Aksi */}
             <div className="flex justify-between items-center mb-4">
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <button
                   onClick={openAdd}
                   className="flex items-center gap-2 px-4 py-2 text-sm text-white bg-blue-700 rounded-lg hover:bg-blue-800"
@@ -275,6 +329,12 @@ export default function DiferensiasiMisiPage() {
                     <Upload size={16} /> Import Excel
                   </label>
                 </div>
+                <button
+                  onClick={() => downloadTemplate()}
+                  className="flex items-center gap-2 px-4 py-2 text-sm bg-white border border-green-500 text-green-700 rounded-lg hover:bg-green-50"
+                >
+                  <Download size={16} /> Template
+                </button>
               </div>
             </div>
 
@@ -283,8 +343,8 @@ export default function DiferensiasiMisiPage() {
               <table className="min-w-full text-sm text-gray-700">
                 <thead className="bg-gray-50">
                   <tr className="text-xs text-gray-700 uppercase">
-                    <th className="px-4 py-3 text-left">Tipe Data</th>
                     <th className="px-4 py-3 text-left">Unit Kerja</th>
+                    <th className="px-4 py-3 text-left">Tipe Data</th>
                     <th className="px-4 py-3 text-left">Konten</th>
                     <th className="w-24 px-4 py-3 text-center">Aksi</th>
                   </tr>
@@ -300,11 +360,14 @@ export default function DiferensiasiMisiPage() {
                   ) : (
                     data.map((item, index) => (
                       <tr key={item.id ?? `row-${index}`} className="hover:bg-gray-50">
-                        <td className="px-4 py-3">{item.tipe_data}</td>
                         <td className="px-4 py-3">{item.unit_kerja}</td>
+                        <td className="px-4 py-3">{item.tipe_data}</td>
                         <td className="px-4 py-3">{item.konten}</td>
                         <td className="px-4 py-3 text-center">
                           <div className="flex justify-center gap-2">
+                            <button onClick={() => handleViewP4mNotes(item)} className="text-purple-600 hover:text-purple-800" title="Lihat Catatan P4M">
+                              <MessageSquare size={16} />
+                            </button>
                             <button onClick={() => handleEdit(item)} className="text-blue-700 hover:text-blue-900">
                               <Edit size={16} />
                             </button>
@@ -335,8 +398,22 @@ export default function DiferensiasiMisiPage() {
                   </div>
 
                   <p className="text-sm text-gray-600 mb-4">Isi form di bawah untuk menambahkan data visi atau misi baru ke tabel</p>
-
+                  
                   <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Unit Kerja</label>
+                      <select
+                        name="unit_kerja"
+                        value={formData.unit_kerja || ''}
+                        onChange={handleChange}
+                        className="border p-3 rounded-lg w-full bg-gray-50"
+                      >
+                        <option value="">Pilih unit kerja</option>
+                        <option value="PT (Perguruan Tinggi)">PT (Perguruan Tinggi) </option>
+                        <option value="UPPS (Unit Pengelola Program Studi)">UPPS (Unit Pengelola Program Studi) </option>
+                        <option value="Keilmuan PS (Program Studi)">Keilmuan PS (Program Studi) </option>
+                      </select>
+                    </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Tipe Data</label>
                       <select
@@ -348,21 +425,6 @@ export default function DiferensiasiMisiPage() {
                         <option value="">Pilih tipe data</option>
                         <option value="Visi">Visi</option>
                         <option value="Misi">Misi</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Unit Kerja</label>
-                      <select
-                        name="unit_kerja"
-                        value={formData.unit_kerja || ''}
-                        onChange={handleChange}
-                        className="border p-3 rounded-lg w-full bg-gray-50"
-                      >
-                        <option value="">Pilih unit kerja</option>
-                        <option value="Perguruan Tinggi">Perguruan Tinggi</option>
-                        <option value="UPPS">UPPS</option>
-                        <option value="Program Studi">Program Studi</option>
                       </select>
                     </div>
 
@@ -390,6 +452,39 @@ export default function DiferensiasiMisiPage() {
                     <button onClick={handleSave} className="px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800">
                       Simpan
                     </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Modal Catatan P4M */}
+            {showP4MNotes && selectedItemForNotes && (
+              <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-start md:items-center overflow-auto z-50 p-4">
+                <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                  <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-lg font-semibold text-gray-800">Catatan dari P4M Reviewer</h2>
+                    <button onClick={() => setShowP4MNotes(false)} className="text-gray-500 hover:text-gray-700"><X size={24} /></button>
+                  </div>
+                  {loadingP4mNotes ? (
+                    <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>
+                  ) : p4mNotes.length === 0 ? (
+                    <div className="bg-gray-50 p-6 rounded-lg text-center text-gray-500">Belum ada catatan dari P4M reviewer untuk item ini.</div>
+                  ) : (
+                    <div className="space-y-4">
+                      {p4mNotes.map((note, index) => (
+                        <div key={index} className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+                          <div className="flex justify-between items-start mb-2">
+                            <h4 className="font-semibold text-blue-900">Catatan #{index + 1}</h4>
+                            <span className="text-xs text-gray-600">{note.created_at ? new Date(note.created_at).toLocaleDateString('id-ID', {year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'}) : '-'}</span>
+                          </div>
+                          <p className="text-sm text-gray-700 whitespace-pre-wrap mb-2">{note.note}</p>
+                          {note.reviewer_id && <p className="text-xs text-gray-600">Oleh: Reviewer #{note.reviewer_id}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
+                    <button onClick={() => setShowP4MNotes(false)} className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition">Tutup</button>
                   </div>
                 </div>
               </div>

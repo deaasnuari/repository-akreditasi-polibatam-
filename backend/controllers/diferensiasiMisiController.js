@@ -1,187 +1,266 @@
 import prisma from '../prismaClient.js';
+import XLSX from 'xlsx';
 
-// GET semua data berdasarkan user_id
+// ========== GET ==========
 export const getDiferensiasiMisi = async (req, res) => {
   try {
-    const userId = req.user.id; // dari middleware auth
-    const { subtab } = req.query; // opsional filter subtab
+    const userId = req.user?.id;
+    const userRole = req.user?.role;
+    const { subtab, type } = req.query; // frontend sometimes sends `type`
+    const queryTab = subtab || type || null;
 
-    const whereClause = { user_id: userId };
-    if (subtab) {
-      whereClause.subtab = subtab;
+    const normalizedRole = userRole ? userRole.trim().toLowerCase() : '';
+
+    // Build where clause. P4M and Tim Akreditasi can view all records (optionally filtered by subtab/type or prodi)
+    const whereClause = {};
+    if (queryTab) whereClause.subtab = queryTab;
+
+    if (normalizedRole !== 'tim akreditasi' && normalizedRole !== 'p4m') {
+      // non-admin roles only see their own records
+      if (!userId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+      whereClause.user_id = userId;
     }
 
-    const data = await prisma.diferensiasi_misi.findMany({
+    const records = await prisma.diferensiasi_misi.findMany({
       where: whereClause,
       orderBy: { created_at: "desc" },
     });
 
-    res.json({ data });
+    // Transform JSON
+    const formatted = records.map(r => ({
+      id: r.id,
+      unit_kerja: r.data?.unit_kerja || "",
+      tipe_data: r.data?.tipe_data || "",
+      konten: r.data?.konten || "",
+      prodi: r.prodi,
+    }));
+
+    res.json({ success: true, data: formatted });
   } catch (err) {
-    res.status(500).json({ message: "Gagal mengambil data", error: err.message });
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
-// POST tambah data
+
+// ========== ADD ==========
 export const addDiferensiasiMisi = async (req, res) => {
   try {
-    const userId = req.user.id; // dari middleware auth
-    const { subtab, data } = req.body;
-    const prodi = req.user.prodi; // Ambil prodi dari user yang login
+    const userId = req.user.id;
+    const userProdi = req.user.prodi;
 
-    if (!subtab || !data || !prodi) {
-      return res.status(400).json({ message: "subtab, data, dan prodi diperlukan" });
+    const { subtab, data } = req.body;
+
+    if (!subtab || !data) {
+      return res.status(400).json({ success: false, message: "subtab dan data wajib diisi" });
     }
 
-    const newData = await prisma.diferensiasi_misi.create({
+    const newRow = await prisma.diferensiasi_misi.create({
       data: {
         user_id: userId,
-        prodi,
+        prodi: userProdi,
         subtab,
-        data,
-      },
+        data: {
+          unit_kerja: data.unit_kerja,
+          tipe_data: data.tipe_data,
+          konten: data.konten,
+        }
+      }
     });
 
-    res.json({ message: "Data berhasil ditambahkan", data: newData });
+    res.json({ success: true, data: newRow });
   } catch (err) {
-    res.status(500).json({ message: "Gagal menambahkan data", error: err.message });
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
-// PUT update data
-export const updateDiferensiasiMisi = async (req, res) => {
-  const { id } = req.params;
-  const userId = req.user.id;
 
+// ========== UPDATE ==========
+export const updateDiferensiasiMisi = async (req, res) => {
   try {
-    const { subtab, data, prodi } = req.body;
+    const id = Number(req.params.id);
+    const userId = req.user.id;
+    const userProdi = req.user.prodi;
+    const { subtab, data } = req.body;
 
     const updated = await prisma.diferensiasi_misi.updateMany({
-      where: {
-        id: Number(id),
-        user_id: userId, // pastikan hanya user sendiri yang bisa update
-      },
+      where: { id, user_id: userId },
       data: {
-        ...(subtab && { subtab }),
-        ...(data && { data }),
-        ...(prodi && { prodi }), // Tambahkan prodi jika ada
-      },
+        subtab,
+        prodi: userProdi,
+        data: {
+          unit_kerja: data.unit_kerja,
+          tipe_data: data.tipe_data,
+          konten: data.konten,
+        }
+      }
     });
 
-    if (updated.count === 0) {
-      return res.status(404).json({ message: "Data tidak ditemukan atau tidak memiliki akses" });
+    if (!updated.count) {
+      return res.status(404).json({ success: false, message: "Data tidak ditemukan" });
     }
 
-    res.json({ message: "Data berhasil diperbarui" });
+    res.json({ success: true, message: "Update berhasil" });
   } catch (err) {
-    res.status(500).json({ message: "Gagal memperbarui data", error: err.message });
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
-// DELETE hapus data
+
+// ========== DELETE ==========
 export const deleteDiferensiasiMisi = async (req, res) => {
-  const { id } = req.params;
-  const userId = req.user.id;
-
   try {
+    const id = Number(req.params.id);
+    const userId = req.user.id;
+
     const deleted = await prisma.diferensiasi_misi.deleteMany({
-      where: {
-        id: Number(id),
-        user_id: userId, // pastikan hanya user sendiri yang bisa delete
-      },
+      where: { id, user_id: userId }
     });
 
-    if (deleted.count === 0) {
-      return res.status(404).json({ message: "Data tidak ditemukan atau tidak memiliki akses" });
+    if (!deleted.count) {
+      return res.status(404).json({ success: false, message: "Data tidak ditemukan" });
     }
 
-    res.json({ message: "Data berhasil dihapus" });
+    res.json({ success: true, message: "Hapus berhasil" });
   } catch (err) {
-    res.status(500).json({ message: "Gagal menghapus data", error: err.message });
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
-// ======================
-// 📝 SAVE DRAFT (Diferensiasi Misi Specific with Bukti Pendukung Reference)
-// ======================
+
+// ========== SAVE DRAFT ==========
 export const saveDraft = async (req, res) => {
   const { nama, path, status, type, currentData } = req.body;
-  const user_id = req.user.id;
-  const user_prodi = req.user.prodi;
+  const userId = req.user.id;
+  const userProdi = req.user.prodi;
 
-  // Basic validation
   if (!nama || !path || !status || !type || !currentData) {
-    return res.status(400).json({ success: false, message: "Nama, path, status, type, dan data tidak boleh kosong" });
-  }
-  if (!user_id || !user_prodi) {
-    return res.status(401).json({ success: false, message: "User tidak terautentikasi atau prodi tidak ditemukan" });
+    return res.status(400).json({ success: false, message: "Data tidak lengkap" });
   }
 
   try {
-    // 1. Save/Update detailed Diferensiasi Misi data (treating it as the draft)
-    const existingDiferensiasiMisiEntry = await prisma.diferensiasi_misi.findFirst({
-      where: {
-        user_id: user_id,
-        prodi: user_prodi,
-        subtab: type, // Using 'type' from frontend for 'subtab' field
-      },
+    // DRAFT update
+    const existing = await prisma.diferensiasi_misi.findFirst({
+      where: { user_id: userId, prodi: userProdi, subtab: type },
     });
 
-    let savedDiferensiasiMisi;
-    if (existingDiferensiasiMisiEntry) {
-      savedDiferensiasiMisi = await prisma.diferensiasi_misi.update({
-        where: { id: existingDiferensiasiMisiEntry.id },
-        data: {
-          data: currentData, // Update the data field with the new draft content
-          updated_at: new Date(),
-        },
+    let savedDraft;
+
+    if (existing) {
+      savedDraft = await prisma.diferensiasi_misi.update({
+        where: { id: existing.id },
+        data: { data: currentData }
       });
     } else {
-      savedDiferensiasiMisi = await prisma.diferensiasi_misi.create({
+      savedDraft = await prisma.diferensiasi_misi.create({
         data: {
-          user_id: user_id,
-          prodi: user_prodi,
-          subtab: type, // Using 'type' from frontend for 'subtab' field
-          data: currentData,
-        },
+          user_id: userId,
+          prodi: userProdi,
+          subtab: type,
+          data: currentData
+        }
       });
     }
 
-    // 2. Create/Update a reference in Bukti Pendukung
+    // Update bukti pendukung
     const existingBukti = await prisma.buktiPendukung.findFirst({
-      where: {
-        userId: user_id,
-        path: path,
-      },
+      where: { userId, path }
     });
 
-    let buktiPendukungEntry;
+    let bukti;
+
     if (existingBukti) {
-      buktiPendukungEntry = await prisma.buktiPendukung.update({
+      bukti = await prisma.buktiPendukung.update({
         where: { id: existingBukti.id },
-        data: { status: status },
+        data: { status }
       });
     } else {
-      buktiPendukungEntry = await prisma.buktiPendukung.create({
-        data: {
-          nama: nama,
-          path: path,
-          status: status,
-          userId: user_id,
-        },
+      bukti = await prisma.buktiPendukung.create({
+        data: { nama, path, status, userId }
       });
     }
 
     res.json({
       success: true,
-      message: "Draft Diferensiasi Misi berhasil disimpan dan referensi Bukti Pendukung diperbarui",
-      diferensiasiMisiDraft: savedDiferensiasiMisi,
-      buktiPendukungReference: buktiPendukungEntry,
-      redirect: "/dashboard/tim-akreditasi/bukti-pendukung" // Redirect to bukti pendukung page
+      message: "Draft berhasil disimpan",
+      diferensiasiMisiDraft: savedDraft,
+      buktiPendukung: bukti,
     });
 
   } catch (err) {
-    console.error("SAVE DRAFT DIFERENSIASI MISI ERROR:", err);
-    res.status(500).json({ success: false, message: "Gagal menyimpan draft Diferensiasi Misi" });
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+
+// ========== IMPORT EXCEL ==========
+export const importExcelDiferensiasiMisi = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const userProdi = req.user.prodi;
+    const { subtab } = req.body;
+
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "File tidak ditemukan" });
+    }
+
+    if (!subtab) {
+      return res.status(400).json({ success: false, message: "Subtab harus diisi" });
+    }
+
+    // Parse Excel file
+    const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+    if (!jsonData || jsonData.length === 0) {
+      return res.status(400).json({ success: false, message: "File Excel kosong" });
+    }
+
+    // Validate and transform data
+    const expectedColumns = ['tipe_data', 'unit_kerja', 'konten'];
+    const missingColumns = expectedColumns.filter(col => 
+      !jsonData[0].hasOwnProperty(col)
+    );
+
+    if (missingColumns.length > 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Kolom yang hilang: ${missingColumns.join(', ')}. Format kolom: ${expectedColumns.join(', ')}`
+      });
+    }
+
+    // Delete old data for this subtab first (optional, based on your requirement)
+    // await prisma.diferensiasi_misi.deleteMany({
+    //   where: { user_id: userId, subtab }
+    // });
+
+    // Create new records
+    const createdRecords = [];
+    for (const row of jsonData) {
+      const newRecord = await prisma.diferensiasi_misi.create({
+        data: {
+          user_id: userId,
+          prodi: userProdi,
+          subtab,
+          data: {
+            tipe_data: row.tipe_data || "",
+            unit_kerja: row.unit_kerja || "",
+            konten: row.konten || "",
+          }
+        }
+      });
+      createdRecords.push(newRecord);
+    }
+
+    res.json({
+      success: true,
+      message: `${createdRecords.length} data berhasil diimport`,
+      data: createdRecords
+    });
+
+  } catch (err) {
+    console.error('Import error:', err);
+    res.status(500).json({ success: false, message: err.message });
   }
 };

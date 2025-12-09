@@ -8,7 +8,6 @@ import {
   Home,
   FileText,
   BookOpen,
-  Clock,
   Menu,
   ChevronLeft,
   LogOut,
@@ -118,7 +117,6 @@ export default function LayoutP4M({ children }: { children: React.ReactNode }) {
     { name: 'Dashboard', href: '/dashboard/p4m', icon: <Home size={18} /> },
     { name: 'Review LKPS', href: '/dashboard/p4m/reviewLKPS', icon: <FileText size={18} /> },
     { name: 'Review LED', href: '/dashboard/p4m/reviewLED', icon: <BookOpen size={18} /> },
-    { name: 'Pending Review', href: '/dashboard/p4m/pending-review', icon: <Clock size={18} /> },
   ];
 
   // === HANDLE LOGOUT ===

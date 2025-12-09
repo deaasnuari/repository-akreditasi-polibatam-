@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useEffect, useState, ChangeEvent } from 'react';
-import { FileText, Download, Save, Edit, Trash2, X } from 'lucide-react';
+import { FileText, Download, Save, Edit, Trash2, Eye, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { relevansiPendidikanService, SubTab, DataItem } from '@/services/relevansiPendidikanService';
+import { getReviews as fetchReviews, createReview as postReview } from '@/services/reviewService';
 
 // --- Table titles ---
 const tableTitles: Record<SubTab, string> = {
@@ -29,6 +30,11 @@ export default function RelevansiPendidikanPage() {
   const [showForm, setShowForm] = useState(false);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [formData, setFormData] = useState<DataItem>({});
+  const [showDetail, setShowDetail] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<DataItem | null>(null);
+  const [reviewNote, setReviewNote] = useState('');
+  const [notes, setNotes] = useState<any[]>([]);
+  const [loadingNotes, setLoadingNotes] = useState(false);
 
   const tabs = [
     { label: 'Budaya Mutu', href: '/dashboard/p4m/reviewLKPS' },
@@ -81,6 +87,34 @@ export default function RelevansiPendidikanPage() {
     const idx = data.findIndex((d) => d.id === item.id);
     setEditIndex(idx !== -1 ? idx : null);
     setShowForm(true);
+  };
+
+  const handleViewDetail = async (item: DataItem) => { 
+    setSelectedItem(item);
+    setReviewNote('');
+    setNotes([]);
+    setShowDetail(true);
+    try {
+      setLoadingNotes(true);
+      const existing = await fetchReviews('relevansi-pendidikan', item.id);
+      setNotes(existing || []);
+    } catch (err) {
+      console.error('Fetch notes error', err);
+    } finally {
+      setLoadingNotes(false);
+    }
+  };
+
+  const handleSaveReview = async () => {
+    if (!selectedItem?.id) return;
+    try {
+      await postReview('relevansi-pendidikan', selectedItem.id, reviewNote || '');
+      const existing = await fetchReviews('relevansi-pendidikan', selectedItem.id);
+      setNotes(existing || []);
+      setReviewNote('');
+    } catch (err) {
+      console.error('Save note error', err);
+    }
   };
 
   const handleDelete = async (id?: number) => {
@@ -382,11 +416,8 @@ export default function RelevansiPendidikanPage() {
 
                   <td className="px-4 py-3 text-center">
                       <div className="flex justify-center gap-2">
-                        <button onClick={() => handleEdit(item)} className="text-blue-700 hover:text-blue-900">
-                          <Edit size={16} />
-                        </button>
-                        <button onClick={() => handleDelete(item.id)} className="text-red-600 hover:text-red-800">
-                          <Trash2 size={16} />
+                        <button onClick={() => handleViewDetail(item)} className="text-blue-700 hover:text-blue-900 inline-flex items-center gap-1">
+                          <Eye size={16} />
                         </button>
                       </div>
                     </td>
@@ -653,6 +684,57 @@ export default function RelevansiPendidikanPage() {
                 </div>
               </div>
             )}
+
+            {/* Modal Detail (View + optional note) */}
+                {showDetail && selectedItem && (
+                  <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-start md:items-center overflow-auto z-50 p-4">
+                    <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-4xl">
+                      <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-lg font-semibold text-gray-800">Detail Data</h2>
+                        <button onClick={() => setShowDetail(false)} className="text-gray-500 hover:text-gray-700">✕</button>
+                      </div>
+
+                      <div className="space-y-4">
+                        {Object.keys(selectedItem).filter(k => k !== 'id').map(k => (
+                          <div key={k} className="bg-gray-50 p-4 rounded-lg">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">{k.replace(/_/g,' ')}</label>
+                            <p className="text-gray-900 whitespace-pre-wrap">{String((selectedItem as any)[k] ?? '-')}</p>
+                          </div>
+                        ))}
+
+                        <div className="space-y-3">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Catatan Sebelumnya</label>
+                            {loadingNotes ? (
+                              <p className="text-sm text-gray-500">Memuat catatan...</p>
+                            ) : notes.length === 0 ? (
+                              <p className="text-sm text-gray-500">Belum ada catatan</p>
+                            ) : (
+                              <div className="space-y-2 max-h-44 overflow-auto">
+                                {notes.map((n) => (
+                                  <div key={n.id} className="border rounded p-3 bg-white">
+                                    <div className="text-xs text-gray-500">{n.user?.nama_lengkap || n.user?.username} • {new Date(n.created_at).toLocaleString()}</div>
+                                    <div className="text-sm text-gray-900 mt-1 whitespace-pre-wrap">{n.note}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Tambahkan Catatan Review (Optional)</label>
+                            <textarea value={reviewNote} onChange={(e)=>setReviewNote(e.target.value)} placeholder="Tambahkan catatan atau komentar review di sini..." rows={4} className="border p-3 rounded-lg w-full bg-white" />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-6 flex justify-end gap-2">
+                        <button onClick={() => setShowDetail(false)} className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">Tutup</button>
+                        <button onClick={handleSaveReview} className="px-4 py-2 bg-blue-700 text-white rounded hover:bg-blue-800">Simpan Catatan</button>
+                      </div>
+                    </div>
+                  </div>
+                )}
           </div>
         </main>
       </div>

@@ -9,7 +9,7 @@ import {
   updateBudayaMutuLED,
   saveDraftBudayaMutuLED,
   loadDraftBudayaMutuLED,
-} from '@/services/budayaMutuService';
+} from '@/services/ledService';
 
 type Row2Col = { id: string; pernyataan: string; keterlaksanaan: string };
 type RowEval = {

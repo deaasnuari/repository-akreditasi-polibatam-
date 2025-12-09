@@ -111,6 +111,22 @@ model diferensiasi_misi {
   @@index([prodi], map: "idx_diferensiasi_misi_prodi")
 }
 
+// Reviews for P4M/TIM feedback
+model reviews {
+  id          Int      @id @default(autoincrement())
+  module      String   @db.VarChar(255)
+  item_id     Int
+  reviewer_id Int
+  note        String   @db.Text
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  user users @relation(fields: [reviewer_id], references: [id])
+
+  @@index([module], map: "idx_reviews_module")
+  @@index([item_id], map: "idx_reviews_item")
+}
+
 // =========================
 // USERS (AUTH + MANAJEMEN AKUN)
 // =========================
@@ -137,6 +153,7 @@ model users {
   led                  led[]
   criteria_scores criteria_scores[]
   buktiPendukung       BuktiPendukung[]
+  reviews              reviews[]
 }
 
 // =========================

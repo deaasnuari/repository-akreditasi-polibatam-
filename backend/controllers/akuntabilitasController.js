@@ -21,11 +21,12 @@ export const getData = async (req, res) => {
   try {
     let whereClause = { subtab };
 
-    if (userRole && userRole.trim().toLowerCase() === 'tim akreditasi') {
+    const normalizedRole = userRole ? userRole.trim().toLowerCase() : '';
+    if (normalizedRole === 'tim akreditasi' || normalizedRole === 'p4m') {
       if (prodiFilter) {
         whereClause.prodi = prodiFilter;
       }
-      // No user_id filter for 'tim akreditasi'
+      // No user_id filter for 'tim akreditasi' or 'p4m'
     } else {
       whereClause.user_id = userId;
       if (prodiFilter) {
@@ -69,7 +70,7 @@ export const getDistinctProdi = async (req, res) => {
     let whereClause = {};
     const normalizedUserRole = userRole ? userRole.trim().toLowerCase() : '';
 
-    if (normalizedUserRole !== 'tim akreditasi') {
+    if (normalizedUserRole !== 'tim akreditasi' && normalizedUserRole !== 'p4m') {
       if (userProdi) {
         whereClause = { prodi: userProdi };
       } else {
@@ -162,11 +163,12 @@ export const updateData = async (req, res) => {
       return res.status(404).json({ success: false, message: "Data tidak ditemukan" });
     }
 
-    if (existingRecord.user_id !== userId && userRole?.trim().toLowerCase() !== 'tim akreditasi') {
+    const normalizedRole = userRole ? userRole.trim().toLowerCase() : '';
+    if (existingRecord.user_id !== userId && normalizedRole !== 'tim akreditasi' && normalizedRole !== 'p4m') {
       return res.status(403).json({ success: false, message: "Tidak memiliki akses untuk mengubah data ini" });
     }
-    // For non-admin, ensure they only modify data for their prodi
-    if (userRole?.trim().toLowerCase() !== 'tim akreditasi' && existingRecord.prodi !== userProdi) {
+    // For non-admin/non-p4m, ensure they only modify data for their prodi
+    if (normalizedRole !== 'tim akreditasi' && normalizedRole !== 'p4m' && existingRecord.prodi !== userProdi) {
       return res.status(403).json({ success: false, message: "Tidak memiliki akses untuk mengubah data prodi lain" });
     }
 
@@ -213,11 +215,12 @@ export const deleteData = async (req, res) => {
       return res.status(404).json({ success: false, message: "Data tidak ditemukan" });
     }
 
-    if (existingRecord.user_id !== userId && userRole?.trim().toLowerCase() !== 'tim akreditasi') {
+    const normalizedRole = userRole ? userRole.trim().toLowerCase() : '';
+    if (existingRecord.user_id !== userId && normalizedRole !== 'tim akreditasi' && normalizedRole !== 'p4m') {
       return res.status(403).json({ success: false, message: "Tidak memiliki akses untuk menghapus data ini" });
     }
-    // For non-admin, ensure they only delete data for their prodi
-    if (userRole?.trim().toLowerCase() !== 'tim akreditasi' && existingRecord.prodi !== userProdi) {
+    // For non-admin/non-p4m, ensure they only delete data for their prodi
+    if (normalizedRole !== 'tim akreditasi' && normalizedRole !== 'p4m' && existingRecord.prodi !== userProdi) {
       return res.status(403).json({ success: false, message: "Tidak memiliki akses untuk menghapus data prodi lain" });
     }
 

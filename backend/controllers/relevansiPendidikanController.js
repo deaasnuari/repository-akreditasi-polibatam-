@@ -39,13 +39,13 @@ export const getData = async (req, res) => {
     // Normalize userRole for robust comparison
     const normalizedUserRole = userRole ? userRole.trim().toLowerCase() : '';
 
-    if (normalizedUserRole === 'tim akreditasi') {
-      console.log("getData: Admin role.");
+    if (normalizedUserRole === 'tim akreditasi' || normalizedUserRole === 'p4m') {
+      console.log("getData: Admin/P4M role.");
       if (prodiFilter) {
-        whereClause.prodi = prodiFilter; // Admin can filter by selected prodi
-        console.log("getData: Admin filtering by prodiFilter:", prodiFilter);
+        whereClause.prodi = prodiFilter; // Admin/P4M can filter by selected prodi
+        console.log("getData: Admin/P4M filtering by prodiFilter:", prodiFilter);
       } else {
-        console.log("getData: Admin, no prodiFilter applied."); // Admin sees all data for the subtab
+        console.log("getData: Admin/P4M, no prodiFilter applied."); // Admin/P4M sees all data for the subtab
       }
     } else {
       console.log("getData: Non-admin role.");
@@ -98,7 +98,7 @@ export const getDistinctProdi = async (req, res) => {
     let whereClause = {};
     const normalizedUserRole = userRole ? userRole.trim().toLowerCase() : '';
 
-    if (normalizedUserRole !== 'tim akreditasi') {
+    if (normalizedUserRole !== 'tim akreditasi' && normalizedUserRole !== 'p4m') {
       whereClause = { user_id: userId };
       if (userProdi) {
         whereClause.prodi = userProdi;

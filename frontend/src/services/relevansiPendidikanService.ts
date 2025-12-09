@@ -392,4 +392,10 @@ class RelevansiPendidikanService {
 // Export singleton instance
 export const relevansiPendidikanService = new RelevansiPendidikanService();
 
+// Export function wrappers for convenience
+export const getRelevansiPendidikan = (subtab: SubTab) => relevansiPendidikanService.fetchData(subtab);
+export const saveRelevansiPendidikan = (data: DataItem, subtab: SubTab) => relevansiPendidikanService.createData(data, subtab);
+export const updateRelevansiPendidikan = (id: number, data: DataItem, subtab: SubTab) => relevansiPendidikanService.updateData(id, data, subtab);
+export const deleteRelevansiPendidikan = (id: number) => relevansiPendidikanService.deleteData(id);
+
 export default relevansiPendidikanService;

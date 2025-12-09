@@ -16,6 +16,7 @@ import ledRoutes from './routes/ledRoutes.js';
 import uploadRoutes from "./routes/uploadRoutes.js";
 import reviewLEDP4MRoutes from "./routes/reviewLEDP4M.js";
 import akuntabilitasRoutes from "./routes/akuntabilitas.js";
+import reviewsRoutes from "./routes/reviews.js";
 import matriksPenilaianAkreditasiRoutes from "./routes/matriksPenilaianAkreditasi.js";
 import relevansiPkmRoutes from "./routes/relevansiPkm.js";
 import akreditasiRoutes from "./routes/akreditasiRoutes.js";
@@ -70,6 +71,7 @@ app.use("/api/akreditasi", akreditasiRoutes);
 app.use('/api/manajemen-akun', manajemenAkunRoutes);
 app.use('/api/bukti-pendukung', buktiPendukungRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/reviews', reviewsRoutes);
 
 app.get("/", (req, res) => res.send("Server berjalan 🚀"));
 
