@@ -1,3 +1,5 @@
+import { getCurrentUser } from './auth';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 const API_BASE_LED = `${API_URL}/api/led`;
 
@@ -124,7 +126,12 @@ export async function saveLEDTab(
 /* ==================== FETCH ALL LED (Alternative) ==================== */
 export const fetchBudayaMutuLED = async (): Promise<any[]> => {
   try {
-    const res = await fetch(API_BASE_LED, {
+    const user = await getCurrentUser();
+    if (!user || !user.id) {
+      console.error('No user found');
+      return [];
+    }
+    const res = await fetch(`${API_BASE_LED}/${user.id}`, {
       credentials: "include",
     });
     if (!res.ok) {
@@ -141,7 +148,12 @@ export const fetchBudayaMutuLED = async (): Promise<any[]> => {
 /* ==================== CREATE LED ==================== */
 export const createBudayaMutuLED = async (data: any): Promise<any> => {
   try {
-    const res = await fetch(API_BASE_LED, {
+    const user = await getCurrentUser();
+    if (!user || !user.id) {
+      console.error('No user found');
+      return null;
+    }
+    const res = await fetch(`${API_BASE_LED}/${user.id}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -168,7 +180,12 @@ export const createBudayaMutuLED = async (data: any): Promise<any> => {
 /* ==================== UPDATE LED ==================== */
 export const updateBudayaMutuLED = async (id: string, data: any): Promise<any> => {
   try {
-    const res = await fetch(`${API_BASE_LED}/${id}`, {
+    const user = await getCurrentUser();
+    if (!user || !user.id) {
+      console.error('No user found');
+      return null;
+    }
+    const res = await fetch(`${API_BASE_LED}/${user.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -195,7 +212,12 @@ export const updateBudayaMutuLED = async (id: string, data: any): Promise<any> =
 /* ==================== DELETE LED ==================== */
 export const deleteBudayaMutuLED = async (id: string | number): Promise<any> => {
   try {
-    const res = await fetch(`${API_BASE_LED}/${id}`, {
+    const user = await getCurrentUser();
+    if (!user || !user.id) {
+      console.error('No user found');
+      return null;
+    }
+    const res = await fetch(`${API_BASE_LED}/${user.id}/${id}`, {
       method: 'DELETE',
       credentials: "include",
     });

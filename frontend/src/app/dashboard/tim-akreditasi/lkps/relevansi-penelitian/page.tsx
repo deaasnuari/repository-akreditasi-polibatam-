@@ -627,73 +627,49 @@ export default function RelevansiPenelitianPage() {
 
                     </main>
 
-            
-
                     <style>{`
-
                       @keyframes slideDown {
-
                         from { transform: translateY(-100%); opacity: 0; }
-
                         to { transform: translateY(0); opacity: 1; }
-
                       }
-
                       .animate-slideDown { animation: slideDown 0.3s ease-out; }
-
                     `}</style>
 
-                  </div>
-
-<<<<<<< Updated upstream
-                </div>
-=======
-          {/* Modal Catatan P4M */}
-          {showP4MNotes && selectedItemForNotes && (
-            <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-start md:items-center overflow-auto z-50 p-4">
-              <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-lg font-semibold text-gray-800">Catatan dari P4M Reviewer</h2>
-                  <button onClick={() => setShowP4MNotes(false)} className="text-gray-500 hover:text-gray-700"><X size={24} /></button>
-                </div>
-                {loadingP4mNotes ? (
-                  <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>
-                ) : p4mNotes.length === 0 ? (
-                  <div className="bg-gray-50 p-6 rounded-lg text-center text-gray-500">Belum ada catatan dari P4M reviewer untuk item ini.</div>
-                ) : (
-                  <div className="space-y-4">
-                    {p4mNotes.map((note, index) => (
-                      <div key={index} className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
-                        <div className="flex justify-between items-start mb-2">
-                          <h4 className="font-semibold text-blue-900">Catatan #{index + 1}</h4>
-                          <span className="text-xs text-gray-600">
-                            {note.created_at ? new Date(note.created_at).toLocaleDateString('id-ID', {year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'}) : '-'}
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-700 whitespace-pre-wrap mb-2">{note.note}</p>
-                        {note.reviewer_id && <p className="text-xs text-gray-600">Oleh: Reviewer #{note.reviewer_id}</p>}
+        {/* Modal Catatan P4M */}
+        {showP4MNotes && selectedItemForNotes && (
+          <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-start md:items-center overflow-auto z-50 p-4">
+            <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-lg font-semibold text-gray-800">Catatan dari P4M Reviewer</h2>
+                <button onClick={() => setShowP4MNotes(false)} className="text-gray-500 hover:text-gray-700"><X size={24} /></button>
+              </div>
+              {loadingP4mNotes ? (
+                <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>
+              ) : p4mNotes.length === 0 ? (
+                <div className="bg-gray-50 p-6 rounded-lg text-center text-gray-500">Belum ada catatan dari P4M reviewer untuk item ini.</div>
+              ) : (
+                <div className="space-y-4">
+                  {p4mNotes.map((note, index) => (
+                    <div key={index} className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+                      <div className="flex justify-between items-start mb-2">
+                        <h4 className="font-semibold text-blue-900">Catatan #{index + 1}</h4>
+                        <span className="text-xs text-gray-600">
+                          {note.created_at ? new Date(note.created_at).toLocaleDateString('id-ID', {year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'}) : '-'}
+                        </span>
                       </div>
-                    ))}
-                  </div>
-                )}
-                <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
-                  <button onClick={() => setShowP4MNotes(false)} className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition">Tutup</button>
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap mb-2">{note.note}</p>
+                      {note.reviewer_id && <p className="text-xs text-gray-600">Oleh: Reviewer #{note.reviewer_id}</p>}
+                    </div>
+                  ))}
                 </div>
+              )}
+              <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
+                <button onClick={() => setShowP4MNotes(false)} className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition">Tutup</button>
               </div>
             </div>
-          )}
-
-        </main>
-
-        <style>{`
-          @keyframes slideDown {
-            from { transform: translateY(-100%); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-          }
-          .animate-slideDown { animation: slideDown 0.3s ease-out; }
-        `}</style>
+          </div>
+        )}
       </div>
     </div>
->>>>>>> Stashed changes
   );
 }
