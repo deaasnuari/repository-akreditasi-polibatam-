@@ -35,32 +35,32 @@ export const getKriteria = async (req, res) => {
   }
 };
 
-// GET /api/matriks-penilaian/scores/:prodiId
+// GET /api/matriks-penilaian/scores/:prodiName
 export const getScoresByProdi = async (req, res) => {
   try {
-    const { prodiId } = req.params;
-    const { role } = req.query; // Extract role from query parameters
+    const { prodiName } = req.params; // prodiName is the string representation of the program study
     const userId = req.user?.id;
 
-    // Validate that user belongs to the requested prodi
+    // Validate that user belongs to the requested prodi or is an admin/TU
     const user = await prisma.users.findUnique({
       where: { id: userId },
-      select: { role: true }
+      select: { role: true, prodi: true } // Select prodi as well
     });
 
-    // Allow access if user is admin/TU or belongs to the prodi
-    if (user.role !== 'TU' && userId !== parseInt(prodiId)) {
-      return res.status(403).json({ success: false, message: 'Access denied' });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    if (!role) { // Add validation for role
-      return res.status(400).json({ success: false, message: 'Role query parameter is required' });
+    console.log(`Debug getScoresByProdi: User Role=${user.role}, User Prodi=${user.prodi}, Requested Prodi=${prodiName}`); // DEBUG LOG
+
+    // Allow access if user is admin/TU or if the user's prodi matches the requested prodiName
+    if (user.role !== 'TU' && user.prodi !== prodiName) {
+      return res.status(403).json({ success: false, message: 'Access denied. User does not belong to the requested prodi.' });
     }
 
     const scores = await prisma.criteria_scores.findMany({
       where: {
-        user_id: parseInt(prodiId),
-        role: role, // Add role filter
+        prodi: prodiName, // Use the prodi string from params
       },
       include: {
         criterion: true
@@ -89,62 +89,53 @@ export const getScoresByProdi = async (req, res) => {
 // POST /api/matriks-penilaian/scores
 export const saveScore = async (req, res) => {
   try {
-
-    const { prodi_id: prodiUserId, criteria_item_id, skor_prodi, role } = req.body;
+    const { prodiName, criteria_item_id, skor_prodi } = req.body; // Expect prodiName as string
     const userId = req.user?.id;
 
-
     // Validate input
-    if (!prodiUserId || !criteria_item_id || skor_prodi === undefined) {
-
+    if (!prodiName || !criteria_item_id || skor_prodi === undefined) {
       return res.status(400).json({ success: false, message: 'Missing required fields' });
     }
 
     if (skor_prodi < 1 || skor_prodi > 4) {
-
       return res.status(400).json({ success: false, message: 'Skor must be between 1-4' });
     }
 
     // Validate user belongs to the prodi or is an admin
     const user = await prisma.users.findUnique({
       where: { id: userId },
-      select: { role: true }
+      select: { role: true, prodi: true } // Select prodi as well
     });
 
-
-    // Ensure prodiUserId is a number for comparison
-    const numericProdiUserId = parseInt(prodiUserId);
-
-    if (user.role !== 'TU' && userId !== numericProdiUserId) {
-
-      return res.status(403).json({ success: false, message: 'Access denied' });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    // Check if score exists
+    // Allow access if user is admin/TU or if the user's prodi matches the requested prodiName
+    if (user.role !== 'TU' && user.prodi !== prodiName) {
+      return res.status(403).json({ success: false, message: 'Access denied. User does not belong to the requested prodi.' });
+    }
+
+    // Check if score exists using the new unique constraint
     const existingScore = await prisma.criteria_scores.findUnique({
       where: {
-        unique_score_per_prodi_role: {
-          user_id: numericProdiUserId,
+        unique_score_per_prodi_item: { // New unique constraint name
+          prodi: prodiName,
           criteria_item_id: criteria_item_id,
-          role: role,
         },
       },
     });
-
 
     // Get criteria item to calculate weighted score
     const criteriaItem = await prisma.criteria_items.findUnique({
       where: { id: criteria_item_id }
     });
 
-
     if (!criteriaItem) {
-
       return res.status(404).json({ success: false, message: 'Criteria item not found' });
     }
 
     const skor_terbobot = parseFloat((skor_prodi * (criteriaItem.bobot_raw / 400)).toFixed(3));
-
 
     let savedScore;
     if (existingScore) {
@@ -154,6 +145,7 @@ export const saveScore = async (req, res) => {
           id: existingScore.id,
         },
         data: {
+          user_id: userId, // Update user_id to track last modifier
           skor_prodi: skor_prodi,
           skor_terbobot: skor_terbobot,
         },
@@ -163,16 +155,14 @@ export const saveScore = async (req, res) => {
       // If it doesn't exist, create it
       savedScore = await prisma.criteria_scores.create({
         data: {
-          user_id: numericProdiUserId,
+          user_id: userId, // Current user is the one saving
+          prodi: prodiName, // Include prodi
           criteria_item_id: criteria_item_id,
           skor_prodi: skor_prodi,
           skor_terbobot: skor_terbobot,
-          role: role,
         },
       });
-
     }
-
     res.json({ success: true, data: savedScore });
   } catch (error) {
     console.error('Error saving score:', error.message, error.stack);
@@ -180,25 +170,30 @@ export const saveScore = async (req, res) => {
   }
 };
 
-// GET /api/matriks-penilaian/summary/:prodiId
+// GET /api/matriks-penilaian/summary/:prodiName
 export const getSummaryByProdi = async (req, res) => {
   try {
-    const { prodiId } = req.params;
+    const { prodiName } = req.params;
     const userId = req.user?.id;
 
     // Validate access
     const user = await prisma.users.findUnique({
       where: { id: userId },
-      select: { role: true }
+      select: { role: true, prodi: true } // Select prodi as well
     });
 
-    if (user.role !== 'TU' && userId !== parseInt(prodiId)) {
-      return res.status(403).json({ success: false, message: 'Access denied' });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Allow access if user is admin/TU or if the user's prodi matches the requested prodiName
+    if (user.role !== 'TU' && user.prodi !== prodiName) {
+      return res.status(403).json({ success: false, message: 'Access denied. User does not belong to the requested prodi.' });
     }
 
     // Get all scores for the prodi
     const scores = await prisma.criteria_scores.findMany({
-      where: { user_id: parseInt(prodiId) },
+      where: { prodi: prodiName }, // Filter by prodiName
       select: { skor_terbobot: true }
     });
 

@@ -510,9 +510,11 @@ export default function RelevansiPkmPage() {
                 </button>
                 <button
                   onClick={async () => {
-                    const id = confirmDelete.id ?? undefined;
+                    const id = confirmDelete.id;
                     setConfirmDelete({ open: false, id: null });
-                    await handleDelete(id);
+                    if (id !== null) {
+                      await handleDelete(id);
+                    }
                   }}
                   className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
                 >

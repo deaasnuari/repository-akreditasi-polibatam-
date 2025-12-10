@@ -50,7 +50,8 @@ export const loginUser = async (
           username: data.user.username,
           email: data.user.email,
           role: slug,
-          nama_lengkap: data.user.nama_lengkap
+          nama_lengkap: data.user.nama_lengkap,
+          prodi: data.user.prodi // Add prodi here
         }));
       } catch {}
     }

@@ -9,7 +9,7 @@ const prisma = new PrismaClient();
 // GET DATA BY SUBTAB
 // ======================
 export const getData = async (req, res) => {
-  const { subtab, prodiFilter } = req.query;
+  const { subtab, prodi } = req.query; // Changed prodiFilter to prodi
   const userId = req.user?.id;
   const userRole = req.user?.role;
   const userProdi = req.user?.prodi;
@@ -22,20 +22,24 @@ export const getData = async (req, res) => {
     let whereClause = { subtab };
 
     const normalizedRole = userRole ? userRole.trim().toLowerCase() : '';
-    if (normalizedRole === 'tim akreditasi' || normalizedRole === 'p4m') {
-      if (prodiFilter) {
-        whereClause.prodi = prodiFilter;
+    if (normalizedRole === 'tim akreditasi') {
+      // Tim Akreditasi can ONLY view data for their own prodi
+      if (!userProdi) {
+        return res.status(403).json({ success: false, message: "Prodi pengguna tidak ditemukan." });
       }
-      // No user_id filter for 'tim akreditasi' or 'p4m'
+      whereClause.prodi = userProdi;
+    } else if (normalizedRole === 'p4m') {
+      // P4M can view all data, but can also filter by prodi if 'prodi' query param is provided
+      if (prodi) { // Use 'prodi' from query
+        whereClause.prodi = prodi;
+      }
     } else {
+      // Other roles always filter by their user_id AND their prodi
       whereClause.user_id = userId;
-      if (prodiFilter) {
-        whereClause.prodi = prodiFilter;
-      } else if (userProdi) {
-        whereClause.prodi = userProdi;
-      } else {
-        return res.json({ success: true, data: [] });
+      if (!userProdi) {
+        return res.status(403).json({ success: false, message: "Prodi pengguna tidak ditemukan." });
       }
+      whereClause.prodi = userProdi;
     }
 
     const data = await prisma.akuntabilitas.findMany({

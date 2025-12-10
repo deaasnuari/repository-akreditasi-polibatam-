@@ -12,6 +12,7 @@ type User = {
   email: string;
   role: string;
   nama_lengkap: string;
+  prodi: string; // Add prodi property
 };
 
 export default function MatriksPenilaianPage() {
@@ -49,7 +50,7 @@ export default function MatriksPenilaianPage() {
 
         // 2. Fetch saved scores if user is available and authenticated
         if (user && user.id && user.role) { // Only fetch scores if user is authenticated and role is available
-          const savedScoresResponse = await matriksPenilaianService.getScoresByProdi(user.id, user.role);
+          const savedScoresResponse = await matriksPenilaianService.getScoresByProdi(user.prodi);
           const savedScores = savedScoresResponse.data;
 
           if (savedScores && savedScores.length > 0) {
@@ -57,7 +58,7 @@ export default function MatriksPenilaianPage() {
             initialCriteria = initialCriteria.map(criterion => {
               const matchedScore = savedScores.find(
                 (score: any) =>
-                  score.criteria_item_id === criterion.id && score.role === user.role // Match by criterion ID and user's role
+                  score.criteria_item_id === criterion.id // Match by criterion ID
               );
               if (matchedScore) {
                 const calculatedSkorTerbobot = matriksPenilaianService.calculateSkorTerbobot(
@@ -109,10 +110,9 @@ export default function MatriksPenilaianPage() {
 
     try {
       await matriksPenilaianService.saveScore({
-        prodi_id: user.id,
+        prodiName: user.prodi,
         criteria_item_id: id,
         skor_prodi: val,
-        role: user.role,
       });
     } catch (error) {
       console.error('Failed to save score:', error);

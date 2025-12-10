@@ -14,9 +14,13 @@ const getAuthHeaders = () => ({
 
 
 // ========== GET ==========
-export const fetchDiferensiasiMisiData = async () => {
+export const fetchDiferensiasiMisiData = async (prodi?: string) => {
   try {
-    const res = await fetch(`${API_BASE}?subtab=visi-misi`, {
+    let url = `${API_BASE}?subtab=visi-misi`;
+    if (prodi) {
+      url += `&prodi=${encodeURIComponent(prodi)}`;
+    }
+    const res = await fetch(url, {
       credentials: "include",
     });
 

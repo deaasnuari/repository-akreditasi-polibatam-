@@ -16,7 +16,14 @@ import {
   DataItem
 } from '@/services/diferensiasiMisiService';
 
-
+type User = {
+  id: number;
+  username: string;
+  email: string;
+  role: string;
+  nama_lengkap: string;
+  prodi: string;
+};
 
 export default function DiferensiasiMisiPage() {
   const pathname = usePathname();
@@ -25,18 +32,36 @@ export default function DiferensiasiMisiPage() {
   const [showForm, setShowForm] = useState(false);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [formData, setFormData] = useState<DataItem>({});
-  const [popup, setPopup] = useState<{ show: boolean; message: string; type: 'success' | 'error' | 'info' }>({
-    show: false,
-    message: '',
-    type: 'success',
-  });
+  const [popup, setPopup] = useState<{ show: boolean; message: string; type: 'success' | 'error' | 'info' }>(
+    {
+      show: false,
+      message: '',
+      type: 'success',
+    }
+  );
   const [showP4MNotes, setShowP4MNotes] = useState(false);
   const [selectedItemForNotes, setSelectedItemForNotes] = useState<any>(null);
   const [p4mNotes, setP4mNotes] = useState<any[]>([]);
   const [loadingP4mNotes, setLoadingP4mNotes] = useState(false);
 
+  // User state
+  const [user, setUser] = useState<User | null>(null);
+  const [userLoaded, setUserLoaded] = useState(false);
+
+  // Initialize user from sessionStorage
+  useEffect(() => {
+    const storedUser = sessionStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+    setUserLoaded(true);
+  }, []);
+
   // --- Fungsi Popup ---
-  const showPopup = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+  const showPopup = (
+    message: string,
+    type: 'success' | 'error' | 'info' = 'success'
+  ) => {
     setPopup({ show: true, message, type });
     setTimeout(() => setPopup({ show: false, message: '', type: 'success' }), 3000);
   };
@@ -60,30 +85,39 @@ export default function DiferensiasiMisiPage() {
 
   const PopupNotification = () => {
     if (!popup.show) return null;
-    const bgColor = popup.type === 'success' ? 'bg-green-50 border-green-500' :
-                    popup.type === 'error' ? 'bg-red-50 border-red-500' :
-                    'bg-blue-50 border-blue-500';
-    const textColor = popup.type === 'success' ? 'text-green-800' :
-                      popup.type === 'error' ? 'text-red-800' :
-                      'text-blue-800';
-    const Icon = popup.type === 'success' ? CheckCircle :
-                 popup.type === 'error' ? AlertCircle :
-                 Info;
+    const bgColor =
+      popup.type === 'success'
+        ? 'bg-green-50 border-green-500'
+        : popup.type === 'error'
+        ? 'bg-red-50 border-red-500'
+        : 'bg-blue-50 border-blue-500';
+    const textColor =
+      popup.type === 'success'
+        ? 'text-green-800'
+        : popup.type === 'error'
+        ? 'text-red-800'
+        : 'text-blue-800';
+    const Icon =
+      popup.type === 'success' ? CheckCircle : popup.type === 'error' ? AlertCircle : Info;
     return (
       <div className="fixed top-0 left-0 right-0 flex justify-center z-[60] pt-4">
-        <div className={`${bgColor} ${textColor} border-l-4 rounded-lg shadow-2xl p-5 flex items-center gap-4 min-w-[350px] max-w-md animate-slideDown`}>
-          <Icon size={28} className={popup.type === 'success' ? 'text-green-500' :
-                                     popup.type === 'error' ? 'text-red-500' :
-                                     'text-blue-500'} />
+        <div
+          className={`${bgColor} ${textColor} border-l-4 rounded-lg shadow-2xl p-5 flex items-center gap-4 min-w-[350px] max-w-md animate-slideDown`}
+        >
+          <Icon
+            size={28}
+            className={popup.type === 'success' ? 'text-green-500' : popup.type === 'error' ? 'text-red-500' : 'text-blue-500'}
+          />
           <div className="flex-1">
             <p className="font-bold text-base mb-1">
-              {popup.type === 'success' ? 'Berhasil!' :
-               popup.type === 'error' ? 'Error!' :
-               'Info'}
+              {popup.type === 'success' ? 'Berhasil!' : popup.type === 'error' ? 'Error!' : 'Info'}
             </p>
             <p className="text-sm">{popup.message}</p>
           </div>
-          <button onClick={() => setPopup({ show: false, message: '', type: 'success' })} className="hover:opacity-70 transition-opacity">
+          <button
+            onClick={() => setPopup({ show: false, message: '', type: 'success' })}
+            className="hover:opacity-70 transition-opacity"
+          >
             <X size={20} />
           </button>
         </div>
@@ -99,7 +133,8 @@ export default function DiferensiasiMisiPage() {
         pathname,
         'Draft',
         'visi-misi', // The subtab for Diferensiasi Misi
-        data // Sending the current data state
+        data, // Sending the current data state
+        user?.prodi // Pass user.prodi here
       );
 
       showPopup('Draft berhasil disimpan. Mengalihkan...', 'success');
@@ -107,12 +142,12 @@ export default function DiferensiasiMisiPage() {
       setTimeout(() => {
         router.push('/dashboard/tim-akreditasi/bukti-pendukung');
       }, 1500);
-
     } catch (error: any) {
       console.error('Gagal menyimpan draft:', error);
       showPopup(error.message || 'Gagal menyimpan draft. Lihat konsol untuk detail.', 'error');
     }
   };
+
 
 
   const tabs = [
@@ -126,7 +161,8 @@ export default function DiferensiasiMisiPage() {
 
   // --- Fetch Data ---
   const fetchData = async () => {
-    const result = await fetchDiferensiasiMisiData();
+    if (!userLoaded || !user) return; // Ensure user is loaded and not null
+    const result = await fetchDiferensiasiMisiData(user.prodi); // Pass user.prodi
     if (result.success) {
       setData(result.data);
     } else {
@@ -139,7 +175,7 @@ export default function DiferensiasiMisiPage() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [user, userLoaded]); // Added user and userLoaded to dependencies
 
   // --- Form & CRUD ---
   const openAdd = () => {

@@ -209,7 +209,7 @@ model criteria_items {
 model criteria_scores {
   id              Int      @id @default(autoincrement())
   user_id         Int      // prodi yang melakukan penilaian
-  role            String   @db.VarChar(20)
+  prodi           String   @db.VarChar(255) // New field for program studi
   criteria_item_id Int
 
   skor_prodi      Int      // 1-4 sesuai rubrik / radio input
@@ -222,10 +222,10 @@ model criteria_scores {
   user     users          @relation(fields: [user_id], references: [id])
   criterion criteria_items @relation(fields: [criteria_item_id], references: [id])
 
-  @@unique([user_id, criteria_item_id, role], name: "unique_score_per_prodi_role")
+  @@unique([prodi, criteria_item_id], name: "unique_score_per_prodi_item")
   @@index([criteria_item_id], map: "idx_score_item")
   @@index([user_id], map: "idx_score_user")
-  @@index([role], map: "idx_score_role")
+  @@index([prodi], map: "idx_score_prodi") // New index for prodi
 }
 
 // =========================

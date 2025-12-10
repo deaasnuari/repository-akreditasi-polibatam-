@@ -19,11 +19,7 @@ export default function DashboardAkreditasi() {
     { icon: Download, label: 'Export' }
   ];
 
-  const aktivitasTerbaru = [
-    { title: 'LKPS Bagian Matematika Diserahkan', time: '2 jam lalu' },
-    { title: 'Dokumen Bukti Pendukung Diungggah', time: '5 jam lalu' },
-    { title: 'LED sudah diselesaikan', time: '1 hari lalu' }
-  ];
+
 
   const notifikasi = [
     { title: 'Revisi Dokumen', desc: 'Dokumen LKPS Bagian 1 harus direvisi karena data kurang lengkap' },
@@ -207,21 +203,6 @@ export default function DashboardAkreditasi() {
 
           {/* Bottom Section */}
           <div className="grid grid-cols-1 gap-6">
-            {/* Aktivitas Terbaru */}
-            <div className="bg-white rounded-lg shadow p-4">
-              <h3 className="font-bold text-gray-800 mb-4">Aktivitas Terbaru</h3>
-              <div className="space-y-3">
-                {aktivitasTerbaru.map((item, idx) => (
-                  <div key={idx} className="flex items-start gap-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
-                    <div className="w-2 h-2 bg-blue-900 rounded-full mt-2"></div>
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-800">{item.title}</p>
-                      <p className="text-xs text-gray-500">{item.time}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
 
           {/* Aksi Cepat */}
