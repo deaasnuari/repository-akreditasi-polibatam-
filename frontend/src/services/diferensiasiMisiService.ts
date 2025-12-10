@@ -92,13 +92,21 @@ export const saveDiferensiasiMisiDraftToBackend = async (
   path: string,
   status: string,
   type: string,
-  currentData: any
+  currentData: any,
+  prodi?: string  // ← TAMBAHAN: parameter prodi (optional)
 ) => {
   const res = await fetch(`${API_BASE}/savedraft`, {
     method: "POST",
     headers: getAuthHeaders(),
     credentials: "include",
-    body: JSON.stringify({ nama, path, status, type, currentData }),
+    body: JSON.stringify({ 
+      nama, 
+      path, 
+      status, 
+      type, 
+      currentData,
+      prodi  // ← TAMBAHAN: kirim prodi ke backend
+    }),
   });
 
   return await res.json();
