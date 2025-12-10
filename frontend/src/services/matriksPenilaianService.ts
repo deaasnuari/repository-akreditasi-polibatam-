@@ -168,9 +168,9 @@ class MatriksPenilaianService {
     }
   }
 
-  async getScoresByProdi(prodiId: number): Promise<ApiResponse<any[]>> {
+  async getScoresByProdi(prodiName: string): Promise<ApiResponse<any[]>> {
     try {
-      const response = await fetch(`${API_BASE}/scores/${prodiId}`, {
+      const response = await fetch(`${API_BASE}/scores/${prodiName}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -192,7 +192,7 @@ class MatriksPenilaianService {
   /**
    * Simpan skor individual
    */
-  async saveScore(data: { prodi_id: number; criteria_item_id: number; skor_prodi: number; }): Promise<ApiResponse> {
+  async saveScore(data: { prodiName: string; criteria_item_id: number; skor_prodi: number; }): Promise<ApiResponse> {
     try {
       const response = await fetch(`${API_BASE}/scores`, {
         method: 'POST',

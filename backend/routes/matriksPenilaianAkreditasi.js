@@ -17,7 +17,7 @@ router.get("/kriteria", getKriteria);
 router.post("/scores", authenticateToken, saveScore);
 
 // GET /api/matriks-penilaian/scores/:prodiId
-router.get("/scores/:prodiId", authenticateToken, getScoresByProdi);
+router.get("/scores/:prodiName", authenticateToken, getScoresByProdi);
 
 // GET /api/matriks-penilaian/summary/:prodiId
 router.get("/summary/:prodiId", authenticateToken, getSummaryByProdi);

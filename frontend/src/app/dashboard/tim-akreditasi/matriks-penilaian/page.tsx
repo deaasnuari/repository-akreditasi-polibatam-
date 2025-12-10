@@ -12,6 +12,7 @@ type User = {
   email: string;
   role: string;
   nama_lengkap: string;
+  prodi: string; // Add prodi property
 };
 
 export default function MatriksPenilaianPage() {
@@ -49,7 +50,7 @@ export default function MatriksPenilaianPage() {
 
         // 2. Fetch saved scores if user is available and authenticated
         if (user && user.id && user.role) { // Only fetch scores if user is authenticated and role is available
-          const savedScoresResponse = await matriksPenilaianService.getScoresByProdi(user.id);
+          const savedScoresResponse = await matriksPenilaianService.getScoresByProdi(user.prodi);
           const savedScores = savedScoresResponse.data;
 
           if (savedScores && savedScores.length > 0) {
@@ -109,7 +110,7 @@ export default function MatriksPenilaianPage() {
 
     try {
       await matriksPenilaianService.saveScore({
-        prodi_id: user.id,
+        prodiName: user.prodi,
         criteria_item_id: id,
         skor_prodi: val,
       });

@@ -74,7 +74,8 @@ export const login = async (req, res) => {
         email: user.email,
         nama_lengkap: user.nama_lengkap,
         role: user.role,
-        status: user.status
+        status: user.status,
+        prodi: user.prodi // Add prodi here
       },
       token
     });
