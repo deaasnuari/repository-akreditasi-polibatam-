@@ -8,6 +8,15 @@ import { relevansiPenelitianService, SubTab, DataItem } from '@/services/relevan
 import { getReviews as fetchReviews } from '@/services/reviewService';
 import { fetchData } from '@/services/api';
 
+type User = {
+  id: number;
+  username: string;
+  email: string;
+  role: string;
+  nama_lengkap: string;
+  prodi: string;
+};
+
 export default function RelevansiPenelitianPage() {
   const pathname = usePathname();
   const router = useRouter();
@@ -38,6 +47,19 @@ export default function RelevansiPenelitianPage() {
   const [selectedItemForNotes, setSelectedItemForNotes] = useState<any>(null);
   const [p4mNotes, setP4mNotes] = useState<any[]>([]);
   const [loadingP4mNotes, setLoadingP4mNotes] = useState(false);
+
+  // User state
+  const [user, setUser] = useState<User | null>(null);
+  const [userLoaded, setUserLoaded] = useState(false);
+
+  // Initialize user from sessionStorage
+  useEffect(() => {
+    const storedUser = sessionStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+    setUserLoaded(true);
+  }, []);
 
   // --- Fungsi Popup ---
   const showPopup = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
@@ -201,9 +223,11 @@ export default function RelevansiPenelitianPage() {
   // --- Fetch data ---
   useEffect(() => {
     const fetchData = async () => {
+      if (!userLoaded || !user) return; // Ensure user is loaded and not null
       try {
         setErrorMsg(null);
-        const json = await relevansiPenelitianService.fetchData(activeSubTab);
+        const prodiFilter = user.prodi ? user.prodi : ''; // Get prodi from user
+        const json = await relevansiPenelitianService.fetchData(activeSubTab, prodiFilter);
         setData(json);
       } catch (err: any) {
         console.error(err);
@@ -212,7 +236,7 @@ export default function RelevansiPenelitianPage() {
       }
     };
     fetchData();
-  }, [activeSubTab]);
+  }, [activeSubTab, user, userLoaded]); // Added user and userLoaded to dependencies
 
   // --- Form Handlers ---
   const handleChange = (e: any) => setFormData({ ...formData, [e.target.name]: e.target.value });

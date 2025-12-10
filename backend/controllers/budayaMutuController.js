@@ -11,7 +11,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 // 🟦 GET DATA BY TYPE
 // ======================
 export const getData = async (req, res) => {
-  const { type, prodiFilter } = req.query; // Destructure prodiFilter from query
+  const { type, prodi } = req.query; // Changed prodiFilter to prodi
   try {
       const user_id = req.user.id;
       const user_prodi = req.user.prodi; // Get prodi from authenticated user
@@ -21,25 +21,24 @@ export const getData = async (req, res) => {
 
       const normalizedRole = user_role ? user_role.trim().toLowerCase() : '';
       
-      // P4M and Tim Akreditasi can view all data
-      if (normalizedRole === 'p4m' || normalizedRole === 'tim akreditasi') {
-        // Both can view all data, but can also filter by prodi if prodiFilter is provided
-        if (prodiFilter) {
-          whereClause.prodi = prodiFilter;
+      if (normalizedRole === 'tim akreditasi') {
+        // Tim Akreditasi can ONLY view data for their own prodi
+        if (!user_prodi) {
+          return res.status(403).json({ success: false, message: "Prodi pengguna tidak ditemukan." });
         }
-        // No user_id filter for these roles
+        whereClause.prodi = user_prodi;
+      } else if (normalizedRole === 'p4m') {
+        // P4M can view all data, but can also filter by prodi if 'prodi' query param is provided
+        if (prodi) { // Use 'prodi' from query
+          whereClause.prodi = prodi;
+        }
       } else {
-        // Other roles always filter by their user_id
+        // Other roles always filter by their user_id AND their prodi
         whereClause.user_id = user_id;
-        // And by their prodi, if available, or if prodiFilter is provided (prioritize prodiFilter if user is selecting)
-        if (prodiFilter) {
-          whereClause.prodi = prodiFilter;
-        } else if (user_prodi) {
-          whereClause.prodi = user_prodi;
-        } else {
-          // If no prodi context for non-admin, return empty
-          return res.json({ success: true, data: [] });
+        if (!user_prodi) {
+          return res.status(403).json({ success: false, message: "Prodi pengguna tidak ditemukan." });
         }
+        whereClause.prodi = user_prodi;
       }
   
       const data = await prisma.budaya_mutu.findMany({

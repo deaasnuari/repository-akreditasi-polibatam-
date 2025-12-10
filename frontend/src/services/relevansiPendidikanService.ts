@@ -92,12 +92,11 @@ class RelevansiPendidikanService {
      /**
      * Fetch data berdasarkan tipe subtab
      */
-    async fetchData(subtab: SubTab, prodiFilter?: string): Promise<DataItem[]> {
+    async fetchData(subtab: SubTab, prodi?: string): Promise<DataItem[]> {
       try {
-        const user_id = getUserId();
-        let url = `${API_BASE}?subtab=${subtab}&user_id=${user_id}`;
-        if (prodiFilter) {
-          url += `&prodiFilter=${encodeURIComponent(prodiFilter)}`;
+        let url = `${API_BASE}?subtab=${subtab}`;
+        if (prodi) {
+          url += `&prodi=${encodeURIComponent(prodi)}`;
         }
         const response = await fetch(url, {
           method: 'GET',        headers: {

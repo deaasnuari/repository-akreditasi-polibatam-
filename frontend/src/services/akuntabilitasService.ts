@@ -10,11 +10,11 @@ const getAuthHeaders = () => {
 };
 
 // =============== API ===============
-export const fetchAkuntabilitasData = async (subtab: SubTab, prodiFilter: string | null = null) => {
+export const fetchAkuntabilitasData = async (subtab: SubTab, prodi: string | null = null) => {
   try {
     let url = `${API_BASE}?subtab=${subtab}`;
-    if (prodiFilter) {
-      url += `&prodiFilter=${prodiFilter}`;
+    if (prodi) {
+      url += `&prodi=${prodi}`;
     }
     const res = await fetch(url, {
       headers: getAuthHeaders(),
@@ -109,14 +109,15 @@ export const saveAkuntabilitasDraftToBackend = async (
   path: string,
   status: string,
   type: SubTab,
-  currentData: any
+  currentData: any,
+  prodi: string // Add prodi here
 ) => {
   try {
     const res = await fetch(`${API_BASE}/savedraft`, {
       method: 'POST',
       headers: getAuthHeaders(),
       credentials: 'include',
-      body: JSON.stringify({ nama, path, status, type, currentData }),
+      body: JSON.stringify({ nama, path, status, type, currentData, prodi }), // Include prodi in body
     });
     return await res.json();
   } catch (err) {

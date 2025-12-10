@@ -31,14 +31,23 @@ export const getData = async (req, res) => {
     let whereClause = { subtab };
 
     const normalizedRole = userRole ? userRole.trim().toLowerCase() : '';
-    if (normalizedRole === 'tim-akreditasi' || normalizedRole === 'p4m') {
-      // Jika tim-akreditasi/p4m dan ada query prodi, filter berdasarkan prodi tsb
+    if (normalizedRole === 'tim-akreditasi') {
+      // Tim Akreditasi can ONLY view data for their own prodi
+      if (!userProdi) {
+        return res.status(403).json({ success: false, message: "Prodi pengguna tidak ditemukan." });
+      }
+      whereClause.prodi = userProdi;
+    } else if (normalizedRole === 'p4m') {
+      // P4M can view all data, but can also filter by prodi if 'prodi' query param is provided
       if (prodiQuery) {
         whereClause.prodi = prodiQuery;
       }
-      // Jika tidak ada query prodi, bisa lihat semua prodi
     } else {
-      // Jika bukan tim-akreditasi/p4m, hanya bisa lihat data prodinya sendiri
+      // Other roles always filter by their user_id AND their prodi
+      whereClause.user_id = userId;
+      if (!userProdi) {
+        return res.status(403).json({ success: false, message: "Prodi pengguna tidak ditemukan." });
+      }
       whereClause.prodi = userProdi;
     }
 

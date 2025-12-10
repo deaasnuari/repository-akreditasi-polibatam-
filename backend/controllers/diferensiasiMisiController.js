@@ -6,19 +6,34 @@ export const getDiferensiasiMisi = async (req, res) => {
   try {
     const userId = req.user?.id;
     const userRole = req.user?.role;
-    const { subtab, type } = req.query; // frontend sometimes sends `type`
+    const userProdi = req.user?.prodi;
+    const { subtab, type, prodi: prodiQuery } = req.query; // Added prodi: prodiQuery
     const queryTab = subtab || type || null;
 
     const normalizedRole = userRole ? userRole.trim().toLowerCase() : '';
 
-    // Build where clause. P4M and Tim Akreditasi can view all records (optionally filtered by subtab/type or prodi)
     const whereClause = {};
     if (queryTab) whereClause.subtab = queryTab;
 
-    if (normalizedRole !== 'tim akreditasi' && normalizedRole !== 'p4m') {
-      // non-admin roles only see their own records
+    if (normalizedRole === 'tim akreditasi') {
+      // Tim Akreditasi can ONLY view data for their own prodi
+      if (!userProdi) {
+        return res.status(403).json({ success: false, message: "Prodi pengguna tidak ditemukan." });
+      }
+      whereClause.prodi = userProdi;
+    } else if (normalizedRole === 'p4m') {
+      // P4M can view all data, but can also filter by prodi if 'prodi' query param is provided
+      if (prodiQuery) {
+        whereClause.prodi = prodiQuery;
+      }
+    } else {
+      // Other roles (non-Tim Akreditasi, non-P4M) should only see their own records and prodi
       if (!userId) return res.status(401).json({ success: false, message: 'Unauthorized' });
       whereClause.user_id = userId;
+      if (!userProdi) {
+        return res.status(403).json({ success: false, message: "Prodi pengguna tidak ditemukan." });
+      }
+      whereClause.prodi = userProdi;
     }
 
     const records = await prisma.diferensiasi_misi.findMany({

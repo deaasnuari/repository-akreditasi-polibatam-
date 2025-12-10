@@ -8,6 +8,15 @@ import { getReviews as fetchReviews } from '@/services/reviewService';
 import NotificationBell from '../NotificationBell';
 const API_BASE = 'http://localhost:5000/api/budaya-mutu'; 
 
+type User = {
+  id: number;
+  username: string;
+  email: string;
+  role: string;
+  nama_lengkap: string;
+  prodi: string;
+};
+
 export default function LKPSPage() {
   const router = useRouter();
   type SubTab = 'tupoksi' | 'pendanaan' | 'penggunaan-dana' | 'ewmp' | 'ktk' | 'spmi';
@@ -34,6 +43,19 @@ export default function LKPSPage() {
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [formData, setFormData] = useState<any>({});
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  // User state
+  const [user, setUser] = useState<User | null>(null);
+  const [userLoaded, setUserLoaded] = useState(false);
+
+  // Initialize user from sessionStorage
+  useEffect(() => {
+    const storedUser = sessionStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+    setUserLoaded(true);
+  }, []);
 
   // State untuk modal catatan P4M
   const [showP4MNotes, setShowP4MNotes] = useState(false);
@@ -367,16 +389,16 @@ export default function LKPSPage() {
   };
 
   useEffect(() => {
+    if (!userLoaded || !user) return; // Ensure user is loaded and not null
     fetchData();
-  }, [activeSubTab]);
+  }, [activeSubTab, user, userLoaded]); // Added user and userLoaded to dependencies
 
-  useEffect(() => {
-    fetchStrukturOrganisasi();
-  }, []);
+  // ...
 
   const fetchData = async () => {
     try {
-      const res = await fetch(`${API_BASE}?type=${activeSubTab}`, {
+      const prodiFilter = user.prodi ? `&prodi=${user.prodi}` : ''; // Get prodi from user
+      const res = await fetch(`${API_BASE}?type=${activeSubTab}${prodiFilter}`, {
         credentials: 'include',
       });
 

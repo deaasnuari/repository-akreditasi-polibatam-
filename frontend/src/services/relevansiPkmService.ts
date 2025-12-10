@@ -89,10 +89,13 @@ class RelevansiPkmService {
   /**
    * Fetch data by subtab type
    */
-  async fetchData(subtab: SubTab): Promise<DataItem[]> {
+  async fetchData(subtab: SubTab, prodi?: string): Promise<DataItem[]> {
     try {
-      const user_id = getUserId();
-      const response = await fetch(`${API_BASE}?subtab=${subtab}&user_id=${user_id}`, {
+      let url = `${API_BASE}?subtab=${subtab}`;
+      if (prodi) {
+        url += `&prodi=${encodeURIComponent(prodi)}`;
+      }
+      const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

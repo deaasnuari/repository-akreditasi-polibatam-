@@ -27,40 +27,44 @@ function normalizeRow(row = {}) {
 export const getData = async (req, res) => {
   try {
     const subtab = req.query.subtab;
-    const prodiFilter = req.query.prodiFilter; // Get prodiFilter from query
+    const prodi = req.query.prodi; // Changed prodiFilter to prodi
     const userId = req.user.id;
     const userRole = req.user.role;
     const userProdi = req.user.prodi; // Get prodi from authenticated user
 
-    console.log("getData: user_id:", userId, "user_role:", userRole, "user_prodi:", userProdi, "prodiFilter_query:", prodiFilter);
+    console.log("getData: user_id:", userId, "user_role:", userRole, "user_prodi:", userProdi, "prodi_query:", prodi);
 
     // Build the WHERE clause
     let whereClause = { subtab }; // Use any for now to allow dynamic properties
     // Normalize userRole for robust comparison
     const normalizedUserRole = userRole ? userRole.trim().toLowerCase() : '';
 
-    if (normalizedUserRole === 'tim akreditasi' || normalizedUserRole === 'p4m') {
-      console.log("getData: Admin/P4M role.");
-      if (prodiFilter) {
-        whereClause.prodi = prodiFilter; // Admin/P4M can filter by selected prodi
-        console.log("getData: Admin/P4M filtering by prodiFilter:", prodiFilter);
+    if (normalizedUserRole === 'tim akreditasi') {
+      console.log("getData: Tim Akreditasi role.");
+      // Tim Akreditasi can ONLY view data for their own prodi
+      if (!userProdi) {
+        return res.status(403).json({ success: false, message: "Prodi pengguna tidak ditemukan." });
+      }
+      whereClause.prodi = userProdi;
+    } else if (normalizedUserRole === 'p4m') {
+      console.log("getData: P4M role.");
+      // P4M can view all data, but can also filter by prodi if 'prodi' query param is provided
+      if (prodi) { // Use 'prodi' from query
+        whereClause.prodi = prodi;
+        console.log("getData: P4M filtering by prodi:", prodi);
       } else {
-        console.log("getData: Admin/P4M, no prodiFilter applied."); // Admin/P4M sees all data for the subtab
+        console.log("getData: P4M, no prodi filter applied."); // P4M sees all data for the subtab
       }
     } else {
       console.log("getData: Non-admin role.");
       whereClause.user_id = userId; // Non-admin always filtered by their user_id
 
-      if (prodiFilter) {
-        whereClause.prodi = prodiFilter; // Non-admin can further filter by selected prodi
-        console.log("getData: Non-admin filtering by user_id and prodiFilter:", prodiFilter);
-      } else if (userProdi) {
-        whereClause.prodi = userProdi; // Non-admin, no prodiFilter, default to user's prodi
-        console.log("getData: Non-admin, defaulting to user's prodi:", userProdi);
-      } else {
-        console.log("getData: Non-admin role, no user prodi found and no prodiFilter.");
+      if (!userProdi) {
+        console.log("getData: Non-admin role, no user prodi found.");
         return res.json({ success: true, data: [] }); // If no prodi context, return empty
       }
+      whereClause.prodi = userProdi; // Non-admin, always filter by user's prodi
+      console.log("getData: Non-admin, filtering by user's prodi:", userProdi);
     }
 
     console.log("getData: Final whereClause:", whereClause);
