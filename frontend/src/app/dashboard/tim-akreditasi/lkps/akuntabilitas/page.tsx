@@ -10,6 +10,8 @@ import {
   createAkuntabilitasData,
   updateAkuntabilitasData,
   deleteAkuntabilitasData,
+  previewImportAkuntabilitas,
+  commitImportAkuntabilitas,
   saveDraftAkuntabilitas,
   loadDraftAkuntabilitas,
   saveAkuntabilitasDraftToBackend
@@ -36,6 +38,7 @@ export default function AkuntabilitasPage() {
   const [previewFile, setPreviewFile] = useState<File | null>(null);
   const [previewHeaders, setPreviewHeaders] = useState<string[]>([]);
   const [previewRows, setPreviewRows] = useState<any[]>([]);
+  const [suggestions, setSuggestions] = useState<Record<string, string>>({});
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [mapping, setMapping] = useState<Record<string, string>>({});
   const [popup, setPopup] = useState<{ show: boolean; message: string; type: 'success' | 'error' | 'info' }>({
@@ -82,7 +85,7 @@ export default function AkuntabilitasPage() {
       setP4mNotes([]);
       showPopup('Gagal memuat catatan P4M', 'error');
     } finally {
-      setLoadingP4MNotes(false);
+      setLoadingP4mNotes(false);
     }
   };
 
@@ -142,33 +145,21 @@ export default function AkuntabilitasPage() {
 
     setImporting(true);
     try {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const data = new Uint8Array(e.target?.result as ArrayBuffer);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-        const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
-
-        if (jsonData.length < 2) {
-          showPopup('File Excel harus memiliki minimal 2 baris (header dan data)', 'error');
-          setImporting(false);
-          return;
-        }
-
-        const headers = jsonData[0] as string[];
-        const rows = jsonData.slice(1) as any[][];
-
-        setPreviewHeaders(headers);
-        setPreviewRows(rows.slice(0, 5)); // Show first 5 rows
-        setPreviewFile(file);
-        setShowPreviewModal(true);
-      };
-      reader.readAsArrayBuffer(file);
-    } catch (err) {
+      const json = await previewImportAkuntabilitas(file, activeSubTab);
+      setPreviewFile(file);
+      setPreviewHeaders(json.headers || []);
+      setPreviewRows(json.previewRows || []);
+      setSuggestions(json.suggestions || {});
+      const initMap: Record<string,string> = {};
+      (json.headers || []).forEach(h => { initMap[h] = json.suggestions?.[h] ?? ''; });
+      setMapping(initMap);
+      setShowPreviewModal(true);
+    } catch (err: any) {
       console.error('Error reading file:', err);
       showPopup('Gagal membaca file Excel', 'error');
     } finally {
       setImporting(false);
+      try { event.target.value = ''; } catch {}
     }
   };
 
@@ -214,7 +205,7 @@ export default function AkuntabilitasPage() {
       }
 
       let res;
-      const prodi = 'Teknologi Informasi';
+      const prodi = user?.prodi || 'Teknologi Informasi'; // Use user's prodi, fallback to default
       if (editIndex !== null && tabData[editIndex].id) {
         res = await updateAkuntabilitasData(tabData[editIndex].id, activeSubTab, formData, prodi);
       } else {
@@ -267,18 +258,10 @@ export default function AkuntabilitasPage() {
 
     setImporting(true);
     try {
-      // Need to convert mapping from { excelHeader: tableFieldKey } to { tableFieldKey: excelHeader }
-      const reverseMapping: Record<string, string> = {};
-      Object.entries(mapping).forEach(([excelHeader, tableFieldKey]) => {
-        if (tableFieldKey) {
-          reverseMapping[tableFieldKey] = excelHeader;
-        }
-      });
-      
-      const res = await importExcelAkuntabilitas(previewFile, activeSubTab, mapping);
-      if (res.success) {
+      const res = await commitImportAkuntabilitas(previewFile, activeSubTab, mapping);
+      if (res.success && res.added > 0) {
         // Re-fetch all data to ensure consistency with newly imported data from the database
-        const updatedData = await fetchAkuntabilitasData(activeSubTab); 
+        const updatedData = await fetchAkuntabilitasData(activeSubTab, user?.prodi);
         setTabData(updatedData);
         saveDraftAkuntabilitas(activeSubTab, updatedData);
 
@@ -286,8 +269,11 @@ export default function AkuntabilitasPage() {
         setPreviewFile(null);
         setPreviewHeaders([]);
         setPreviewRows([]);
+        setSuggestions({});
         setMapping({});
-        showPopup('Data berhasil diimport', 'success');
+        showPopup(`Data berhasil diimport: ${res.added} baris berhasil, ${res.failed} gagal`, 'success');
+      } else if (res.success && res.added === 0) {
+        showPopup(`Import gagal: ${res.failed} baris gagal. Pastikan kolom 'Prodi' dipetakan dengan benar dan nilai prodi cocok dengan akun Anda.`, 'error');
       } else {
         showPopup(res.message || 'Gagal import data', 'error');
       }
@@ -396,9 +382,9 @@ export default function AkuntabilitasPage() {
                   <Plus size={16} /> Tambah Data
                 </button>
                 <form onSubmit={(e) => e.preventDefault()} className="relative">
-                  <input type="file" accept=".xlsx, .xls" id="importExcel" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleImportExcel} />
+                  <input type="file" accept=".xlsx, .xls, .csv" id="importExcel" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleImportExcel} />
                   <label htmlFor="importExcel" className="flex items-center gap-2 px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-100 cursor-pointer">
-                    <Upload size={16} /> Import Excel
+                    <Upload size={16} /> Import Excel/CSV
                   </label>
                 </form>
               </div>
@@ -484,87 +470,62 @@ export default function AkuntabilitasPage() {
 
           {/* Preview Modal for Excel Import */}
           {showPreviewModal && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
-              <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-4xl max-h-[80vh] overflow-auto">
-                <h3 className="text-lg font-semibold mb-4">Preview Excel Import</h3>
-                <p className="mb-4">Map the Excel columns to table fields for {activeSubTab.replace('tataKelola', 'Sistem Tata Kelola').replace('sarana', 'Sarana & Prasarana')}:</p>
-
-                <div className="mb-4">
-                  <table className="min-w-full border text-sm">
-                    <thead>
-                      <tr className="bg-gray-50">
-                        <th className="border px-4 py-2 text-left">Excel Column</th>
-                        <th className="border px-4 py-2 text-left">Table Field</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {previewHeaders.map((header, index) => (
-                        <tr key={index}>
-                          <td className="border px-4 py-2 font-medium">{header}</td>
-                          <td className="border px-4 py-2">
-                            <select
-                              value={mapping[header] || ''}
-                              onChange={(e) => setMapping({ ...mapping, [header]: e.target.value })}
-                              className="border p-2 rounded w-full"
-                            >
-                              <option value="">Select Field</option>
-                              {getFieldMappingForSubTab(activeSubTab).map(field => (
-                                <option key={field.key} value={field.key}>
-                                  {field.label}
-                                </option>
-                              ))}
-                            </select>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+            <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
+              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-semibold">Preview Import — mapping kolom</h3>
+                  <button onClick={()=>setShowPreviewModal(false)} className="text-gray-500">Tutup</button>
                 </div>
-
-                <div className="mb-4">
-                  <h4 className="font-semibold mb-2">Preview First 5 Rows:</h4>
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full border text-xs">
-                      <thead>
-                        <tr className="bg-gray-50">
-                          {previewHeaders.map((header, index) => (
-                            <th key={index} className="border px-2 py-1 text-left">{header}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {previewRows.map((row, index) => (
-                          <tr key={index}>
-                            {row.map((cell, cellIndex) => (
-                              <td key={cellIndex} className="border px-2 py-1">{String(cell)}</td>
+                <div className="grid grid-cols-1 gap-3">
+                  <div className="flex gap-2 mb-2">
+                    <button onClick={() => {
+                      const newMap: Record<string,string> = { ...mapping };
+                      previewHeaders.forEach(h => { if(suggestions[h]) newMap[h] = suggestions[h]; });
+                      setMapping(newMap);
+                    }} className="px-3 py-1 bg-green-600 text-white rounded text-sm">Auto Map</button>
+                  </div>
+                  {previewHeaders.map(h => (
+                    <div key={h} className="flex gap-3 items-center">
+                      <div className="min-w-[160px] text-sm font-medium">{h}</div>
+                      <select value={mapping[h]??''} onChange={e=>setMapping({...mapping,[h]:e.target.value})} className="border px-2 py-1">
+                        <option value="">-- tidak dipetakan --</option>
+                        {getFieldMappingForSubTab(activeSubTab).map(f=> <option key={f.key} value={f.key}>{f.label}</option>)}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+                {/* Preview Rows Table */}
+                {previewRows.length > 0 && (
+                  <div className="mt-6">
+                    <h4 className="font-semibold mb-2">Preview Data (5 baris pertama)</h4>
+                    <div className="overflow-x-auto border rounded">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            {previewHeaders.map(h => (
+                              <th key={h} className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                {h}
+                              </th>
                             ))}
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {previewRows.map((row, index) => (
+                            <tr key={index}>
+                              {previewHeaders.map(h => (
+                                <td key={h} className="px-4 py-2 text-sm text-gray-900">
+                                  {row[h] || '-'}
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
-                </div>
-
-                <div className="flex justify-end gap-2">
-                  <button
-                    onClick={() => {
-                      setShowPreviewModal(false);
-                      setPreviewFile(null);
-                      setPreviewHeaders([]);
-                      setPreviewRows([]);
-                      setMapping({});
-                    }}
-                    className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleConfirmImport}
-                    disabled={importing}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                  >
-                    {importing ? 'Importing...' : 'Confirm Import'}
-                  </button>
+                )}
+                <div className="mt-6">
+                  <button onClick={handleConfirmImport} className="px-4 py-2 bg-blue-700 text-white rounded hover:bg-blue-800">{importing?'Menyimpan...':'Simpan Import'}</button>
                 </div>
               </div>
             </div>
@@ -659,6 +620,17 @@ export default function AkuntabilitasPage() {
                   <button onClick={() => setShowP4MNotes(false)} className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition">Tutup</button>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Popup Notification */}
+          {popup.show && (
+            <div className={`fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 text-white ${
+              popup.type === 'success' ? 'bg-green-500' :
+              popup.type === 'error' ? 'bg-red-500' :
+              'bg-blue-500'
+            }`}>
+              {popup.message}
             </div>
           )}
         </main>

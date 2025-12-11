@@ -1,7 +1,5 @@
 import { PrismaClient } from "@prisma/client";
 import xlsx from "xlsx";
-import fs from "fs";
-import path from "path";
 
 const prisma = new PrismaClient();
 
@@ -250,7 +248,7 @@ export const importExcel = async (req, res) => {
   const userProdi = req.user?.prodi;
   const userRole = req.user?.role;
   const mapping = req.body.mapping ? JSON.parse(req.body.mapping) : {};
-
+  const isPreview = req.body.preview === 'true';
 
   if (!userId) {
     return res.status(401).json({ success: false, message: "Unauthorized" });
@@ -263,34 +261,47 @@ export const importExcel = async (req, res) => {
   }
 
   try {
-    // const filePath = path.resolve(req.file.path); // Multer memory storage, no file path
     const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
-    const sheet = xlsx.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+    const sheet = xlsx.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: "" });
 
+    if (isPreview) {
+      // Handle preview: return headers, preview rows, and suggestions
+      const headers = sheet.length > 0 ? Object.keys(sheet[0]) : [];
+      const previewRows = sheet.slice(0, 5); // First 5 rows for preview
+      const suggestions = {};
+
+      const fields = getFieldMappingForSubTab(type);
+      for (const header of headers) {
+        const lowerHeader = header.toLowerCase().replace(/\s+/g, '');
+        for (const field of fields) {
+          const lowerKey = field.key.toLowerCase();
+          const lowerLabel = field.label.toLowerCase().replace(/\s+/g, '').replace(/[()]/g, '');
+          if (lowerHeader.includes(lowerKey) || lowerLabel.includes(lowerHeader) || lowerHeader === lowerKey) {
+            suggestions[header] = field.key;
+            break;
+          }
+        }
+      }
+
+      return res.json({
+        success: true,
+        headers,
+        previewRows,
+        suggestions,
+      });
+    }
+
+    // Proceed with actual import
     let added = 0;
     let errors = [];
 
-    for (const rawRow of sheet) {
+    for (let i = 0; i < sheet.length; i++) {
       try {
-        let recordProdi = userProdi; // Default to user's prodi
-        // If 'tim akreditasi' is importing and 'prodi' is mapped, use mapped prodi
-        if (userRole?.trim().toLowerCase() === 'tim akreditasi' && mapping.prodi && rawRow[mapping.prodi]) {
-          recordProdi = rawRow[mapping.prodi];
-        } else if (userRole?.trim().toLowerCase() === 'tim akreditasi' && !mapping.prodi) {
-          // If admin imports and doesn't map prodi, it's an error.
-          errors.push({ row: rawRow.__rowNum__, error: "Sebagai Tim Akreditasi, kolom 'Prodi' harus dipetakan saat import." });
-          continue;
-        }
-
-        if (!recordProdi) {
-          errors.push({ row: rawRow.__rowNum__, error: "Prodi tidak ditemukan untuk baris ini." });
-          continue;
-        }
-
+        const rawRow = sheet[i];
         const mappedData = {};
-        Object.entries(mapping).forEach(([dbField, excelColumn]) => {
-          if (dbField !== 'prodi' && excelColumn && rawRow.hasOwnProperty(excelColumn)) {
-            mappedData[dbField] = rawRow[excelColumn];
+        Object.entries(mapping).forEach(([header, fieldKey]) => {
+          if (fieldKey && rawRow.hasOwnProperty(header)) {
+            mappedData[fieldKey] = rawRow[header];
           }
         });
 
@@ -299,16 +310,14 @@ export const importExcel = async (req, res) => {
             subtab: type,
             data: mappedData,
             user_id: userId,
-            prodi: recordProdi, // Save prodi
+            prodi: userProdi, // Use user's prodi for all rows
           },
         });
         added++;
       } catch (e) {
-        errors.push({ row: rawRow.__rowNum__, error: e.message });
+        errors.push({ row: i + 1, error: e.message });
       }
     }
-
-    // fs.unlinkSync(filePath); // Not needed with memory storage
 
     res.json({
       success: true,
@@ -319,6 +328,29 @@ export const importExcel = async (req, res) => {
   } catch (err) {
     console.error("IMPORT ERROR:", err);
     res.status(500).json({ success: false, message: "Gagal import data" });
+  }
+};
+
+// Helper function to get field mapping for subtab
+const getFieldMappingForSubTab = (subTab) => {
+  if (subTab === 'tataKelola') {
+    return [
+      { key: 'jenis', label: 'Jenis Tata Kelola' },
+      { key: 'nama', label: 'Nama Sistem Informasi' },
+      { key: 'akses', label: 'Akses' },
+      { key: 'unit', label: 'Unit Kerja' },
+      { key: 'link', label: 'Link Bukti' },
+    ];
+  } else { // sarana
+    return [
+      { key: 'nama', label: 'Nama Prasarana' },
+      { key: 'tampung', label: 'Daya Tampung' },
+      { key: 'luas', label: 'Luas Ruang' },
+      { key: 'status', label: 'Status' },
+      { key: 'lisensi', label: 'Lisensi' },
+      { key: 'perangkat', label: 'Perangkat' },
+      { key: 'link', label: 'Link Bukti' },
+    ];
   }
 };
 

@@ -86,22 +86,49 @@ export const deleteAkuntabilitasData = async (id: string) => {
   }
 };
 
-export const importExcelAkuntabilitas = async (file: File, subtab: SubTab, mapping: Record<string, string>) => {
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('mapping', JSON.stringify(mapping));
-
+/**
+ * Preview Import Excel
+ */
+export const previewImportAkuntabilitas = async (file: File, subtab: SubTab): Promise<any> => {
   try {
-    const res = await fetch(`${API_BASE}/import/${subtab}`, {
-      method: 'POST',
-      body: formData,
-      credentials: 'include',
-    });
-    return await res.json();
-  } catch (err) {
-    console.error(err);
-    return { success: false, message: 'Gagal import file' };
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('subtab', subtab);
+    fd.append('preview', 'true');
+
+    const response = await fetch(`${API_BASE}/import/${subtab}`, { method: 'POST', body: fd, credentials: 'include' });
+    if (!response.ok) throw new Error(`HTTP ${response.status} ${response.statusText}`);
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error previewing import:', error);
+    throw error;
   }
+};
+
+/**
+ * Commit Import Excel
+ */
+export const commitImportAkuntabilitas = async (file: File, subtab: SubTab, mapping: Record<string, string>): Promise<any> => {
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('subtab', subtab);
+    fd.append('mapping', JSON.stringify(mapping));
+
+    const response = await fetch(`${API_BASE}/import/${subtab}`, { method: 'POST', body: fd, credentials: 'include' });
+    if (!response.ok) throw new Error(`HTTP ${response.status} ${response.statusText}`);
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error committing import:', error);
+    throw error;
+  }
+};
+
+// Legacy function for backward compatibility
+export const importExcelAkuntabilitas = async (file: File, subtab: SubTab, mapping: Record<string, string>) => {
+  return await commitImportAkuntabilitas(file, subtab, mapping);
 };
 
 export const saveAkuntabilitasDraftToBackend = async (
