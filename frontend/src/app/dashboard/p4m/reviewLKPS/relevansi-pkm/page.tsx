@@ -5,6 +5,7 @@ import { FileText, Upload, Download, Save, Edit, Trash2, X, Eye } from 'lucide-r
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { getReviews as fetchReviews, createReview as postReview } from '@/services/reviewService';
+import { getAllProdi } from '@/services/userService';
 
 export default function RelevansiPkmPage() {
   const pathname = usePathname();
@@ -20,6 +21,8 @@ export default function RelevansiPkmPage() {
   const [notes, setNotes] = useState<any[]>([]);
   const [loadingNotes, setLoadingNotes] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [prodiList, setProdiList] = useState<string[]>([]);
+  const [selectedProdi, setSelectedProdi] = useState<string>('');
 
   const API_BASE = 'http://localhost:5000/api/relevansi-pkm';
 
@@ -34,12 +37,16 @@ export default function RelevansiPkmPage() {
 
   useEffect(() => {
     fetchData();
-  }, [activeSubTab]);
+  }, [activeSubTab, selectedProdi]);
 
   const fetchData = async () => {
     try {
       setErrorMsg(null);
-      const res = await fetch(`${API_BASE}?type=${activeSubTab}`, {
+      let url = `${API_BASE}?type=${activeSubTab}`;
+      if (selectedProdi) {
+        url += `&prodi=${selectedProdi}`;
+      }
+      const res = await fetch(url, {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
@@ -59,6 +66,19 @@ export default function RelevansiPkmPage() {
       setData([]);
     }
   };
+
+  const fetchProdi = async () => {
+    try {
+      const prodi = await getAllProdi();
+      setProdiList(prodi);
+    } catch (error) {
+      console.error('Failed to fetch prodi list', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchProdi();
+  }, []);
 
   // =============== FORM ===============
   // openAdd (tambah data) dihilangkan — UI tombol tambah sudah dihapus
@@ -288,6 +308,32 @@ export default function RelevansiPkmPage() {
             ))}
           </div>
 
+          
+          {/* Info P4M */}
+          <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4 rounded">
+            <p className="text-sm text-blue-800">
+              <strong>Mode Review P4M:</strong> Anda dapat melihat dan mengevaluasi data yang diinput oleh Tim Akreditasi
+            </p>
+          </div>
+          
+          <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold text-gray-800 mb-1">Data {activeSubTab.replace('-', ' ')}</h2>
+              <div className="flex items-center gap-4">
+                <select
+                  value={selectedProdi}
+                  onChange={(e) => setSelectedProdi(e.target.value)}
+                  className="border p-2 rounded-lg"
+                >
+                  <option value="">Semua Prodi</option>
+                  {prodiList.map((prodi) => (
+                    <option key={prodi} value={prodi}>
+                      {prodi}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
           {/* Subtabs */}
           <div className="flex gap-2 border-b pb-2 mb-4 overflow-x-auto">
             {[
@@ -330,6 +376,7 @@ export default function RelevansiPkmPage() {
                 <tbody className="bg-white divide-y divide-gray-200">{renderRows()}</tbody>
               </table>
             </div>
+          </div>
           </div>
 
           {/* Modal Tambah/Edit */}

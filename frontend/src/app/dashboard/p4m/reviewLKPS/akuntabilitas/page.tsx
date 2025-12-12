@@ -12,6 +12,7 @@ import {
   saveDraftAkuntabilitas,
   loadDraftAkuntabilitas
 } from '@/services/akuntabilitasService';
+import { getAllProdi } from '@/services/userService';
 
 export default function AkuntabilitasPage() {
   const pathname = usePathname();
@@ -25,6 +26,8 @@ export default function AkuntabilitasPage() {
   const [reviewNote, setReviewNote] = useState('');
   const [notes, setNotes] = useState<any[]>([]);
   const [loadingNotes, setLoadingNotes] = useState(false);
+  const [prodiList, setProdiList] = useState<string[]>([]);
+  const [selectedProdi, setSelectedProdi] = useState<string>('');
 
   // Handler import Excel dihilangkan. Data import tidak lagi tersedia via UI.
 
@@ -37,32 +40,40 @@ export default function AkuntabilitasPage() {
     { label: 'Diferensiasi Misi', href: '/dashboard/p4m/reviewLKPS/diferensiasi-misi' },
   ];
 
-  useEffect(() => {
-    const draft = loadDraftAkuntabilitas(activeSubTab);
-    if (draft.length) {
-      setTabData(draft);
-    } else {
-      fetchAkuntabilitasData(activeSubTab).then(setTabData);
+  const fetchData = async () => {
+    const data = await fetchAkuntabilitasData(activeSubTab, selectedProdi);
+    setTabData(data);
+  };
+
+  const fetchProdi = async () => {
+    try {
+      const prodi = await getAllProdi();
+      setProdiList(prodi);
+    } catch (error) {
+      console.error('Failed to fetch prodi list', error);
     }
-  }, [activeSubTab]);
+  };
+
+  useEffect(() => {
+    fetchProdi();
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [activeSubTab, selectedProdi]);
 
   // openAdd (tambah data) dihilangkan — UI tombol tambah sudah dihapus
 
   const handleSave = async () => {
     let res;
     if (editIndex !== null && tabData[editIndex].id) {
-      res = await updateAkuntabilitasData(tabData[editIndex].id, activeSubTab, formData);
+      res = await updateAkuntabilitasData(tabData[editIndex].id, activeSubTab, formData, selectedProdi);
     } else {
-      res = await createAkuntabilitasData(activeSubTab, formData);
+      res = await createAkuntabilitasData(activeSubTab, formData, selectedProdi);
     }
 
     if (res.success) {
-      const newData =
-        editIndex !== null
-          ? tabData.map((d, i) => (i === editIndex ? { ...d, data: formData } : d))
-          : [...tabData, res.data];
-      setTabData(newData);
-      saveDraftAkuntabilitas(activeSubTab, newData);
+      fetchData();
       setShowForm(false);
     } else {
       alert(res.message);
@@ -82,9 +93,7 @@ export default function AkuntabilitasPage() {
 
     const res = await deleteAkuntabilitasData(id);
     if (res.success) {
-      const updated = tabData.filter((d: any) => d.id !== id);
-      setTabData(updated);
-      saveDraftAkuntabilitas(activeSubTab, updated);
+      fetchData();
     } else alert(res.message);
   };
 
@@ -174,7 +183,32 @@ export default function AkuntabilitasPage() {
               </Link>
             ))}
           </div>
-
+          
+          {/* Info P4M */}
+          <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4 rounded">
+            <p className="text-sm text-blue-800">
+              <strong>Mode Review P4M:</strong> Anda dapat melihat dan mengevaluasi data yang diinput oleh Tim Akreditasi
+            </p>
+          </div>
+          
+          <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold text-gray-800 mb-1">Data {activeSubTab.replace('-', ' ')}</h2>
+              <div className="flex items-center gap-4">
+                <select
+                  value={selectedProdi}
+                  onChange={(e) => setSelectedProdi(e.target.value)}
+                  className="border p-2 rounded-lg"
+                >
+                  <option value="">Semua Prodi</option>
+                  {prodiList.map((prodi) => (
+                    <option key={prodi} value={prodi}>
+                      {prodi}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
           {/* Sub-tabs */}
           <div className="flex gap-2 border-b pb-2 mb-4">
             <button
@@ -250,7 +284,7 @@ export default function AkuntabilitasPage() {
               </table>
             </div>
           </div>
-
+          </div>
           {/* Modal Form */}
           {showForm && (
             <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">

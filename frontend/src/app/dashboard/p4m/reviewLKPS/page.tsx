@@ -4,6 +4,7 @@ import { FileText, Download, Save, Eye, X, CheckCircle, AlertCircle, Info } from
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { getReviews as fetchReviews, createReview as postReview } from '@/services/reviewService';
+import { getAllProdi } from '@/services/userService';
 
 export default function P4MReviewBudayaMutuPage() {
   type SubTab = 'tupoksi' | 'pendanaan' | 'penggunaan-dana' | 'ewmp' | 'ktk' | 'spmi';
@@ -33,6 +34,8 @@ export default function P4MReviewBudayaMutuPage() {
   const [reviewNote, setReviewNote] = useState('');
   const [notes, setNotes] = useState<any[]>([]);
   const [loadingNotes, setLoadingNotes] = useState(false);
+  const [prodiList, setProdiList] = useState<string[]>([]);
+  const [selectedProdi, setSelectedProdi] = useState<string>('');
 
   // State untuk popup notifikasi
   const [popup, setPopup] = useState<{ 
@@ -105,9 +108,22 @@ export default function P4MReviewBudayaMutuPage() {
     );
   };
 
+  const fetchProdi = async () => {
+    try {
+      const prodi = await getAllProdi();
+      setProdiList(prodi);
+    } catch (error) {
+      console.error('Failed to fetch prodi list', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchProdi();
+  }, []);
+
   useEffect(() => {
     fetchData();
-  }, [activeSubTab]);
+  }, [activeSubTab, selectedProdi]);
 
   useEffect(() => {
     fetchStrukturOrganisasi();
@@ -115,7 +131,11 @@ export default function P4MReviewBudayaMutuPage() {
 
   const fetchData = async () => {
     try {
-      const res = await fetch(`${API_BASE}?type=${activeSubTab}`, {
+      let url = `${API_BASE}?type=${activeSubTab}`;
+      if (selectedProdi) {
+        url += `&prodi=${selectedProdi}`;
+      }
+      const res = await fetch(url, {
         method: 'GET',
         credentials: 'include',
         headers: {
@@ -385,7 +405,25 @@ export default function P4MReviewBudayaMutuPage() {
               );
             })}
           </div>
-
+          <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold text-gray-800 mb-1">Data {activeSubTab.replace('-', ' ')}</h2>
+              <div className="flex items-center gap-4">
+                <p className="text-sm text-gray-600">{tableTitles[activeSubTab]}</p>
+                <select
+                  value={selectedProdi}
+                  onChange={(e) => setSelectedProdi(e.target.value)}
+                  className="border p-2 rounded-lg"
+                >
+                  <option value="">Semua Prodi</option>
+                  {prodiList.map((prodi) => (
+                    <option key={prodi} value={prodi}>
+                      {prodi}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
           {/* Info P4M */}
           <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4 rounded">
             <p className="text-sm text-blue-800">
@@ -436,8 +474,8 @@ export default function P4MReviewBudayaMutuPage() {
                   onClick={() => setActiveSubTab(sub as SubTab)}
                   className={`px-4 py-2 text-sm rounded-t-lg whitespace-nowrap font-medium transition ${
                     activeSubTab === sub
-                      ? 'bg-[#183A64] text-[#ADE7F7]'
-                      : 'bg-[#ADE7F7] text-[#183A64] hover:bg-[#90d8ee]'
+                      ? 'bg-blue-100 text-blue-900 font-semibold'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
                   {sub.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase())}
@@ -564,6 +602,7 @@ export default function P4MReviewBudayaMutuPage() {
                 </div>
               </div>
             )}
+          </div>
           </div>
         </main>
       </div>

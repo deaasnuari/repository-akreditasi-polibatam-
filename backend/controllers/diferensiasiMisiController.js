@@ -7,8 +7,8 @@ export const getDiferensiasiMisi = async (req, res) => {
     const userId = req.user?.id;
     const userRole = req.user?.role;
     const userProdi = req.user?.prodi;
-    const { subtab, type, prodi: prodiQuery } = req.query; // Added prodi: prodiQuery
-    const queryTab = subtab || type || null;
+    const { type, prodi: prodiQuery } = req.query; // Added prodi: prodiQuery
+    const queryTab = type || null;
 
     const normalizedRole = userRole ? userRole.trim().toLowerCase() : '';
 

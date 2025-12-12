@@ -1,7 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import path from 'path';
-import { updateProfile } from '../controllers/userController.js';
+import { updateProfile, getAllProdi } from '../controllers/userController.js';
 import { authenticateToken } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -18,6 +18,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
+router.get('/prodi', authenticateToken, getAllProdi);
 router.put('/profile', authenticateToken, upload.single('photo'), updateProfile);
 
 export default router;

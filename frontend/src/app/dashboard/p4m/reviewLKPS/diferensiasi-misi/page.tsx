@@ -5,7 +5,7 @@ import { FileText, Download, Save, Eye } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { getReviews as fetchReviews, createReview as postReview } from '@/services/reviewService';
-
+import { getAllProdi } from '@/services/userService';
 
 // --- Data item ---
 interface DataItem {
@@ -25,6 +25,8 @@ export default function P4MReviewDiferensiasiMisiPage() {
   const [reviewNote, setReviewNote] = useState('');
   const [notes, setNotes] = useState<any[]>([]);
   const [loadingNotes, setLoadingNotes] = useState(false);
+  const [prodiList, setProdiList] = useState<string[]>([]);
+  const [selectedProdi, setSelectedProdi] = useState<string>('');
   const API_BASE = 'http://localhost:5000/api/diferensiasi-misi';
 
   const tabs = [
@@ -39,7 +41,11 @@ export default function P4MReviewDiferensiasiMisiPage() {
   // --- Fetch Data ---
   const fetchData = async () => {
     try {
-      const res = await fetch(`${API_BASE}?type=visi-misi`, {
+      let url = `${API_BASE}?type=visi-misi`;
+      if (selectedProdi) {
+        url += `&prodi=${selectedProdi}`;
+      }
+      const res = await fetch(url, {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
@@ -55,9 +61,22 @@ export default function P4MReviewDiferensiasiMisiPage() {
     }
   };
 
+  const fetchProdi = async () => {
+    try {
+      const prodi = await getAllProdi();
+      setProdiList(prodi);
+    } catch (error) {
+      console.error('Failed to fetch prodi list', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchProdi();
+  }, []);
+
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [selectedProdi]);
 
   // --- View Detail ---
   const handleViewDetail = async (item: DataItem) => {
@@ -132,19 +151,33 @@ export default function P4MReviewDiferensiasiMisiPage() {
             })}
           </div>
 
-          {/* Konten */}
+
+          {/* Info P4M */}
+          <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4 rounded">
+            <p className="text-sm text-blue-800">
+              <strong>Mode Review P4M:</strong> Anda dapat melihat dan mengevaluasi data yang diinput oleh Tim Akreditasi
+            </p>
+          </div>
+
           <div className="bg-white rounded-lg shadow p-6">
             {/* Judul Tabel */}
-            <div className="mb-4">
-              <h2 className="text-lg font-semibold text-gray-800 mb-1">Review Data Visi/Misi</h2>
-              <p className="text-sm text-gray-600">Review dan evaluasi data visi dan misi program studi</p>
-            </div>
-
-            {/* Info P4M */}
-            <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4">
-              <p className="text-sm text-blue-800">
-                <strong>Mode Review P4M:</strong> Anda dapat melihat dan mengevaluasi data yang diinput oleh Tim Akreditasi
-              </p>
+            <div className="mb-4 flex justify-between items-center">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-800 mb-1">Review Data Visi/Misi</h2>
+                <p className="text-sm text-gray-600">Review dan evaluasi data visi dan misi program studi</p>
+              </div>
+              <select
+                value={selectedProdi}
+                onChange={(e) => setSelectedProdi(e.target.value)}
+                className="border p-2 rounded-lg"
+              >
+                <option value="">Semua Prodi</option>
+                {prodiList.map((prodi) => (
+                  <option key={prodi} value={prodi}>
+                    {prodi}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* Tabel */}
@@ -190,6 +223,7 @@ export default function P4MReviewDiferensiasiMisiPage() {
                   )}
                 </tbody>
               </table>
+            </div>
             </div>
 
             {/* Modal Detail */}
@@ -283,7 +317,6 @@ export default function P4MReviewDiferensiasiMisiPage() {
                 </div>
               </div>
             )}
-          </div>
         </main>
       </div>
     </div>

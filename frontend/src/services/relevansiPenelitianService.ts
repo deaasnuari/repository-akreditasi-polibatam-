@@ -431,7 +431,7 @@ class RelevansiPenelitianService {
 export const relevansiPenelitianService = new RelevansiPenelitianService();
 
 // Export function wrappers for convenience
-export const getRelevansiPenelitian = (subtab: SubTab) => relevansiPenelitianService.fetchData(subtab);
+export const getRelevansiPenelitian = (subtab: SubTab, prodi?: string) => relevansiPenelitianService.fetchData(subtab, prodi);
 export const saveRelevansiPenelitian = (data: DataItem, subtab: SubTab) => relevansiPenelitianService.createData(data, subtab);
 export const updateRelevansiPenelitian = (id: number, data: DataItem, subtab: SubTab) => relevansiPenelitianService.updateData(id, data, subtab);
 export const deleteRelevansiPenelitian = (id: number) => relevansiPenelitianService.deleteData(id);

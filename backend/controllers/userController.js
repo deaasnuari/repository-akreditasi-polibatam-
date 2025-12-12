@@ -1,6 +1,25 @@
 import prisma from '../prismaClient.js';
 import bcrypt from 'bcryptjs';
 
+export const getAllProdi = async (req, res) => {
+  try {
+    const prodi = await prisma.users.findMany({
+      where: {
+        prodi: {
+          not: null,
+        },
+      },
+      distinct: ['prodi'],
+      select: {
+        prodi: true,
+      },
+    });
+    res.json({ success: true, data: prodi.map(p => p.prodi) });
+  } catch (error) {
+    res.status(500).json({ success: false, msg: 'Server error', error: error.message });
+  }
+};
+
 export const updateProfile = async (req, res) => {
   const { id } = req.user;
   const { username, currentPassword, newPassword } = req.body;

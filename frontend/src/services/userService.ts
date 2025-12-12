@@ -17,3 +17,20 @@ export const updateUserProfile = async (formData: FormData) => {
     throw new Error(error.message || 'An unknown error occurred');
   }
 };
+
+export const getAllProdi = async () => {
+  try {
+    const res = await fetch(`${API_URL}/user/prodi`, {
+      method: 'GET',
+      credentials: 'include',
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || 'Failed to fetch prodi');
+    }
+    return data.data;
+  } catch (error: any) {
+    throw new Error(error.message || 'An unknown error occurred');
+  }
+};

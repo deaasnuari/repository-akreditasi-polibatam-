@@ -25,10 +25,10 @@ function normalizeRow(row = {}) {
 // ==========================
 export const getData = async (req, res) => {
   try {
-    const { subtab, prodi: prodiQuery } = req.query;
+    const { type, prodi: prodiQuery } = req.query;
     const { id: userId, role: userRole, prodi: userProdi } = req.user;
 
-    let whereClause = { subtab };
+    let whereClause = { subtab: type };
 
     const normalizedRole = userRole ? userRole.trim().toLowerCase() : '';
     if (normalizedRole === 'tim-akreditasi') {

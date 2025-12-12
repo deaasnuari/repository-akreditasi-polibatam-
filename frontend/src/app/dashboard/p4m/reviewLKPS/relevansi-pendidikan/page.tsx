@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { relevansiPendidikanService, SubTab, DataItem } from '@/services/relevansiPendidikanService';
 import { getReviews as fetchReviews, createReview as postReview } from '@/services/reviewService';
+import { getAllProdi } from '@/services/userService';
 
 // --- Table titles ---
 const tableTitles: Record<SubTab, string> = {
@@ -35,6 +36,8 @@ export default function RelevansiPendidikanPage() {
   const [reviewNote, setReviewNote] = useState('');
   const [notes, setNotes] = useState<any[]>([]);
   const [loadingNotes, setLoadingNotes] = useState(false);
+  const [prodiList, setProdiList] = useState<string[]>([]);
+  const [selectedProdi, setSelectedProdi] = useState<string>('');
 
   const tabs = [
     { label: 'Budaya Mutu', href: '/dashboard/p4m/reviewLKPS' },
@@ -48,7 +51,7 @@ export default function RelevansiPendidikanPage() {
   // --- Fetch Data ---
   const fetchData = async () => {
     try {
-      const result = await relevansiPendidikanService.fetchData(activeSubTab);
+      const result = await relevansiPendidikanService.fetchData(activeSubTab, selectedProdi);
       setData(result);
     } catch (err) {
       console.error('Fetch error:', err);
@@ -56,9 +59,22 @@ export default function RelevansiPendidikanPage() {
     }
   };
 
+  const fetchProdi = async () => {
+    try {
+      const prodi = await getAllProdi();
+      setProdiList(prodi);
+    } catch (error) {
+      console.error('Failed to fetch prodi list', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchProdi();
+  }, []);
+
   useEffect(() => {
     fetchData();
-  }, [activeSubTab]);
+  }, [activeSubTab, selectedProdi]);
 
   // --- Form & CRUD ---
   // openAdd (tambah data) dihilangkan — UI tombol tambah sudah dihapus
@@ -474,8 +490,34 @@ export default function RelevansiPendidikanPage() {
                     })}
                   </div>
 
+
+          {/* Info P4M */}
+          <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4 rounded">
+            <p className="text-sm text-blue-800">
+              <strong>Mode Review P4M:</strong> Anda dapat melihat dan mengevaluasi data yang diinput oleh Tim Akreditasi
+            </p>
+          </div>
+
           {/* Konten */}
           <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold text-gray-800 mb-1">Data {activeSubTab.replace('-', ' ')}</h2>
+              <div className="flex items-center gap-4">
+                <p className="text-sm text-gray-600">{tableTitles[activeSubTab]}</p>
+                <select
+                  value={selectedProdi}
+                  onChange={(e) => setSelectedProdi(e.target.value)}
+                  className="border p-2 rounded-lg"
+                >
+                  <option value="">Semua Prodi</option>
+                  {prodiList.map((prodi) => (
+                    <option key={prodi} value={prodi}>
+                      {prodi}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
             {/* Subtab */}
             <div className="flex gap-2 border-b pb-2 mb-4">
               {['mahasiswa', 'keragaman-asal', 'kondisi-jumlah-mahasiswa', 'tabel-pembelajaran', 'pemetaan-CPL-PL', 'peta-pemenuhan-CPL', 'rata-rata-masa-tunggu-lulusan', 'kesesuaian-bidang', 'kepuasan-pengguna', 'fleksibilitas', 'rekognisi-apresiasi'].map((sub) => (
