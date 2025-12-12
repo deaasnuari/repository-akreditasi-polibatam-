@@ -121,6 +121,8 @@ class RelevansiPkmService {
   async createData(data: DataItem, subtab: SubTab): Promise<ApiResponse> {
     try {
       const user_id = getUserId();
+      const requestBody = { subtab, user_id, ...data };
+      console.log('createData request body:', requestBody); // Debugging log
 
       const response = await fetch(API_BASE, {
         method: 'POST',
@@ -128,7 +130,7 @@ class RelevansiPkmService {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify({ subtab, user_id, ...data }),
+        body: JSON.stringify(requestBody),
       });
 
       const result: ApiResponse = await response.json();
@@ -149,13 +151,17 @@ class RelevansiPkmService {
    */
   async updateData(id: number, data: DataItem, subtab: SubTab): Promise<ApiResponse> {
     try {
+      const user_id = getUserId(); // Get user_id for update as well
+      const requestBody = { ...data, subtab, user_id };
+      console.log('updateData request body:', requestBody); // Debugging log
+
       const response = await fetch(`${API_BASE}/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify({ ...data, subtab }),
+        body: JSON.stringify(requestBody), // Include user_id
       });
 
       const result: ApiResponse = await response.json();
@@ -277,7 +283,9 @@ class RelevansiPkmService {
    */
   async exportExcel(subtab: SubTab): Promise<Blob> {
     try {
-      const response = await fetch(`${API_BASE}/export?subtab=${subtab}`, {
+      const url = `${API_BASE}/export?subtab=${subtab}`;
+      console.log('Export Excel URL:', url); // Debugging log
+      const response = await fetch(url, {
         method: 'GET',
         credentials: 'include',
       });
@@ -298,7 +306,9 @@ class RelevansiPkmService {
    */
   async exportPDF(subtab: SubTab): Promise<Blob> {
     try {
-      const response = await fetch(`${API_BASE}/export-pdf?subtab=${subtab}`, {
+      const url = `${API_BASE}/export-pdf?subtab=${subtab}`;
+      console.log('Export PDF URL:', url); // Debugging log
+      const response = await fetch(url, {
         method: 'GET',
         credentials: 'include',
       });

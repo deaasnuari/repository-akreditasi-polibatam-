@@ -25,37 +25,53 @@ function normalizeRow(row = {}) {
 // ==========================
 export const getData = async (req, res) => {
   try {
-    const { type, prodi: prodiQuery } = req.query;
+    const { subtab, prodi: prodiQuery } = req.query;
     const { id: userId, role: userRole, prodi: userProdi } = req.user;
 
-    let whereClause = { subtab: type };
+    console.log('DEBUG: req.query', req.query); // Added for debugging
+    console.log('DEBUG: req.user', req.user);   // Added for debugging
 
-    const normalizedRole = userRole ? userRole.trim().toLowerCase() : '';
+    if (!subtab) {
+      return res.status(400).json({ success: false, message: "Parameter 'subtab' is required." });
+    }
+
+    let whereClause = { subtab: subtab }; // Re-inserting the missing declaration
+
+    const normalizedRole = userRole ? userRole.trim().toLowerCase().replace(/\s+/g, '-') : '';
+    
     if (normalizedRole === 'tim-akreditasi') {
-      // Tim Akreditasi can ONLY view data for their own prodi
       if (!userProdi) {
+        // This case returns 403, not 500, so it's not the direct cause
         return res.status(403).json({ success: false, message: "Prodi pengguna tidak ditemukan." });
       }
       whereClause.prodi = userProdi;
     } else if (normalizedRole === 'p4m') {
-      // P4M can view all data, but can also filter by prodi if 'prodi' query param is provided
       if (prodiQuery) {
         whereClause.prodi = prodiQuery;
       }
-    } else {
-      // Other roles always filter by their user_id AND their prodi
-      whereClause.user_id = userId;
+    } else { // Other roles
+      // Ensure userId is a number for Prisma
+      if (typeof userId === 'number') {
+        whereClause.user_id = userId;
+      } else {
+        // If userId is not valid, it's a critical error for these roles
+        return res.status(403).json({ success: false, message: "User ID tidak valid untuk peran ini." });
+      }
+
       if (!userProdi) {
+        // This case returns 403, not 500, so it's not the direct cause
         return res.status(403).json({ success: false, message: "Prodi pengguna tidak ditemukan." });
       }
       whereClause.prodi = userProdi;
     }
 
+    console.log('DEBUG: Constructed whereClause', whereClause); // Added for debugging
+
     const rows = await prisma.relevansi_pkm.findMany({
       where: whereClause,
       orderBy: { id: "asc" },
       include: {
-        user: { // Ambil info user (terutama nama lengkap dan prodi)
+        user: {
           select: {
             nama_lengkap: true,
             prodi: true
@@ -74,7 +90,7 @@ export const getData = async (req, res) => {
 
     res.json({ success: true, data });
   } catch (err) {
-    console.error(err);
+    console.error('SERVER ERROR in getData (relevansiPkmController):', err); // Enhanced error log
     res.status(500).json({ success: false, message: "Gagal mengambil data", error: err.message });
   }
 };
@@ -85,7 +101,12 @@ export const getData = async (req, res) => {
 export const createData = async (req, res) => {
   try {
     const { subtab, ...body } = req.body;
-    const { id: userId, prodi } = req.user; // Ambil user_id dan prodi dari token
+    const { id: userId, prodi, role: userRole } = req.user; // Get userRole here
+
+    // Prevent P4M from creating data
+    if (userRole && userRole.trim().toLowerCase() === 'p4m') {
+      return res.status(403).json({ success: false, message: "P4M tidak diizinkan untuk menambah data." });
+    }
 
     if (!prodi) {
       return res.status(400).json({ success: false, message: "Prodi pengguna tidak ditemukan. Pastikan akun Anda memiliki prodi." });
@@ -221,7 +242,12 @@ export const updateData = async (req, res) => {
     }
 
     const normalizedRole = userRole ? userRole.trim().toLowerCase() : '';
-    if (record.user_id !== userId && normalizedRole !== 'tim-akreditasi' && normalizedRole !== 'p4m') {
+    // Prevent P4M from updating data
+    if (normalizedRole === 'p4m') {
+      return res.status(403).json({ success: false, message: "P4M tidak diizinkan untuk mengubah data ini." });
+    }
+
+    if (record.user_id !== userId && normalizedRole !== 'tim-akreditasi') {
       return res.status(403).json({ success: false, message: "Tidak memiliki akses untuk mengubah data ini" });
     }
 
@@ -256,7 +282,12 @@ export const deleteData = async (req, res) => {
     }
 
     const normalizedRole = userRole ? userRole.trim().toLowerCase() : '';
-    if (record.user_id !== userId && normalizedRole !== 'tim-akreditasi' && normalizedRole !== 'p4m') {
+    // Prevent P4M from deleting data
+    if (normalizedRole === 'p4m') {
+      return res.status(403).json({ success: false, message: "P4M tidak diizinkan untuk menghapus data ini." });
+    }
+
+    if (record.user_id !== userId && normalizedRole !== 'tim-akreditasi') {
       return res.status(403).json({ success: false, message: "Tidak memiliki akses untuk menghapus data ini" });
     }
 

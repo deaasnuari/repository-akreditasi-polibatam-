@@ -252,13 +252,16 @@ export default function AkuntabilitasPage() {
                         {f.label}
                       </th>
                     ))}
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Prodi
+                    </th>
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {tabData.length === 0 ? (
                     <tr>
-                      <td colSpan={fields.length + 1} className="text-center py-6 text-gray-500">
+                      <td colSpan={fields.length + 2} className="text-center py-6 text-gray-500">
                         Belum ada data
                       </td>
                     </tr>
@@ -270,6 +273,9 @@ export default function AkuntabilitasPage() {
                             {item.data?.[f.key] || '-'}
                           </td>
                         ))}
+                        <td className="px-6 py-4 text-gray-800">
+                          {item.prodi || '-'}
+                        </td>
                         <td className="px-6 py-4 text-center">
                           <div className="flex gap-2 justify-center">
                                 <button onClick={() => { setSelectedItem(item); setShowDetail(true); }} className="text-blue-700 hover:text-blue-900 inline-flex items-center gap-1" title="Lihat Detail">

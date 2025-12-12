@@ -9,13 +9,14 @@ import {
   saveRelevansiPenelitian,
   updateRelevansiPenelitian,
   deleteRelevansiPenelitian,
+  SubTab, // Import SubTab type
 } from '@/services/relevansiPenelitianService';
 import { getReviews as fetchReviews, createReview as postReview } from '@/services/reviewService';
 import { getAllProdi } from '@/services/userService';
 
 export default function RelevansiPenelitianPage() {
   const pathname = usePathname();
-  const [activeSubTab, setActiveSubTab] = useState('sarana-prasarana');
+  const [activeSubTab, setActiveSubTab] = useState<SubTab>('sarana-prasarana');
   const [data, setData] = useState<any[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -42,55 +43,70 @@ export default function RelevansiPenelitianPage() {
   ];
 
   // --- Subtab fields ---
- const subtabFields: Record<string, Array<{ key: string; label: string }>> = {
-  'sarana-prasarana': [
-    { key: 'namaprasarana', label: 'Nama Prasarana' },
-    { key: 'dayatampung', label: 'Daya Tampung' },
-    { key: 'luasruang', label: 'Luas Ruang (m²)' },
-    { key: 'status', label: 'Status (M/W)' },
-    { key: 'lisensi', label: 'Lisensi (L/P/T)' },
-    { key: 'perangkat', label: 'Perangkat' },
-    { key: 'linkbukti', label: 'Link Bukti' },
-  ],
-  'hibah-dan-pembiayaan': [
-    { key: 'namadtpr', label: 'Nama DTPR' },
-    { key: 'judulpenelitian', label: 'Judul Penelitian' },
-    { key: 'jumlahmahasiswaterlibat', label: 'Jumlah Mahasiswa Terlibat' },
-    { key: 'jenishibah', label: 'Jenis Hibah' },
-    { key: 'sumber', label: 'Sumber' },
-    { key: 'durasi', label: 'Durasi (tahun)' },
-    { key: 'pendanaan', label: 'Pendanaan (Rp Juta)' },
-    { key: 'tahun', label: 'Tahun' },
-  ],
-  'pengembangan-dtpr': [
-    { key: 'namadtpr', label: 'Nama DTPR' },
-    { key: 'jenispengembangan', label: 'Jenis Pengembangan' },
-    { key: 'tahunakademik', label: 'Tahun Akademik' },
-    { key: 'linkbukti', label: 'Link Bukti' },
-  ],
-  'kerjasama-penelitian': [
-    { key: 'judulkerjasama', label: 'Judul Kerjasama' },
-    { key: 'mitra', label: 'Mitra' },
-    { key: 'sumber', label: 'Sumber' },
-    { key: 'durasi', label: 'Durasi (tahun)' },
-    { key: 'pendanaan', label: 'Pendanaan (Rp Juta)' },
-    { key: 'tahun', label: 'Tahun' },
-    { key: 'linkbukti', label: 'Link Bukti' },
-  ],
-  'publikasi-penelitian': [
-    { key: 'namadtpr', label: 'Nama DTPR' },
-    { key: 'judulpublikasi', label: 'Judul Publikasi' },
-    { key: 'jenispublikasi', label: 'Jenis Publikasi' },
-    { key: 'tahun', label: 'Tahun' },
-    { key: 'linkbukti', label: 'Link Bukti' },
-  ],
-  'perolehan-hki': [
-    { key: 'judul', label: 'Judul' },
-    { key: 'jenishki', label: 'Jenis HKI' },
-    { key: 'namadtpr', label: 'Nama DTPR' },
-    { key: 'tahun', label: 'Tahun' },
-    { key: 'linkbukti', label: 'Link Bukti' },
-  ],
+ const subtabFields: Record<string, Array<{ key: string; label: string; type: string }>> = {
+   'sarana-prasarana': [
+      { key: 'namaprasarana', label: 'Nama Prasarana', type: 'text' },
+      { key: 'dayatampung', label: 'Daya Tampung', type: 'number' },
+      { key: 'luasruang', label: 'Luas Ruang (m²)', type: 'number' },
+      { key: 'miliksendiri', label: 'Milik sendiri (M)/Sewa (W)', type: 'text' },
+      { key: 'berlisensi', label: 'Berlisensi (L)/Public Domain (P)/Tidak Berlisensi (T)', type: 'text' },
+      { key: 'perangkat', label: 'Perangkat', type: 'text' },
+      { key: 'linkbukti', label: 'Link Bukti', type: 'text' },
+    ],
+    'hibah-dan-pembiayaan': [
+      { key: 'no', label: 'No', type: 'number' },
+      { key: 'namadtpr', label: 'Nama DTPR (Ketua)', type: 'text' },
+      { key: 'judulpenelitian', label: 'Judul Penelitian', type: 'text' },
+      { key: 'jumlahmahasiswa', label: 'Jumlah Mahasiswa yang Terlibat', type: 'number' },
+      { key: 'jenishibah', label: 'Jenis Hibah Penelitian', type: 'text' },
+      { key: 'sumber', label: 'Sumber L/N/I', type: 'text' },
+      { key: 'durasi', label: 'Durasi (tahun)', type: 'number' },
+      { key: 'pendanaants2', label: 'Pendanaan TS-2 (Rp juta)', type: 'number' },
+      { key: 'pendanaants1', label: 'Pendanaan TS-1 (Rp juta)', type: 'number' },
+      { key: 'pendanaants', label: 'Pendanaan TS (Rp juta)', type: 'number' },
+      { key: 'linkbukti', label: 'Link Bukti', type: 'text' },
+    ],
+    'pengembangan-dtpr': [
+      { key: 'tahunakademik', label: 'Tahun Akademik', type: 'text' },
+      { key: 'jumlahdosendtpr', label: 'Jumlah Dosen DTPR', type: 'number' },
+      { key: 'jenispengembangan', label: 'Jenis Pengembangan DTPR', type: 'text' },
+      { key: 'namadtpr', label: 'Nama DTPR', type: 'text' },
+      { key: 'jumlahts2', label: 'Jumlah TS-2', type: 'number' },
+      { key: 'jumlahts1', label: 'Jumlah TS-1', type: 'number' },
+      { key: 'jumlahts', label: 'Jumlah TS', type: 'number' },
+      { key: 'linkbukti', label: 'Link Bukti', type: 'text' },
+    ],
+    'kerjasama-penelitian': [
+      { key: 'no', label: 'No', type: 'number' },
+      { key: 'judulkerjasama', label: 'Judul Kerjasama', type: 'text' },
+      { key: 'mitrakerjasama', label: 'Mitra Kerja Sama', type: 'text' },
+      { key: 'sumber', label: 'Sumber L/N/I', type: 'text' },
+      { key: 'durasi', label: 'Durasi (Tahun)', type: 'number' },
+      { key: 'pendanaants2', label: 'Pendanaan TS-2 (Rp Juta)', type: 'number' },
+      { key: 'pendanaants1', label: 'Pendanaan TS-1 (Rp Juta)', type: 'number' },
+      { key: 'pendanaants', label: 'Pendanaan TS (Rp Juta)', type: 'number' },
+      { key: 'linkbukti', label: 'Link Bukti', type: 'text' },
+    ],
+    'publikasi-penelitian': [
+      { key: 'no', label: 'No', type: 'number' },
+      { key: 'namadtpr', label: 'Nama DTPR', type: 'text' },
+      { key: 'judulpublikasi', label: 'Judul Publikasi', type: 'text' },
+      { key: 'jenispublikasi', label: 'Jenis Publikasi (IB/I/S1,S2,S3,S4,T)', type: 'text' },
+      { key: 'tahunts2', label: 'Tahun Terbit TS-2', type: 'text' },
+      { key: 'tahunts1', label: 'Tahun Terbit TS-1', type: 'text' },
+      { key: 'tahunts', label: 'Tahun Terbit TS', type: 'text' },
+      { key: 'linkbukti', label: 'Link Bukti', type: 'text' },
+    ],
+    'perolehan-hki': [
+      { key: 'no', label: 'No', type: 'number' },
+      { key: 'judul', label: 'Judul', type: 'text' },
+      { key: 'jenishki', label: 'Jenis HKI', type: 'text' },
+      { key: 'namadtpr', label: 'Nama DTPR', type: 'text' },
+      { key: 'tahunts2', label: 'Tahun Perolehan TS-2', type: 'text' },
+      { key: 'tahunts1', label: 'Tahun Perolehan TS-1', type: 'text' },
+      { key: 'tahunts', label: 'Tahun Perolehan TS', type: 'text' },
+      { key: 'linkbukti', label: 'Link Bukti', type: 'text' },
+    ],
 };
 
 
@@ -341,7 +357,7 @@ export default function RelevansiPenelitianPage() {
           {/* Subtabs */}
           <div className="flex gap-2 border-b pb-2 mb-4 overflow-x-auto">
             {Object.keys(subtabFields).map(key => (
-              <button key={key} onClick={()=>setActiveSubTab(key)} className={`px-4 py-2 text-sm rounded-t-lg ${activeSubTab===key?'bg-blue-100 text-blue-900 font-semibold':'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>{key.replace(/-/g,' ')}</button>
+              <button key={key} onClick={()=>setActiveSubTab(key as SubTab)} className={`px-4 py-2 text-sm rounded-t-lg ${activeSubTab===key?'bg-blue-100 text-blue-900 font-semibold':'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>{key.replace(/-/g,' ')}</button>
             ))}
           </div>
 
@@ -372,7 +388,7 @@ export default function RelevansiPenelitianPage() {
                   {(subtabFields[activeSubTab]||[]).map(f => (
                     <div key={f.key}>
                       <label className="block text-sm text-gray-700 mb-1">{f.label}</label>
-                      <input name={f.key} value={formData[f.key]??''} onChange={handleChange} className="w-full px-3 py-2 border rounded" />
+                      <input type={f.type} name={f.key} value={formData[f.key]??''} onChange={handleChange} className="w-full px-3 py-2 border rounded" />
                     </div>
                   ))}
                 </div>

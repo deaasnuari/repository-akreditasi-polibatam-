@@ -87,6 +87,20 @@ function getUserId() {
   throw new Error("User ID tidak ditemukan. Pastikan sudah login.");
 }
 
+function getToken(): string | null {
+  if (typeof window === "undefined") return null;
+  
+  // Try to get token from localStorage
+  const token = localStorage.getItem("token");
+  if (token) return token;
+
+  // Try to get token from sessionStorage
+  const sessionToken = sessionStorage.getItem("token");
+  if (sessionToken) return sessionToken;
+
+  return null;
+}
+
 class RelevansiPenelitianService {
   /**
    * Fetch data berdasarkan tipe subtab

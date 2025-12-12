@@ -42,7 +42,7 @@ export default function RelevansiPkmPage() {
   const fetchData = async () => {
     try {
       setErrorMsg(null);
-      let url = `${API_BASE}?type=${activeSubTab}`;
+      let url = `${API_BASE}?subtab=${activeSubTab}`;
       if (selectedProdi) {
         url += `&prodi=${selectedProdi}`;
       }
@@ -191,43 +191,57 @@ export default function RelevansiPkmPage() {
 
   const subtabFields: Record<string, Array<{ key: string; label: string }>> = {
     'sarana-prasarana': [
-      { key: 'namaPrasarana', label: 'Nama Sarana/Prasarana' },
-      { key: 'dayaTampung', label: 'Daya Tampung' },
-      { key: 'luasRuang', label: 'Luas Ruang (m²)' },
-      { key: 'status', label: 'Status (M/W)' },
-      { key: 'lisensi', label: 'Lisensi (L/P/T)' },
-      { key: 'perangkat', label: 'Perangkat' },
-      { key: 'linkBukti', label: 'Link Bukti' },
+      { key: 'namaprasarana', label: 'Nama Prasarana', type: 'text' },
+      { key: 'dayatampung', label: 'Daya Tampung', type: 'number' },
+      { key: 'luasruang', label: 'Luas Ruang (m²)', type: 'number' },
+      { key: 'miliksendiri', label: 'Milik Sendiri (M)/Sewa (W)', type: 'text' },
+      { key: 'berlisensi', label: 'Berlisensi (L)/Public Domain (P)/Tidak Berlisensi (T)', type: 'text' },
+      { key: 'perangkat', label: 'Perangkat', type: 'text' },
+      { key: 'linkbukti', label: 'Link Bukti', type: 'text' },
     ],
     'pkm-hibah': [
-      { key: 'no', label: 'No' },
-      { key: 'namaDtpr', label: 'Nama DTPR (Ketua)' },
-      { key: 'judulPkm', label: 'Judul PkM' },
-      { key: 'jumlahMahasiswa', label: 'Jumlah Mahasiswa Terlibat' },
-      { key: 'jenisHibah', label: 'Jenis Hibah / Jenis Kegiatan' },
-      { key: 'sumberDana', label: 'Sumber Dana' },
-      { key: 'durasi', label: 'Durasi (tahun)' },
-      { key: 'pendanaan', label: 'Pendanaan (Rp Juta)' },
-      { key: 'tahun', label: 'Tahun' },
-      { key: 'linkBukti', label: 'Link Bukti' },
+      { key: 'no', label: 'No', type: 'number' },
+      { key: 'namadtpr', label: 'Nama DTPR (Sebagai Ketua PkM)', type: 'text' },
+      { key: 'judulpkm', label: 'Judul PkM', type: 'text' },
+      { key: 'jumlahmahasiswa', label: 'Jumlah Mahasiswa yang Terlibat', type: 'number' },
+      { key: 'jenishibah', label: 'Jenis Hibah PkM', type: 'text' },
+      { key: 'sumberdana', label: 'Sumber Dana L/N/I', type: 'text' },
+      { key: 'durasi', label: 'Durasi (tahun)', type: 'number' },
+      { key: 'pendanaants2', label: 'Pendanaan TS-2 (Rp Juta)', type: 'number' },
+      { key: 'pendanaants1', label: 'Pendanaan TS-1 (Rp Juta)', type: 'number' },
+      { key: 'pendanaants', label: 'Pendanaan TS (Rp Juta)', type: 'number' },
+      { key: 'linkbukti', label: 'Link Bukti', type: 'text' },
     ],
     'kerjasama-pkm': [
-      { key: 'no', label: 'No' },
-      { key: 'judulKerjasama', label: 'Judul Kerjasama' },
-      { key: 'mitra', label: 'Mitra' },
-      { key: 'sumber', label: 'Sumber (L/N/I)' },
-      { key: 'durasi', label: 'Durasi (tahun)' },
-      { key: 'pendanaan', label: 'Pendanaan (Rp Juta)' },
-      { key: 'tahun', label: 'Tahun' },
-      { key: 'linkBukti', label: 'Link Bukti' },
+      { key: 'no', label: 'No', type: 'number' },
+      { key: 'judulkerjasama', label: 'Judul Kerjasama', type: 'text' },
+      { key: 'mitrakerjasama', label: 'Mitra kerja sama', type: 'text' },
+      { key: 'sumber', label: 'Sumber L/N/I', type: 'text' },
+      { key: 'durasi', label: 'Durasi (tahun)', type: 'number' },
+      { key: 'pendanaants2', label: 'Pendanaan TS-2 (Rp Juta)', type: 'number' },
+      { key: 'pendanaants1', label: 'Pendanaan TS-1 (Rp Juta)', type: 'number' },
+      { key: 'pendanaants', label: 'Pendanaan TS (Rp Juta)', type: 'number' },
+      { key: 'linkbukti', label: 'Link Bukti', type: 'text' },
+    ],
+    'diseminasi-pkm': [
+      { key: 'no', label: 'No', type: 'number' },
+      { key: 'namadtpr', label: 'Nama DTPR', type: 'text' },
+      { key: 'juduldiseminasi', label: 'Judul Diseminasi', type: 'text' },
+      { key: 'jenisdiseminasi', label: 'Jenis Diseminasi', type: 'text' },
+      { key: 'tahunts2', label: 'Tahun TS-2', type: 'text' },
+      { key: 'tahunts1', label: 'Tahun TS-1', type: 'text' },
+      { key: 'tahunts', label: 'Tahun TS', type: 'text' },
+      { key: 'linkbukti', label: 'Link Bukti', type: 'text' },
     ],
     'hki-pkm': [
-      { key: 'no', label: 'No' },
-      { key: 'judul', label: 'Judul' },
-      { key: 'jenisHki', label: 'Jenis HKI' },
-      { key: 'namaDtpr', label: 'Nama DTPR' },
-      { key: 'tahun', label: 'Tahun Perolehan' },
-      { key: 'linkBukti', label: 'Link Bukti' },
+      { key: 'no', label: 'No', type: 'number' },
+      { key: 'judul', label: 'Judul', type: 'text' },
+      { key: 'jenishki', label: 'Jenis HKI', type: 'text' },
+      { key: 'namadtpr', label: 'Nama DTPR', type: 'text' },
+      { key: 'tahunts2', label: 'Tahun Perolehan TS-2', type: 'text' },
+      { key: 'tahunts1', label: 'Tahun Perolehan TS-1', type: 'text' },
+      { key: 'tahunts', label: 'Tahun Perolehan TS', type: 'text' },
+      { key: 'linkbukti', label: 'Link Bukti', type: 'text' },
     ],
   };
 
@@ -340,6 +354,7 @@ export default function RelevansiPkmPage() {
               { key: 'sarana-prasarana', label: 'Sarana & Prasarana PkM' },
               { key: 'pkm-hibah', label: 'PkM DTPR, Hibah & Pembiayaan' },
               { key: 'kerjasama-pkm', label: 'Kerjasama PkM' },
+              { key: 'diseminasi-pkm', label: 'Diseminasi PkM' }, // Added this subtab
               { key: 'hki-pkm', label: 'Perolehan HKI PkM' },
             ].map((sub) => (
               <button

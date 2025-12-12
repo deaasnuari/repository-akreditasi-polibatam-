@@ -28,9 +28,12 @@ export const getData = async (req, res) => {
     const { subtab, prodi: prodiQuery } = req.query;
     const { id: userId, role: userRole, prodi: userProdi } = req.user;
 
+    console.log('DEBUG: getData - req.query', req.query); // Added for debugging
+    console.log('DEBUG: getData - req.user', req.user);   // Added for debugging
+
     let whereClause = { subtab };
 
-    const normalizedRole = userRole ? userRole.trim().toLowerCase() : '';
+    const normalizedRole = userRole ? userRole.trim().toLowerCase().replace(/\s+/g, '-') : '';
     if (normalizedRole === 'tim-akreditasi') {
       // Tim Akreditasi can ONLY view data for their own prodi
       if (!userProdi) {
@@ -50,6 +53,8 @@ export const getData = async (req, res) => {
       }
       whereClause.prodi = userProdi;
     }
+
+    console.log('DEBUG: Constructed whereClause', whereClause); // Added for debugging
 
     const rows = await prisma.relevansi_penelitian.findMany({
       where: whereClause,
