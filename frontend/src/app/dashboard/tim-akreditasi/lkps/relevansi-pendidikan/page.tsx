@@ -278,8 +278,21 @@ export default function RelevansiPendidikanPage() {
         const headers = jsonData[0] as string[];
         const rows = jsonData.slice(1) as any[][];
 
+        // convert preview rows to objects keyed by header for easier rendering
+        const objRows = rows.map((r) => {
+          const obj: Record<string, any> = {};
+          headers.forEach((h, i) => {
+            obj[h] = r[i] ?? '';
+          });
+          return obj;
+        });
+
         setPreviewHeaders(headers);
-        setPreviewRows(rows.slice(0, 5));
+        setPreviewRows(objRows.slice(0, 5));
+        // initialize mapping to empty or best-effort suggestions
+        const initMap: Record<string, string> = {};
+        headers.forEach(h => { initMap[h] = '' });
+        setMapping(initMap);
         setPreviewFile(file);
         setShowPreviewModal(true);
       };
@@ -302,22 +315,20 @@ export default function RelevansiPendidikanPage() {
         const data = new Uint8Array(event.target?.result as ArrayBuffer);
         const workbook = XLSX.read(data, { type: 'array' });
         const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-        const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+        // const jsonData = XLSX.utils.sheet_to_json(firstSheet); // not needed; server will parse file
 
-        const reverseMapping: Record<string, string> = {};
-        Object.entries(mapping).forEach(([header, field]) => {
-          if (field) reverseMapping[field] = header;
-        });
-
-        const mappedData = jsonData.map((row: any) => {
-          const fieldMap = getFieldMappingForSubTab(activeSubTab);
-          return fieldMap;
+        // REFORMAT mapping to backend-expected shape: [{ dbField: excelHeader, ... }]
+        const reversed: Record<string, string> = {};
+        Object.entries(mapping).forEach(([excelHeader, dbField]) => {
+          if (dbField && dbField.trim() !== '') {
+            reversed[dbField] = excelHeader;
+          }
         });
 
         const formDataImport = new FormData();
         formDataImport.append('file', previewFile);
         formDataImport.append('subtab', activeSubTab);
-        formDataImport.append('mappedData', JSON.stringify(mappedData));
+        formDataImport.append('mappedData', JSON.stringify([reversed]));
 
         const res = await fetch(`${API_BASE}/import`, {
           method: 'POST',
@@ -345,6 +356,22 @@ export default function RelevansiPendidikanPage() {
     } finally {
       setImporting(false);
     }
+  };
+
+  // Auto-map suggestion: try to match header to known field labels
+  const applyAutoMap = () => {
+    const fieldMap = getFieldMappingForSubTab(activeSubTab);
+    const normalizedFields: Array<{ key: string; label: string; norm: string }> = Object.entries(fieldMap).map(([k, v]) => ({ key: k, label: String(v), norm: String(v).toLowerCase().replace(/[^a-z0-9]/g, '') }));
+    const newMap: Record<string, string> = { ...mapping };
+    previewHeaders.forEach(h => {
+      const normH = String(h).toLowerCase().replace(/[^a-z0-9]/g, '');
+      let best: string | null = null;
+      for (const f of normalizedFields) {
+        if (normH.includes(f.norm) || f.norm.includes(normH)) { best = f.key; break; }
+      }
+      if (best) newMap[h] = best;
+    });
+    setMapping(newMap);
   };
 
   const getFieldMappingForSubTab = (subTab: SubTab): Record<string, string> => {
@@ -1171,6 +1198,10 @@ export default function RelevansiPendidikanPage() {
                         ))}
                       </tbody>
                     </table>
+                    <div className="mt-2">
+                      <button onClick={applyAutoMap} className="px-3 py-1 bg-green-600 text-white rounded text-sm">Auto Map</button>
+                      <button onClick={() => { setMapping({}); }} className="ml-2 px-3 py-1 bg-gray-200 text-gray-800 rounded text-sm">Clear Map</button>
+                    </div>
                   </div>
 
                   <div className="mb-4">
@@ -1185,10 +1216,10 @@ export default function RelevansiPendidikanPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {previewRows.map((row, index) => (
+                          {previewRows.map((row: any, index) => (
                             <tr key={index}>
-                              {row.map((cell, cellIndex) => (
-                                <td key={cellIndex} className="border px-2 py-1">{String(cell)}</td>
+                              {previewHeaders.map((header, hIdx) => (
+                                <td key={hIdx} className="border px-2 py-1">{String(row[header] ?? '')}</td>
                               ))}
                             </tr>
                           ))}

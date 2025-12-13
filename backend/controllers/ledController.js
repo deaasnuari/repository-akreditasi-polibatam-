@@ -99,3 +99,40 @@ export const deleteLEDTab = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+/**
+ * SAVE DRAFT - Save LED draft and create/update BuktiPendukung reference
+ * Body: { nama, path, status, type, currentData }
+ */
+export const saveDraft = async (req, res) => {
+  try {
+    const { nama, path, status, type, currentData } = req.body;
+    const user_id = req.user && req.user.id;
+
+    if (!user_id) return res.status(401).json({ success: false, message: 'User tidak terautentikasi' });
+    if (!type || !currentData) return res.status(400).json({ success: false, message: 'type dan currentData wajib diisi' });
+
+    // Upsert the LED subtab data
+    const existing = await prisma.led.findFirst({ where: { user_id: user_id, subtab: type }, select: { id: true } });
+    let savedLED;
+    if (existing) {
+      savedLED = await prisma.led.update({ where: { id: existing.id }, data: { data: currentData, updated_at: new Date() } });
+    } else {
+      savedLED = await prisma.led.create({ data: { user_id, subtab: type, data: currentData, role: req.user.role || '' } });
+    }
+
+    // Create or update BuktiPendukung reference
+    const existingBukti = await prisma.buktiPendukung.findFirst({ where: { userId: user_id, path: path } });
+    let buktiPendukungEntry;
+    if (existingBukti) {
+      buktiPendukungEntry = await prisma.buktiPendukung.update({ where: { id: existingBukti.id }, data: { status: status } });
+    } else {
+      buktiPendukungEntry = await prisma.buktiPendukung.create({ data: { nama: nama || `Draft LED - ${type}`, path: path || `/dashboard/tim-akreditasi/led?tab=${type}`, status: status || 'Draft', userId: user_id } });
+    }
+
+    res.json({ success: true, message: 'Draft LED berhasil disimpan dan referensi Bukti Pendukung diperbarui', savedLED, buktiPendukungEntry, redirect: '/dashboard/tim-akreditasi/bukti-pendukung' });
+  } catch (err) {
+    console.error('SAVE DRAFT LED ERROR:', err);
+    res.status(500).json({ success: false, message: 'Gagal menyimpan draft LED', error: err.message });
+  }
+};

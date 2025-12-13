@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Plus, Trash, Save, Info } from 'lucide-react';
+import { saveLEDDraft } from '../../../../services/ledService';
 import { Toaster, toast } from 'sonner';
 import { getAllLEDData, saveLEDTab } from '../../../../services/ledService';
 
@@ -191,6 +192,28 @@ export default function BudayaMutuLEDPage() {
       }
     }
   }, [tabData, activeTab]);
+
+  const handleSaveDraft = useCallback(async () => {
+    try {
+      const payload = {
+        nama: `LED - ${activeTab}`,
+        path: `/dashboard/tim-akreditasi/led?tab=${activeTab}`,
+        status: 'Draft',
+        type: activeTab,
+        currentData: tabData[activeTab],
+      };
+      toast('Menyimpan draft...', { icon: <Save size={16} /> });
+      const json = await saveLEDDraft(payload);
+      toast.success(json?.message || 'Draft LED berhasil disimpan');
+      // redirect to bukti pendukung
+      setTimeout(() => {
+        router.push('/dashboard/tim-akreditasi/bukti-pendukung');
+      }, 1200);
+    } catch (err: any) {
+      console.error('Error save draft:', err);
+      toast.error(err?.message || 'Gagal menyimpan draft');
+    }
+  }, [tabData, activeTab, router]);
 
   useEffect(() => {
     if (!isClient || loading) return;
@@ -513,6 +536,15 @@ export default function BudayaMutuLEDPage() {
           </div>
 
           <div className="flex justify-end gap-2 sm:gap-3 mt-4 sm:mt-6 pt-3 sm:pt-4 border-t">
+            <button
+              type="button"
+              onClick={handleSaveDraft}
+              className="inline-flex items-center gap-1 sm:gap-2 px-3 sm:px-6 py-2 sm:py-3 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 transition-all duration-200 text-xs sm:text-sm"
+            >
+              <Save className="h-4 w-4 sm:h-5 sm:w-5" />
+              <span className="hidden sm:inline">Save Draft</span>
+              <span className="inline sm:hidden">Draft</span>
+            </button>
             <button
               type="button"
               onClick={() => handleSave(true, false)}

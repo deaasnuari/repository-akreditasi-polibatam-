@@ -53,18 +53,35 @@ export default function BuktiPendukungPage() {
       setLoading(true);
       try {
         const data: BorangItem[] = await fetchData('bukti-pendukung');
-        const transformedData: TableItem[] = data.map(item => ({
-          judul: item.nama,
-          jenis: 'Isian Borang',
-          kategori: 'LKPS', // Asumsi atau bisa di-parse dari path jika perlu
-          file: item.path, // Simpan path di sini untuk kolom file
-          tanggal: new Date(item.updatedAt).toISOString().split('T')[0],
-          status: item.status,
-          isBorang: true, // Flag penting untuk membedakan
-          path: item.path,
-          uploadBy: 'Tim Akreditasi', // Placeholder
-          size: '-'
-        }));
+        const transformedData: TableItem[] = data.map(item => {
+          // Determine kategori by path heuristics: if path references LED -> LED, else LKPS
+          let kategori = 'LKPS';
+          try {
+            const p = String(item.path || '').toLowerCase();
+            if (p.includes('/led') || p.includes('led?') || p.includes('/dashboard/tim-akreditasi/led')) {
+              kategori = 'LED';
+            } else if (p.includes('/lkps') || p.includes('lkps?') || p.includes('/dashboard/tim-akreditasi/lkps')) {
+              kategori = 'LKPS';
+            } else {
+              // fallback: if neither, try to infer from name
+              const n = String(item.nama || '').toLowerCase();
+              if (n.includes('led')) kategori = 'LED';
+            }
+          } catch (e) {}
+
+          return {
+            judul: item.nama,
+            jenis: 'Isian Borang',
+            kategori,
+            file: item.path, // Simpan path di sini untuk kolom file
+            tanggal: new Date(item.updatedAt).toISOString().split('T')[0],
+            status: item.status,
+            isBorang: true, // Flag penting untuk membedakan
+            path: item.path,
+            uploadBy: 'Tim Akreditasi', // Placeholder
+            size: '-'
+          };
+        });
         setBorangData(transformedData);
       } catch (error) {
         console.error("Gagal memuat data borang:", error);

@@ -252,6 +252,7 @@ export const importExcel = [
       const subtab = req.body.subtab;
       const userId = req.user.id; // Ambil user_id dari token JWT
       const mapping = req.body.mappedData ? JSON.parse(req.body.mappedData) : {};
+      const mappingObj = Array.isArray(mapping) ? (mapping[0] || {}) : (typeof mapping === 'object' ? mapping : {});
 
       const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -265,7 +266,6 @@ export const importExcel = [
           const raw = rows[i];
           const mappedData = {};
           let recordProdi = req.user.prodi; // Default to user's prodi
-          console.log("data: ", mapping[0]);
 
           // for (const header of Object.keys(mapping)) {
           //   const dbField = mapping[header];
@@ -276,7 +276,8 @@ export const importExcel = [
           //     obj[dbField] = raw[header];
           //   }
           // }
-          Object.entries(mapping[0]).forEach(([dbField, excelColumn]) => {
+          console.log("mappingObj: ", mappingObj);
+          Object.entries(mappingObj).forEach(([dbField, excelColumn]) => {
             if (dbField !== 'prodi' && excelColumn && raw.hasOwnProperty(excelColumn)) { // Exclude 'prodi' from data JSON
               mappedData[dbField] = raw[excelColumn];
             }

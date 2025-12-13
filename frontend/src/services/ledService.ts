@@ -123,6 +123,29 @@ export async function saveLEDTab(
   }
 }
 
+/* ==================== SAVE DRAFT LED ==================== */
+export async function saveLEDDraft(payload: { nama?: string; path?: string; status?: string; type: string; currentData: any }): Promise<any> {
+  try {
+    const res = await fetch(`${API_BASE_LED}/savedraft`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(payload),
+    });
+    const text = await res.text();
+    let json: any = null;
+    try { json = text ? JSON.parse(text) : null; } catch {}
+    if (!res.ok) {
+      const msg = json?.message || text || `Failed to save draft (status ${res.status})`;
+      throw new Error(msg);
+    }
+    return json;
+  } catch (err) {
+    console.error('saveLEDDraft error:', err);
+    throw err;
+  }
+}
+
 /* ==================== FETCH ALL LED (Alternative) ==================== */
 export const fetchBudayaMutuLED = async (): Promise<any[]> => {
   try {
