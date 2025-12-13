@@ -115,10 +115,14 @@ export default function ExportAkreditasi() {
       const res = await fetch(`${API_URL}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ format: exportFormat, selectedIds: selectedBagian }),
       });
 
-      if (!res.ok) throw new Error('Export gagal');
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error('Gagal melakukan export');
+      }
 
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
@@ -131,7 +135,7 @@ export default function ExportAkreditasi() {
       window.URL.revokeObjectURL(url);
     } catch (e) {
       console.error(e);
-      alert('Terjadi kesalahan saat export');
+      alert(`Terjadi kesalahan saat export: ${e instanceof Error ? e.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
