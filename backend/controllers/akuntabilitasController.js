@@ -7,12 +7,10 @@ const prisma = new PrismaClient();
 // GET DATA BY SUBTAB
 // ======================
 export const getData = async (req, res) => {
-  const { subtab, prodi } = req.query; // Changed prodiFilter to prodi
-  const userId = req.user?.id;
-  const userRole = req.user?.role;
-  const userProdi = req.user?.prodi;
-
-  if (!userId) {
+          const { subtab, prodi } = req.query;
+          const userId = req.user?.id;
+          const userRole = req.user?.role;
+          const userProdi = req.user?.prodi;  if (!userId) {
     return res.status(401).json({ success: false, message: "Unauthorized" });
   }
 
@@ -32,8 +30,7 @@ export const getData = async (req, res) => {
         whereClause.prodi = prodi;
       }
     } else {
-      // Other roles always filter by their user_id AND their prodi
-      whereClause.user_id = userId;
+      // Other roles always filter by their prodi
       if (!userProdi) {
         return res.status(403).json({ success: false, message: "Prodi pengguna tidak ditemukan." });
       }

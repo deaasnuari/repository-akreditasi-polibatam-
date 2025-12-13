@@ -46,8 +46,7 @@ export const getData = async (req, res) => {
         whereClause.prodi = prodiQuery;
       }
     } else {
-      // Other roles always filter by their user_id AND their prodi
-      whereClause.user_id = userId;
+      // Other roles always filter by their prodi
       if (!userProdi) {
         return res.status(403).json({ success: false, message: "Prodi pengguna tidak ditemukan." });
       }
