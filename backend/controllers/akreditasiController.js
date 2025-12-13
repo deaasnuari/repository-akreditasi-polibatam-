@@ -162,15 +162,14 @@ export const exportData = async (req, res) => {
     console.log('🔵 EXPORT - User info:', { userId, userRole, userProdi });
     console.log('🔵 EXPORT - Request:', { format, selectedIds });
 
-    // Ambil data tupoksi dari budaya_mutu table
-    let whereClause = { type: 'tupoksi' };
+    // Ambil SEMUA data dari budaya_mutu (semua type)
+    let whereClause = {};
     
     const normalizedRole = userRole ? userRole.trim().toLowerCase() : '';
     
     // Apply role-based filtering
     if (normalizedRole === 'tim-akreditasi' || normalizedRole === 'tim akreditasi') {
-      // Tim Akreditasi dapat melihat semua data tupoksi (untuk export gabungan)
-      // Tapi bisa juga filter by prodi mereka jika diperlukan
+      // Tim Akreditasi dapat melihat semua data (untuk export gabungan)
       if (userProdi) {
         // Uncomment line dibawah jika ingin Tim Akreditasi hanya export prodi mereka
         // whereClause.prodi = userProdi;
@@ -186,11 +185,12 @@ export const exportData = async (req, res) => {
 
     console.log('🔵 EXPORT - Where clause:', whereClause);
 
-    const tupoksiRecords = await prisma.budaya_mutu.findMany({
+    const allRecords = await prisma.budaya_mutu.findMany({
       where: whereClause,
-      orderBy: { id: 'asc' },
+      orderBy: [{ type: 'asc' }, { id: 'asc' }],
       select: {
         id: true,
+        type: true,
         prodi: true,
         data: true,
         created_at: true,
@@ -198,39 +198,26 @@ export const exportData = async (req, res) => {
       },
     });
 
-    console.log(`🔵 EXPORT - Found ${tupoksiRecords.length} records`);
+    console.log(`🔵 EXPORT - Found ${allRecords.length} records`);
 
-    if (tupoksiRecords.length === 0) {
-      return res.status(400).json({ message: "Tidak ada data tupoksi untuk di-export" });
+    if (allRecords.length === 0) {
+      return res.status(400).json({ message: "Tidak ada data LKPS untuk di-export" });
     }
 
-    // Flatten JSON data ke array of rows untuk Excel
-    const excelData = [];
-    
-    tupoksiRecords.forEach((record) => {
-      const jsonData = record.data;
-      
-      // Data tupoksi adalah object langsung, bukan array
-      if (jsonData && typeof jsonData === 'object' && !Array.isArray(jsonData)) {
-        excelData.push({
-          'Prodi': record.prodi || '',
-          'Unit Kerja': jsonData.unitKerja || '',
-          'Nama Ketua': jsonData.namaKetua || '',
-          'Periode': jsonData.periode || '',
-          'Pendidikan Terakhir': jsonData.pendidikanTerakhir || jsonData.pendidikan || '',
-          'Jabatan Fungsional': jsonData.jabatanFungsional || jsonData.jabatan || '',
-          'Tugas Pokok dan Fungsi': jsonData.tugasPokokDanFungsi || jsonData.tupoksi || '',
-        });
+    // Group records by type
+    const recordsByType = {};
+    allRecords.forEach(record => {
+      if (!recordsByType[record.type]) {
+        recordsByType[record.type] = [];
       }
+      recordsByType[record.type].push(record);
     });
 
-    console.log(`🔵 EXPORT - Processed ${excelData.length} rows`);
+    console.log(`🔵 EXPORT - Types found:`, Object.keys(recordsByType));
 
-    if (excelData.length === 0) {
-      return res.status(400).json({ message: "Tidak ada data tupoksi yang dapat di-export" });
-    }
+    console.log(`🔵 EXPORT - Types found:`, Object.keys(recordsByType));
 
-    const fileName = `tupoksi-export-${Date.now()}`;
+    const fileName = `lkps-export-${Date.now()}`;
     const exportDir = path.join(__dirname, "../exports");
     
     // Buat folder exports kalau belum ada
@@ -239,22 +226,52 @@ export const exportData = async (req, res) => {
     }
 
     if (format.toLowerCase() === 'excel' || format.toLowerCase() === 'xlsx') {
-      // Export ke Excel menggunakan XLSX
-      const worksheet = XLSX.utils.json_to_sheet(excelData);
+      // Export ke Excel dengan sheet berbeda untuk setiap type
       const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Tabel Tupoksi");
 
-      // Set column widths
-      const cols = [
-        { wch: 20 },  // Prodi
-        { wch: 25 },  // Unit Kerja
-        { wch: 30 },  // Nama Ketua
-        { wch: 15 },  // Periode
-        { wch: 25 },  // Pendidikan Terakhir
-        { wch: 25 },  // Jabatan Fungsional
-        { wch: 50 },  // Tugas Pokok dan Fungsi
-      ];
-      worksheet['!cols'] = cols;
+      // Process each type
+      Object.keys(recordsByType).forEach(type => {
+        const records = recordsByType[type];
+        const excelData = [];
+
+        records.forEach((record) => {
+          const jsonData = record.data;
+          
+          if (jsonData && typeof jsonData === 'object') {
+            // Create a flattened object with all fields
+            const flatData = {
+              'Prodi': record.prodi || '',
+              'Tanggal Input': record.created_at ? new Date(record.created_at).toLocaleDateString('id-ID') : '',
+            };
+
+            // Add all fields from JSON data
+            Object.keys(jsonData).forEach(key => {
+              // Convert camelCase to Title Case
+              const label = key
+                .replace(/([A-Z])/g, ' $1')
+                .replace(/^./, str => str.toUpperCase())
+                .trim();
+              flatData[label] = jsonData[key] || '';
+            });
+
+            excelData.push(flatData);
+          }
+        });
+
+        if (excelData.length > 0) {
+          const worksheet = XLSX.utils.json_to_sheet(excelData);
+          
+          // Set column widths
+          const cols = Object.keys(excelData[0]).map(() => ({ wch: 20 }));
+          worksheet['!cols'] = cols;
+
+          // Create sheet name (capitalize and limit to 31 chars for Excel)
+          const sheetName = type.charAt(0).toUpperCase() + type.slice(1);
+          const truncatedName = sheetName.substring(0, 31);
+          
+          XLSX.utils.book_append_sheet(workbook, worksheet, truncatedName);
+        }
+      });
 
       const filePath = path.join(exportDir, `${fileName}.xlsx`);
       XLSX.writeFile(workbook, filePath);
@@ -274,11 +291,22 @@ export const exportData = async (req, res) => {
         }
       });
     } else if (format.toLowerCase() === 'pdf') {
-      // Untuk PDF, sementara kirim JSON (nanti bisa implement PDF generator)
+      // Untuk PDF, export semua data dalam format text
       const filePath = path.join(exportDir, `${fileName}.pdf`);
       
-      // Simple PDF generation (placeholder - implement proper PDF later)
-      const pdfContent = `DATA TUPOKSI\n\n${JSON.stringify(excelData, null, 2)}`;
+      let pdfContent = 'DATA LKPS - BUDAYA MUTU\n';
+      pdfContent += '='.repeat(80) + '\n\n';
+      
+      Object.keys(recordsByType).forEach(type => {
+        pdfContent += `\n${type.toUpperCase()}\n`;
+        pdfContent += '-'.repeat(80) + '\n';
+        
+        recordsByType[type].forEach((record, idx) => {
+          pdfContent += `\n[${idx + 1}] Prodi: ${record.prodi || 'N/A'}\n`;
+          pdfContent += `Data: ${JSON.stringify(record.data, null, 2)}\n`;
+        });
+      });
+      
       fs.writeFileSync(filePath, pdfContent);
 
       res.download(filePath, `${fileName}.pdf`, (err) => {

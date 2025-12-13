@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Plus, Trash, Save, Info } from 'lucide-react';
 import { saveLEDDraft } from '../../../../services/ledService';
+import type { TabData as ServiceTabData, RowEval as ServiceRowEval } from '../../../../services/ledService';
 import { Toaster, toast } from 'sonner';
 import { getAllLEDData, saveLEDTab } from '../../../../services/ledService';
 
@@ -147,9 +148,14 @@ export default function BudayaMutuLEDPage() {
           // Ensure all tabs have all required fields
           const updatedData: Record<string, TabData> = {};
           tabs.forEach(([key]) => {
+            // Map service shape (evalRows) into UI shape (evalA/evalB/evalC)
+            const svcTab = parsed[key] || {};
             updatedData[key] = {
               ...createEmptyTab(),
-              ...(parsed[key] || {})
+              ...(parsed[key] || {}),
+              evalA: Array.isArray(svcTab.evalRows) ? svcTab.evalRows : (parsed[key]?.evalA || createEmptyTab().evalA),
+              evalB: parsed[key]?.evalB || createEmptyTab().evalB,
+              evalC: parsed[key]?.evalC || createEmptyTab().evalC,
             };
           });
           setTabData(updatedData);
@@ -175,11 +181,33 @@ export default function BudayaMutuLEDPage() {
     loadData();
   }, [isClient]);
 
+  const transformUIToServiceTabData = useCallback((ui: TabData): ServiceTabData => {
+    const { evalA, evalB, evalC, ...rest } = ui as any;
+    const toSvcEval = (r: any): ServiceRowEval => ({
+      id: r.id || uid('ev-'),
+      pernyataan: r.pernyataan || '',
+      keterlaksanaan: r.keterlaksanaan || '',
+      pelaksanaan: r.pelaksanaan || '',
+      bukti_pendukung: r.bukti_pendukung || '',
+      evaluasi: r.evaluasi || '',
+      tindak_lanjut: r.tindak_lanjut || '',
+      hasil_optimalisasi: r.hasil_optimalisasi || '',
+    });
+
+    const combined: ServiceRowEval[] = [];
+    if (Array.isArray(evalA)) combined.push(...evalA.map(toSvcEval));
+    if (Array.isArray(evalB)) combined.push(...evalB.map(toSvcEval));
+    if (Array.isArray(evalC)) combined.push(...evalC.map(toSvcEval));
+
+    return { ...rest, evalRows: combined } as ServiceTabData;
+  }, []);
+
   const handleSave = useCallback(async (notify = true, auto = false) => {
     const activeLabel = tabs.find(([k]) => k === activeTab)?.[1] || activeTab;
     try {
       const user_id = getUserId();
-      await saveLEDTab(user_id, activeTab, tabData[activeTab]);
+      const svcData = transformUIToServiceTabData(tabData[activeTab]);
+      await saveLEDTab(user_id, activeTab, svcData);
       localStorage.setItem('budaya_mutu_led_data', JSON.stringify(tabData));
 
       if (notify && !auto) {
@@ -572,7 +600,7 @@ interface Table2ColProps {
   extended?: boolean;
 }
 
-export function Table2Col({ rows, sectionKey, onAdd, onRemove, onUpdate, extended = false }: Table2ColProps) {
+function Table2Col({ rows, sectionKey, onAdd, onRemove, onUpdate, extended = false }: Table2ColProps) {
   const safeRows = Array.isArray(rows) && rows.length > 0
     ? rows
     : [{ id: uid('default-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }];
@@ -700,7 +728,7 @@ interface SectionEvalProps {
   onUpdate: (sectionKey: keyof TabData, id: string, field: string, value: string) => void;
 }
 
-export function SectionEval({ evalRows, sectionKey, titleSuffix, onAdd, onRemove, onUpdate }: SectionEvalProps) {
+function SectionEval({ evalRows, sectionKey, titleSuffix, onAdd, onRemove, onUpdate }: SectionEvalProps) {
   const safeRows = Array.isArray(evalRows) && evalRows.length > 0
     ? evalRows
     : [{
