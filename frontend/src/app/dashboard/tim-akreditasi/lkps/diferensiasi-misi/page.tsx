@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect, useState, ChangeEvent } from 'react';
-import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Info, MessageSquare } from 'lucide-react';
+import React, { useEffect, useState, ChangeEvent, useMemo } from 'react';
+import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Info, MessageSquare, Search } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import * as XLSX from 'xlsx';
@@ -43,6 +43,9 @@ export default function DiferensiasiMisiPage() {
   const [selectedItemForNotes, setSelectedItemForNotes] = useState<any>(null);
   const [p4mNotes, setP4mNotes] = useState<any[]>([]);
   const [loadingP4mNotes, setLoadingP4mNotes] = useState(false);
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
   // User state
   const [user, setUser] = useState<User | null>(null);
@@ -176,6 +179,18 @@ export default function DiferensiasiMisiPage() {
   useEffect(() => {
     fetchData();
   }, [user, userLoaded]); // Added user and userLoaded to dependencies
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 300);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
+
+  const filteredData = useMemo(() => {
+    const base = data || [];
+    if (!debouncedSearch) return base;
+    const q = debouncedSearch.toLowerCase();
+    return base.filter(item => [item.unit_kerja, item.tipe_data, item.konten].some(v => v !== null && v !== undefined && String(v).toLowerCase().includes(q)));
+  }, [data, debouncedSearch]);
 
   // --- Form & CRUD ---
   const openAdd = () => {
@@ -343,7 +358,15 @@ export default function DiferensiasiMisiPage() {
 
             {/* Tombol Aksi */}
             <div className="flex justify-between items-center mb-4">
-              <div className="flex gap-2 flex-wrap">
+              <div className="flex gap-2 flex-wrap items-center">
+                <div className="relative">
+                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Cari unit, tipe, atau konten..." className="pl-10 pr-8 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-300 focus:border-blue-300" />
+                  {searchQuery && (
+                    <button onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"><X size={14} /></button>
+                  )}
+                </div>
+
                 <button
                   onClick={openAdd}
                   className="flex items-center gap-2 px-4 py-2 text-sm text-white bg-blue-700 rounded-lg hover:bg-blue-800"
@@ -387,23 +410,22 @@ export default function DiferensiasiMisiPage() {
                 </thead>
 
                 <tbody className="divide-y divide-gray-100">
-                  {data.length === 0 ? (
+                  {filteredData.length === 0 ? (
                     <tr>
                       <td colSpan={4} className="py-6 text-center text-gray-500">
-                        Belum ada data
+                        {(data||[]).length > 0 && debouncedSearch ? (<>{'Tidak ada hasil untuk "'}<span className="font-medium">{debouncedSearch}</span>{'"'}</>) : 'Belum ada data'}
                       </td>
                     </tr>
                   ) : (
-                    data.map((item, index) => (
+                    filteredData.map((item, index) => (
                       <tr key={item.id ?? `row-${index}`} className="hover:bg-gray-50">
                         <td className="px-4 py-3">{item.unit_kerja}</td>
                         <td className="px-4 py-3">{item.tipe_data}</td>
-                        <td className="px-4 py-3">{item.konten}</td>
+                        <td className="px-4 py-3">
+                          <div className="max-w-md truncate">{item.konten}</div>
+                        </td>
                         <td className="px-4 py-3 text-center">
                           <div className="flex justify-center gap-2">
-                            <button onClick={() => handleViewP4mNotes(item)} className="text-purple-600 hover:text-purple-800" title="Lihat Catatan P4M">
-                              <MessageSquare size={16} />
-                            </button>
                             <button onClick={() => handleEdit(item)} className="text-blue-700 hover:text-blue-900">
                               <Edit size={16} />
                             </button>

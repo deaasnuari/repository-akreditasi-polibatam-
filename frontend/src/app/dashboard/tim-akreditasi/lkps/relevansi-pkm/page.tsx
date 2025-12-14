@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Info, MessageSquare } from 'lucide-react';
+import React, { useEffect, useState, useMemo } from 'react';
+import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Info, MessageSquare, Search } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { relevansiPkmService } from '@/services/relevansiPkmService';
@@ -36,6 +36,9 @@ export default function RelevansiPkmPage() {
   const [selectedItemForNotes, setSelectedItemForNotes] = useState<any>(null);
   const [p4mNotes, setP4mNotes] = useState<any[]>([]);
   const [loadingP4mNotes, setLoadingP4mNotes] = useState(false);
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
   const showPopup = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     setPopup({ show: true, message, type });
@@ -185,6 +188,17 @@ export default function RelevansiPkmPage() {
     fetchData();
   }, [activeSubTab]);
 
+  // debounce search
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 300);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
+
+  // clear on subtab change
+  useEffect(() => {
+    setSearchQuery(''); setDebouncedSearch('');
+  }, [activeSubTab]);
+
   const fetchData = async () => {
     try {
       setErrorMsg(null);
@@ -320,14 +334,34 @@ export default function RelevansiPkmPage() {
     </tr>
   );
 
+  const filteredData = useMemo(() => {
+    const base = data || [];
+    if (!debouncedSearch) return base;
+    const q = debouncedSearch.toLowerCase();
+    return base.filter(item => {
+      const values = item?.data ? Object.values(item.data) : Object.values(item || {});
+      return values.some(v => v !== null && v !== undefined && String(v).toLowerCase().includes(q));
+    });
+  }, [data, debouncedSearch]);
+
   const renderRows = () => {
     const cols = subtabFields[activeSubTab] || [];
-    if (data.length === 0) return (
-      <tr>
-        <td colSpan={cols.length + 1} className="text-center py-6 text-gray-500">Belum ada data</td>
-      </tr>
-    );
-    return data.map((item, index) => (
+    if (filteredData.length === 0) {
+      if ((data || []).length > 0 && debouncedSearch) {
+        return (
+          <tr>
+            <td colSpan={cols.length + 1} className="text-center py-6 text-gray-500">{'Tidak ada hasil untuk "'}<span className="font-medium">{debouncedSearch}</span>{'"'}</td>
+          </tr>
+        );
+      }
+      return (
+        <tr>
+          <td colSpan={cols.length + 1} className="text-center py-6 text-gray-500">Belum ada data</td>
+        </tr>
+      );
+    }
+
+    return filteredData.map((item, index) => (
       <tr key={item.id ?? index} className="bg-white hover:bg-gray-50 border-b">
         {cols.map(c => <td key={c.key} className="px-6 py-4 text-gray-800">{item[c.key] ?? ''}</td>)}
         <td className="px-6 py-4 text-center">
@@ -401,27 +435,19 @@ export default function RelevansiPkmPage() {
 
             {/* Tombol Aksi */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-              <div className="flex gap-1.5 sm:gap-2 flex-wrap">
-                <button
-                  onClick={openAdd}
-                  className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm text-white bg-blue-700 rounded-lg hover:bg-blue-800"
-                >
-                  <Plus size={14} className="sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Tambah</span> Tambah Data
-                </button>
+              <div className="flex gap-1.5 sm:gap-2 flex-wrap items-center">
+                <div className="relative">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder={`Cari data di ${activeSubTab.replace('-', ' ')}...`} className="pl-9 pr-8 py-1.5 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-blue-300 focus:border-blue-300" />
+                  {searchQuery && (
+                    <button onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"><X size={12} /></button>
+                  )}
+                </div>
+
+                <button onClick={openAdd} className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm text-white bg-blue-700 rounded-lg hover:bg-blue-800"><Plus size={14} className="sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Tambah</span> Tambah Data</button>
                 <form onSubmit={(e) => e.preventDefault()} className="relative">
-                  <input
-                    type="file"
-                    accept=".xlsx, .xls"
-                    id="importExcel"
-                    className="absolute inset-0 opacity-0 cursor-pointer"
-                    onChange={handleFileChange}
-                  />
-                  <label
-                    htmlFor="importExcel"
-                    className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-100 cursor-pointer"
-                  >
-                    <Upload size={14} className="sm:w-4 sm:h-4" /> Import Excel
-                  </label>
+                  <input type="file" accept=".xlsx, .xls" id="importExcel" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleFileChange} />
+                  <label htmlFor="importExcel" className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-100 cursor-pointer"><Upload size={14} className="sm:w-4 sm:h-4" /> Import Excel</label>
                 </form>
               </div>
             </div>

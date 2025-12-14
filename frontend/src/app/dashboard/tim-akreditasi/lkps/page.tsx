@@ -1,7 +1,7 @@
 'use client';
 import Link from "next/link";
-import React, { useEffect, useState } from 'react';
-import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Info, MessageSquare } from 'lucide-react';
+import React, { useEffect, useState, useMemo } from 'react';
+import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Info, MessageSquare, Search } from 'lucide-react';
 import { usePathname, useRouter } from "next/navigation";
 import { getReviews as fetchReviews } from '@/services/reviewService';
 
@@ -62,6 +62,10 @@ export default function LKPSPage() {
   const [selectedItemForNotes, setSelectedItemForNotes] = useState<any>(null);
   const [p4mNotes, setP4mNotes] = useState<any[]>([]);
   const [loadingP4mNotes, setLoadingP4mNotes] = useState(false);
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
   // State untuk import Excel dengan preview
   const [importing, setImporting] = useState(false);
@@ -392,6 +396,18 @@ export default function LKPSPage() {
     if (!userLoaded || !user) return; // Ensure user is loaded and not null
     fetchData();
   }, [activeSubTab, user, userLoaded]); // Added user and userLoaded to dependencies
+
+  // Debounce search input for better UX
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 300);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
+
+  // Clear search when switching sub-tabs to avoid confusion
+  useEffect(() => {
+    setSearchQuery('');
+    setDebouncedSearch('');
+  }, [activeSubTab]);
 
   // ...
 
@@ -929,7 +945,17 @@ export default function LKPSPage() {
     }
   };
 
-  const data = tabData[activeSubTab];
+  const data = useMemo(() => {
+    const base = tabData[activeSubTab] || [];
+    if (!debouncedSearch) return base;
+    const q = debouncedSearch.toLowerCase();
+    return base.filter(item => {
+      return Object.values(item.data || {}).some(v => {
+        if (v === null || v === undefined) return false;
+        return String(v).toLowerCase().includes(q);
+      });
+    });
+  }, [tabData, activeSubTab, debouncedSearch]);
 
   const renderColumns = () => (
     <tr>
@@ -943,7 +969,18 @@ export default function LKPSPage() {
   );
 
   const renderRows = () => {
-    if (!data.length)
+    if (!data.length) {
+      const originalLength = tabData[activeSubTab]?.length || 0;
+      if (originalLength > 0 && debouncedSearch) {
+        return (
+          <tr>
+            <td colSpan={subTabFields[activeSubTab].length + 1} className="text-center py-6 text-gray-500">
+              {'Tidak ada hasil untuk "'}<span className="font-medium">{debouncedSearch}</span>{'"'}
+            </td>
+          </tr>
+        );
+      }
+
       return (
         <tr>
           <td colSpan={subTabFields[activeSubTab].length + 1} className="text-center py-6 text-gray-500">
@@ -951,6 +988,7 @@ export default function LKPSPage() {
           </td>
         </tr>
       );
+    }
 
     return data.map((item, index) => (
       <tr key={item.id} className="bg-white rounded-lg shadow-sm hover:bg-gray-50 border-b">
@@ -1179,7 +1217,22 @@ export default function LKPSPage() {
                 <h3 className="text-lg font-semibold text-gray-900 capitalize">Data {activeSubTab}</h3>
                 <h2 className="text-sm text-gray-600">{tableTitles[activeSubTab]}</h2>
 
-                <div className="flex gap-2 flex-wrap">
+                <div className="flex gap-2 flex-wrap items-center">
+                  <div className="relative">
+                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder={`Cari data di ${activeSubTab}...`}
+                      className="pl-10 pr-8 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-300 focus:border-blue-300"
+                    />
+                    {searchQuery && (
+                      <button onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700">
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+
                   <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2 text-sm text-white bg-blue-700 rounded-lg hover:bg-blue-800"><Plus size={16} /> Tambah Data</button>
                   <div className="relative">
                     <input type="file" accept=".xlsx, .xls" id="importExcel" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleFileChange} />

@@ -1,6 +1,6 @@
 'use client';
-import React, { useEffect, useState } from 'react';
-import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Info, MessageSquare } from 'lucide-react';
+import React, { useEffect, useState, useMemo } from 'react';
+import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Info, MessageSquare, Search } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -52,6 +52,9 @@ export default function AkuntabilitasPage() {
   const [selectedItemForNotes, setSelectedItemForNotes] = useState<any>(null);
   const [p4mNotes, setP4mNotes] = useState<any[]>([]);
   const [loadingP4mNotes, setLoadingP4mNotes] = useState(false);
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
   // User state
   const [user, setUser] = useState<User | null>(null);
@@ -132,6 +135,22 @@ export default function AkuntabilitasPage() {
       fetchAkuntabilitasData(activeSubTab, user.prodi).then(setTabData); // Pass user.prodi
     }
   }, [activeSubTab, user, userLoaded]); // Added user and userLoaded to dependencies
+
+  // Debounce search
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 300);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
+
+  // Clear search when switching sub tabs
+  useEffect(() => { setSearchQuery(''); setDebouncedSearch(''); }, [activeSubTab]);
+
+  const filteredTabData = useMemo(() => {
+    const base = tabData || [];
+    if (!debouncedSearch) return base;
+    const q = debouncedSearch.toLowerCase();
+    return base.filter(item => Object.values(item.data || {}).some(v => v !== null && v !== undefined && String(v).toLowerCase().includes(q)));
+  }, [tabData, debouncedSearch]);
 
   const openAdd = () => {
     setFormData({});
@@ -377,14 +396,22 @@ export default function AkuntabilitasPage() {
                 {activeSubTab === 'tataKelola' ? 'Sistem Tata Kelola' : 'Sarana & Prasarana'}
               </h3>
 
-              <div className="flex gap-2 flex-wrap">
+              <div className="flex gap-2 flex-wrap items-center">
+                <div className="relative">
+                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder={`Cari data di ${activeSubTab.replace(/([A-Z])/g, ' $1').toLowerCase()}...`} className="pl-10 pr-8 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-300 focus:border-blue-300" />
+                  {searchQuery && (
+                    <button onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"><X size={14} /></button>
+                  )}
+                </div>
+
                 <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2 text-sm text-white bg-blue-700 rounded-lg hover:bg-blue-800">
                   <Plus size={16} /> Tambah Data
                 </button>
                 <form onSubmit={(e) => e.preventDefault()} className="relative">
                   <input type="file" accept=".xlsx, .xls, .csv" id="importExcel" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleImportExcel} />
                   <label htmlFor="importExcel" className="flex items-center gap-2 px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-100 cursor-pointer">
-                    <Upload size={16} /> Import Excel/CSV
+                    <Upload size={16} /> Import Excel
                   </label>
                 </form>
               </div>
@@ -403,14 +430,14 @@ export default function AkuntabilitasPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {tabData.length === 0 ? (
+                  {filteredTabData.length === 0 ? (
                     <tr>
                       <td colSpan={fields.length + 1} className="text-center py-6 text-gray-500">
-                        Belum ada data
+                        {(tabData || []).length > 0 && debouncedSearch ? (<>{'Tidak ada hasil untuk "'}<span className="font-medium">{debouncedSearch}</span>{'"'}</>) : 'Belum ada data'}
                       </td>
                     </tr>
                   ) : (
-                    tabData.map((item: any, i: number) => (
+                    filteredTabData.map((item: any, i: number) => (
                       <tr key={i} className="bg-white rounded-lg shadow-sm hover:bg-gray-50 border-b">
                         {fields.map((f) => (
                           <td key={f.key} className="px-6 py-4 text-gray-800">

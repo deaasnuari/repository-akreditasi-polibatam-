@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect, useState, ChangeEvent } from 'react';
-import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Info, MessageSquare } from 'lucide-react';
+import React, { useEffect, useState, ChangeEvent, useMemo } from 'react';
+import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Info, MessageSquare, Search } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { relevansiPendidikanService, SubTab, DataItem, API_BASE } from '@/services/relevansiPendidikanService';
@@ -51,6 +51,10 @@ export default function RelevansiPendidikanPage() {
   const [selectedItemForNotes, setSelectedItemForNotes] = useState<any>(null);
   const [p4mNotes, setP4mNotes] = useState<any[]>([]);
   const [loadingP4mNotes, setLoadingP4mNotes] = useState(false);
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
   // --- Fungsi Popup ---
   const showPopup = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
@@ -161,6 +165,24 @@ export default function RelevansiPendidikanPage() {
   useEffect(() => {
     fetchData();
   }, [activeSubTab]);
+
+  // debounce search
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 300);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
+
+  // clear search on subtab change
+  useEffect(() => { setSearchQuery(''); setDebouncedSearch(''); }, [activeSubTab]);
+
+  const filteredData = useMemo(() => {
+    const base = data || [];
+    if (!debouncedSearch) return base;
+    const q = debouncedSearch.toLowerCase();
+    return base.filter(item => {
+      return Object.values(item || {}).some(v => v !== null && v !== undefined && String(v).toLowerCase().includes(q));
+    });
+  }, [data, debouncedSearch]);
 
   // --- Form & CRUD ---
   const openAdd = () => {
@@ -545,12 +567,12 @@ export default function RelevansiPendidikanPage() {
               </thead>
 
               <tbody className="divide-y divide-gray-200">
-                {data.length === 0 ? (
+                {filteredData.length === 0 ? (
                   <tr>
-                    <td colSpan={17} className="py-6 text-center text-gray-500">Belum ada data</td>
+                    <td colSpan={17} className="py-6 text-center text-gray-500">{(data||[]).length > 0 && debouncedSearch ? (<>Tidak ada hasil untuk "<span className="font-medium">{debouncedSearch}</span>"</>) : 'Belum ada data'}</td>
                   </tr>
                 ) : (
-                  data.map((item, index) => (
+                  filteredData.map((item, index) => (
                     <tr key={item.id ?? `row-${index}`} className="hover:bg-gray-50">
                       <td className="border border-gray-300 px-2 py-2 text-center font-medium">{item.tahun}</td>
                       <td className="border border-gray-300 px-2 py-2 text-center">{item.daya_tampung || '-'}</td>
@@ -708,14 +730,14 @@ export default function RelevansiPendidikanPage() {
             </thead>
 
             <tbody className="divide-y divide-gray-100">
-              {data.length === 0 ? (
+              {filteredData.length === 0 ? (
                 <tr>
                   <td colSpan={emptyColSpan} className="py-6 text-center text-gray-500">
-                    Belum ada data
+                    {(data||[]).length > 0 && debouncedSearch ? (<>Tidak ada hasil untuk "<span className="font-medium">{debouncedSearch}</span>"</>) : 'Belum ada data'}
                   </td>
                 </tr>
               ) : (
-                data.map((item, index) => (
+                filteredData.map((item, index) => (
                   <tr key={item.id ?? `row-${index}`} className="hover:bg-gray-50">
                     {activeSubTab === 'keragaman-asal' && (
                       <>
@@ -938,7 +960,15 @@ export default function RelevansiPendidikanPage() {
 
             {/* Tombol Aksi */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-              <div className="flex gap-1.5 sm:gap-2 flex-wrap">
+              <div className="flex gap-1.5 sm:gap-2 flex-wrap items-center">
+                <div className="relative">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder={`Cari data di ${activeSubTab.replace('-', ' ')}...`} className="pl-9 pr-8 py-1.5 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-blue-300 focus:border-blue-300" />
+                  {searchQuery && (
+                    <button onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"><X size={12} /></button>
+                  )}
+                </div>
+
                 <button
                   onClick={openAdd}
                   className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm text-white bg-blue-700 rounded-lg hover:bg-blue-800"
