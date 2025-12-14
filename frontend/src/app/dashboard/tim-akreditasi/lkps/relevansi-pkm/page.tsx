@@ -5,13 +5,14 @@ import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X, CheckCircle, A
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { relevansiPkmService } from '@/services/relevansiPkmService';
+import type { SubTab } from '@/services/relevansiPkmService';
 import { getReviews as fetchReviews } from '@/services/reviewService';
 import { fetchData as apiFetch } from '@/services/api';
 
 export default function RelevansiPkmPage() {
   const pathname = usePathname();
   const router = useRouter();
-  const [activeSubTab, setActiveSubTab] = useState('sarana-prasarana');
+  const [activeSubTab, setActiveSubTab] = useState<SubTab>('sarana-prasarana');
   const [data, setData] = useState<any[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -350,7 +351,7 @@ export default function RelevansiPkmPage() {
       if ((data || []).length > 0 && debouncedSearch) {
         return (
           <tr>
-            <td colSpan={cols.length + 1} className="text-center py-6 text-gray-500">{'Tidak ada hasil untuk "'}<span className="font-medium">{debouncedSearch}</span>{'"'}</td>
+            <td colSpan={cols.length + 1} className="text-center py-6 text-gray-500">Tidak ada hasil untuk &quot;<span className="font-medium">{debouncedSearch}</span>&quot;</td>
           </tr>
         );
       }
@@ -411,7 +412,7 @@ export default function RelevansiPkmPage() {
 
           {/* Subtabs */}
           <div className="flex gap-2 border-b pb-2 mb-4 overflow-x-auto">
-            {Object.keys(subtabFields).map((key) => (
+            {(Object.keys(subtabFields) as SubTab[]).map((key) => (
               <button
                 key={key}
                 onClick={() => setActiveSubTab(key)}
