@@ -397,7 +397,7 @@ export default function RelevansiPkmPage() {
           {/* Tabs utama */}
           <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
             {tabs.map(tab => (
-              <Link
+              <a
                 key={tab.href}
                 href={tab.href}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
@@ -405,7 +405,7 @@ export default function RelevansiPkmPage() {
                 }`}
               >
                 {tab.label}
-              </Link>
+              </a>
             ))}
           </div>
 

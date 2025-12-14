@@ -903,7 +903,7 @@ export default function RelevansiPendidikanPage() {
             {tabs.map((tab) => {
               const isActive = pathname === tab.href;
               return (
-                <Link
+                <a
                   key={tab.href}
                   href={tab.href}
                   className={`px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 whitespace-nowrap ${
@@ -913,7 +913,7 @@ export default function RelevansiPendidikanPage() {
                   }`}
                 >
                   {tab.label}
-                </Link>
+                </a>
               );
             })}
           </div>

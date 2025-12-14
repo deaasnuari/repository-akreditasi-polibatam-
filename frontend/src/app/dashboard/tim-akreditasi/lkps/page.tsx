@@ -1038,6 +1038,7 @@ export default function LKPSPage() {
     ));
   };
 
+  const pathname = usePathname();
   return (
     <div className="flex w-full bg-gray-100">
       <PopupNotification />
@@ -1113,7 +1114,7 @@ export default function LKPSPage() {
                 key={tab.href}
                 href={tab.href}
                 className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200
-                  ${window.location.pathname === tab.href 
+                  ${pathname === tab.href 
                     ? 'bg-[#183A64] text-[#ADE7F7]' 
                     : 'bg-white text-gray-700 hover:bg-gray-100'
                   }`}
