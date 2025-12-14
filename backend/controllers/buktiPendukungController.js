@@ -150,6 +150,16 @@ export const getRekapBagian = async (req, res) => {
 
     // Bangun array rekap akhir
     let autoId = 1;
+    // Tentukan mapping sederhana kode_bagian -> type budaya_mutu (sesuaikan bila perlu)
+    const mapKodeToType = (kode) => {
+      const k = String(kode || '').toUpperCase();
+      // Contoh mapping; silakan sesuaikan dengan kebutuhan riil
+      if (k.startsWith('TUPOKSI') || k === 'TUPOKSI' || k.startsWith('A1')) return 'tupoksi';
+      if (k.startsWith('SPMI') || k.startsWith('B')) return 'spmi';
+      // Default: tidak diketahui
+      return undefined;
+    };
+
     const rekap = Array.from(groups.values()).map(g => ({
       id: autoId++,
       kode_bagian: g.kode_bagian,
@@ -157,6 +167,8 @@ export const getRekapBagian = async (req, res) => {
       deskripsi: g.deskripsi || `${g.nama_bagian} - Bukti Pendukung`,
       tanggal_update: g.tanggal_update || new Date().toISOString(),
       status: mapStatus(g.statusRaw),
+      // Tambahkan type agar frontend bisa kirim selectedTypes ke endpoint export
+      type: mapKodeToType(g.kode_bagian) || null,
     }));
 
     // Jika tidak ada dokumen sama sekali, kembalikan array kosong

@@ -150,7 +150,7 @@ export const getItems = async (req, res) => {
 // ---------- POST /api/akreditasi/export ----------
 export const exportData = async (req, res) => {
   try {
-    const { format, selectedIds } = req.body;
+    const { format, selectedIds, selectedTypes } = req.body;
     const userId = req.user?.id;
     const userRole = req.user?.role;
     const userProdi = req.user?.prodi;
@@ -160,7 +160,7 @@ export const exportData = async (req, res) => {
     }
 
     console.log('🔵 EXPORT - User info:', { userId, userRole, userProdi });
-    console.log('🔵 EXPORT - Request:', { format, selectedIds });
+    console.log('🔵 EXPORT - Request:', { format, selectedIds, selectedTypes });
 
     // Ambil SEMUA data dari budaya_mutu (semua type)
     let whereClause = {};

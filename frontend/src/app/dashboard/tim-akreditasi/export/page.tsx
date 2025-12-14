@@ -109,6 +109,14 @@ export default function ExportAkreditasi() {
       return;
     }
 
+    // Kumpulkan kemungkinan type dari item yang dipilih (jika tersedia)
+    const selectedItems = filteredBagian.filter((b) => selectedBagian.includes(b.id));
+    const selectedTypes = Array.from(new Set(
+      (selectedItems as any[])
+        .map((b) => (b.type ? String(b.type).toLowerCase() : ''))
+        .filter((t) => t)
+    ));
+
     setLoading(true);
     try {
       const endpoint = '/akreditasi/export';
@@ -116,7 +124,11 @@ export default function ExportAkreditasi() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ format: exportFormat, selectedIds: selectedBagian }),
+        body: JSON.stringify({ 
+          format: exportFormat, 
+          selectedIds: selectedBagian,
+          selectedTypes
+        }),
       });
 
       if (!res.ok) {
