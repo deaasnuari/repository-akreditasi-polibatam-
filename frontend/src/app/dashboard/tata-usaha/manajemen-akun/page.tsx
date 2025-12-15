@@ -365,6 +365,7 @@ export default function ManajemenAkun() {
                         required={true}
                         autoComplete="off"
                         className="w-full border rounded-lg px-2 py-1 text-sm"
+                        defaultValue={editingUser?.nama_lengkap || ''}
                       />
                     </div>
                     <div>
@@ -375,25 +376,29 @@ export default function ManajemenAkun() {
                         required={true}
                         autoComplete="off"
                         className="w-full border rounded-lg px-2 py-1 text-sm"
+                        defaultValue={editingUser?.email || ''}
                       />
                     </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Program Studi</label>
-                      <select
-                        name="prodi"
-                        className="w-full border rounded-lg px-2 py-1 text-sm"
-                      >
-                        <option value="">Pilih Program Studi</option>
-                        <option value="Teknik Informatika">Teknik Informatika</option>
-                        <option value="Teknologi Geomatika">Teknologi Geomatika</option>
-                        <option value="Animasi">Animasi</option>
-                        <option value="Teknologi Rekayasa Multimedia">Teknologi Rekayasa Multimedia</option>
-                        <option value="Rekayasa Keamanan Siber">Rekayasa Keamanan Siber</option>
-                        <option value="Rekayasa Perangkat Lunak">Rekayasa Perangkat Lunak</option>
-                        <option value="Teknologi Permainan">Teknologi Permainan</option>
-                        <option value="Teknik Komputer / Rekayasa Komputer">Teknik Komputer / Rekayasa Komputer</option>
-                      </select>
-                    </div>
+                    {editingRoleSelected !== 'P4M' && (
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Program Studi</label>
+                        <select
+                          name="prodi"
+                          className="w-full border rounded-lg px-2 py-1 text-sm"
+                          defaultValue={editingUser?.prodi || ''}
+                        >
+                          <option value="">Pilih Program Studi</option>
+                          <option value="Teknik Informatika">Teknik Informatika</option>
+                          <option value="Teknologi Geomatika">Teknologi Geomatika</option>
+                          <option value="Animasi">Animasi</option>
+                          <option value="Teknologi Rekayasa Multimedia">Teknologi Rekayasa Multimedia</option>
+                          <option value="Rekayasa Keamanan Siber">Rekayasa Keamanan Siber</option>
+                          <option value="Rekayasa Perangkat Lunak">Rekayasa Perangkat Lunak</option>
+                          <option value="Teknologi Permainan">Teknologi Permainan</option>
+                          <option value="Teknik Komputer / Rekayasa Komputer">Teknik Komputer / Rekayasa Komputer</option>
+                        </select>
+                      </div>
+                    )}
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">Password {editingUser ? '(kosongkan jika tidak ingin mengganti)' : ''}</label>
                       <input
@@ -425,6 +430,7 @@ export default function ManajemenAkun() {
                           name="status"
                           required
                           className="w-full border rounded-lg px-2 py-1 text-sm"
+                          defaultValue={editingUser?.status || ''}
                         >
                           <option value="">Pilih Status</option>
                           <option value="Aktif">Aktif</option>
@@ -449,29 +455,33 @@ export default function ManajemenAkun() {
                         <option value="TU">TU</option>
                       </select>
                     </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Program Studi</label>
-                      <select
-                        name="prodi"
-                        className="w-full border rounded-lg px-2 py-1 text-sm"
-                      >
-                        <option value="">Pilih Program Studi</option>
-                        <option value="Teknik Informatika">Teknik Informatika</option>
-                        <option value="Teknologi Geomatika">Teknologi Geomatika</option>
-                        <option value="Animasi">Animasi</option>
-                        <option value="Teknologi Rekayasa Multimedia">Teknologi Rekayasa Multimedia</option>
-                        <option value="Rekayasa Keamanan Siber">Rekayasa Keamanan Siber</option>
-                        <option value="Rekayasa Perangkat Lunak">Rekayasa Perangkat Lunak</option>
-                        <option value="Teknologi Permainan">Teknologi Permainan</option>
-                        <option value="Teknik Komputer / Rekayasa Komputer">Teknik Komputer / Rekayasa Komputer</option>
-                      </select>
-                    </div>
+                    {editingRoleSelected !== 'P4M' && (
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Program Studi</label>
+                        <select
+                          name="prodi"
+                          className="w-full border rounded-lg px-2 py-1 text-sm"
+                          defaultValue={editingUser?.prodi || ''}
+                        >
+                          <option value="">Pilih Program Studi</option>
+                          <option value="Teknik Informatika">Teknik Informatika</option>
+                          <option value="Teknologi Geomatika">Teknologi Geomatika</option>
+                          <option value="Animasi">Animasi</option>
+                          <option value="Teknologi Rekayasa Multimedia">Teknologi Rekayasa Multimedia</option>
+                          <option value="Rekayasa Keamanan Siber">Rekayasa Keamanan Siber</option>
+                          <option value="Rekayasa Perangkat Lunak">Rekayasa Perangkat Lunak</option>
+                          <option value="Teknologi Permainan">Teknologi Permainan</option>
+                          <option value="Teknik Komputer / Rekayasa Komputer">Teknik Komputer / Rekayasa Komputer</option>
+                        </select>
+                      </div>
+                    )}
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
                       <select
                         name="status"
                         required
                         className="w-full border rounded-lg px-2 py-1 text-sm"
+                        defaultValue={editingUser?.status || ''}
                       >
                         <option value="">Pilih Status</option>
                         <option value="Aktif">Aktif</option>

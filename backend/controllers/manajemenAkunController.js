@@ -132,17 +132,23 @@ export const createUser = async (req, res) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    const data = {
+      nama_lengkap,
+      email,
+      username,
+      password: hashedPassword,
+      prodi,
+      photo,
+      role,
+      status: status || "aktif",
+    };
+
+    if (role === 'P4M') {
+      data.prodi = null;
+    }
+
     const created = await prisma.users.create({
-      data: {
-        nama_lengkap,
-        email,
-        username,
-        password: hashedPassword,
-        prodi,
-        photo,
-        role,
-        status: status || "aktif",
-      },
+      data,
       select: {
         id: true,
         nama_lengkap: true,
@@ -269,6 +275,10 @@ export const updateUser = async (req, res) => {
     if (role) updateData.role = role;
     if (status) updateData.status = status;
 
+    if (updateData.role === 'P4M' || (role === 'P4M')) {
+      updateData.prodi = null;
+    }
+
     const updated = await prisma.users.update({
       where: { id: Number(id) },
       data: updateData,
@@ -298,24 +308,40 @@ export const updateUser = async (req, res) => {
 // ======================
 export const deleteUser = async (req, res) => {
   const { id } = req.params;
+  const userId = Number(id);
 
   try {
     const user = await prisma.users.findUnique({
-      where: { id: Number(id) },
+      where: { id: userId },
     });
 
     if (!user) {
       return res.status(404).json({ success: false, message: "Pengguna tidak ditemukan" });
     }
 
-    await prisma.users.delete({
-      where: { id: Number(id) },
+    // Use a transaction to ensure all or nothing is deleted
+    await prisma.$transaction(async (prisma) => {
+      await prisma.relevansi_penelitian.deleteMany({ where: { user_id: userId } });
+      await prisma.relevansi_pkm.deleteMany({ where: { user_id: userId } });
+      await prisma.relevansi_pendidikan.deleteMany({ where: { user_id: userId } });
+      await prisma.akuntabilitas.deleteMany({ where: { user_id: userId } });
+      await prisma.diferensiasi_misi.deleteMany({ where: { user_id: userId } });
+      await prisma.budaya_mutu.deleteMany({ where: { user_id: userId } });
+      await prisma.led.deleteMany({ where: { user_id: userId } });
+      await prisma.criteria_scores.deleteMany({ where: { user_id: userId } });
+      await prisma.buktiPendukung.deleteMany({ where: { userId: userId } });
+      await prisma.reviews.deleteMany({ where: { reviewer_id: userId } });
+
+      // Finally, delete the user
+      await prisma.users.delete({
+        where: { id: userId },
+      });
     });
 
     res.json({ success: true, message: "Pengguna berhasil dihapus" });
   } catch (err) {
     console.error("DELETE ERROR:", err);
-    res.status(500).json({ success: false, message: "Gagal menghapus pengguna" });
+    res.status(500).json({ success: false, message: "Gagal menghapus pengguna. Pengguna ini mungkin memiliki data terkait yang tidak dapat dihapus." });
   }
 };
 
