@@ -1,8 +1,11 @@
 import express from 'express';
-import { getAllLEDData, saveLEDTab, deleteLEDTab, saveDraft } from '../controllers/ledController.js';
+import { getAllLEDData, saveLEDTab, deleteLEDTab, saveDraft, exportCombinedLED } from '../controllers/ledController.js';
 import { authenticateToken } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
+
+// GET /api/led/export?userId=...&role=... - export gabungan LED untuk user tertentu
+router.get('/export', exportCombinedLED);
 
 // GET /api/led/:user_id - ambil semua data LED untuk user tertentu
 router.get('/:user_id', getAllLEDData);

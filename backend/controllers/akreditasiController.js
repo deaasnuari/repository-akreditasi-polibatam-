@@ -5,6 +5,7 @@ import multer from "multer";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 import XLSX from "xlsx";
+import PDFDocument from "pdfkit";
 import prisma from "../prismaClient.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -450,38 +451,61 @@ export const exportData = async (req, res) => {
         }
       });
     } else if (format.toLowerCase() === 'pdf') {
-      // Untuk PDF, export semua data dalam format text
-      const filePath = path.join(exportDir, `${fileName}.pdf`);
-      
-      let pdfContent = 'DATA LKPS - BUDAYA MUTU\n';
-      pdfContent += '='.repeat(80) + '\n\n';
-      
-      Object.keys(recordsByType).forEach(type => {
-        pdfContent += `\n${type.toUpperCase()}\n`;
-        pdfContent += '-'.repeat(80) + '\n';
-        
-        recordsByType[type].forEach((record, idx) => {
-          pdfContent += `\n[${idx + 1}] Prodi: ${record.prodi || 'N/A'}\n`;
-          pdfContent += `Data: ${JSON.stringify(record.data, null, 2)}\n`;
-        });
-      });
-      
-      fs.writeFileSync(filePath, pdfContent);
+      // Streaming PDF langsung ke response menggunakan pdfkit (tanpa menulis ke disk)
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}.pdf"`);
 
-      res.download(filePath, `${fileName}.pdf`, (err) => {
-        if (err) {
-          console.error("Error sending file:", err);
-          if (!res.headersSent) {
-            res.status(500).json({ message: "Gagal mengirim file" });
+      const doc = new PDFDocument({ size: 'A4', margin: 36 });
+      doc.pipe(res);
+
+      // Title
+      doc.fontSize(14).text('DATA LKPS - BUDAYA MUTU', { align: 'center' });
+      doc.moveDown(0.5);
+      doc.moveTo(doc.page.margins.left, doc.y).lineTo(doc.page.width - doc.page.margins.right, doc.y).stroke();
+      doc.moveDown(1);
+
+      const drawRecord = (type, record, index) => {
+        const startY = doc.y;
+        doc.fontSize(12).fillColor('#000').text(`${type.toUpperCase()}`, { continued: false });
+        doc.moveDown(0.3);
+        doc.fontSize(10).fillColor('#333').text(`[${index + 1}] Prodi: ${record.prodi || 'N/A'}`);
+        doc.moveDown(0.2);
+
+        // Format JSON data secara ringkas agar muat di halaman
+        const dataStr = JSON.stringify(record.data, null, 2);
+        const paragraphs = dataStr.split('\n');
+        paragraphs.forEach(p => {
+          doc.fontSize(9).fillColor('#111').text(p, { width: doc.page.width - doc.page.margins.left - doc.page.margins.right });
+        });
+
+        doc.moveDown(0.8);
+        // Garis pemisah
+        doc.moveTo(doc.page.margins.left, doc.y).lineTo(doc.page.width - doc.page.margins.right, doc.y).dash(2, { space: 2 }).stroke().undash();
+        doc.moveDown(0.8);
+      };
+
+      // Iterate types and records
+      const types = Object.keys(recordsByType);
+      types.forEach((type, tIdx) => {
+        const records = recordsByType[type];
+        // Header section per type
+        doc.fontSize(12).fillColor('#005f99').text(`${type.toUpperCase()}`, { underline: true });
+        doc.moveDown(0.5);
+
+        records.forEach((record, idx) => {
+          // Page break manual jika mendekati bawah halaman
+          if (doc.y > doc.page.height - doc.page.margins.bottom - 120) {
+            doc.addPage();
           }
-        }
-        // Hapus file setelah dikirim
-        try {
-          fs.unlinkSync(filePath);
-        } catch (e) {
-          console.error("Error deleting file:", e);
+          drawRecord(type, record, idx);
+        });
+
+        if (tIdx < types.length - 1) {
+          doc.addPage();
         }
       });
+
+      doc.end();
     } else {
       res.status(400).json({ message: "Format tidak didukung. Gunakan Excel atau PDF." });
     }

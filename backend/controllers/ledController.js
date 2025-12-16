@@ -31,6 +31,76 @@ export const getAllLEDData = async (req, res) => {
 };
 
 /**
+ * GET export gabungan semua LED berdasarkan user_id (opsional filter role)
+ * Query: userId (wajib), role (opsional)
+ * Response: { userId, role?, count, items: [ { title, subtab, role, sections: [...] } ] }
+ */
+export const exportCombinedLED = async (req, res) => {
+  try {
+    const { userId, role } = req.query;
+    const parsedUserId = Number(userId);
+    if (!userId || Number.isNaN(parsedUserId)) {
+      return res.status(400).json({ message: 'userId query param is required and must be a number' });
+    }
+
+    const rows = await prisma.led.findMany({
+      where: { user_id: parsedUserId, ...(role ? { role: String(role) } : {}) },
+      orderBy: { subtab: 'asc' },
+    });
+
+    const normalizeRow = (row) => {
+      const data = row.data || {};
+      const title = (data && data.title) ? String(data.title) : `LED - ${row.subtab}`;
+
+      // Jika data.sections sudah ada dalam format standar
+      let sections = Array.isArray(data.sections) ? data.sections : undefined;
+
+      // Fallback: bangun sections dari key top-level
+      if (!sections) {
+        sections = [];
+        const excludedKeys = new Set(['title', 'meta', 'created_at', 'updated_at']);
+        Object.keys(data || {}).forEach((key) => {
+          if (excludedKeys.has(key)) return;
+          const value = data[key];
+          const heading = key;
+
+          // Array of objects homogen -> table
+          if (Array.isArray(value) && value.length > 0 && value.every((v) => v && typeof v === 'object' && !Array.isArray(v))) {
+            const head = [Object.keys(value[0])];
+            const body = value.map((rowObj) => head[0].map((k) => {
+              const cell = rowObj[k];
+              if (cell === null || cell === undefined) return '';
+              if (typeof cell === 'object') return JSON.stringify(cell);
+              return String(cell);
+            }));
+            sections.push({ heading, table: { head, body } });
+          } else if (value && typeof value === 'object') {
+            // Object nested -> stringify ringkas
+            sections.push({ heading, text: JSON.stringify(value) });
+          } else if (value !== undefined && value !== null) {
+            // Primitive -> text
+            sections.push({ heading, text: String(value) });
+          }
+        });
+
+        if (sections.length === 0) {
+          sections.push({ heading: 'Konten', text: JSON.stringify(data) });
+        }
+      }
+
+      return { title, subtab: row.subtab, role: row.role, sections };
+    };
+
+    const items = rows.map(normalizeRow);
+
+    return res.json({ userId: parsedUserId, role: role || undefined, count: items.length, items });
+  } catch (err) {
+    console.error('exportCombinedLED error:', err);
+    return res.status(500).json({ message: 'Server error' });
+  }
+};
+
+/**
  * POST save/update LED tab untuk user tertentu
  */
 export const saveLEDTab = async (req, res) => {
