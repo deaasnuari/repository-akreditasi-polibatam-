@@ -88,27 +88,32 @@ const tabs = [
   ['diferensiasi-misi', 'C.6 Diferensiasi Misi'],
 ];
 
-const createEmptyTab = (): TabData => ({
-  penetapanA: [{ id: uid('pa-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
-  penetapanB: [{ id: uid('pb-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
-  penetapanC: [{ id: uid('pc-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
-  penetapanD: [{ id: uid('pd-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
-  pelaksanaanA: [{ id: uid('la-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
-  pelaksanaanB: [{ id: uid('lb-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
-  pelaksanaanC: [{ id: uid('lc-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
-  pelaksanaanD: [{ id: uid('ld-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
-  pengendalianA: [{ id: uid('ca-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
-  pengendalianB: [{ id: uid('cb-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
-  pengendalianC: [{ id: uid('cc-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
-  pengendalianD: [{ id: uid('cd-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
-  peningkatanA: [{ id: uid('ia-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
-  peningkatanB: [{ id: uid('ib-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
-  peningkatanC: [{ id: uid('ic-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
-  peningkatanD: [{ id: uid('id-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
-  evalA: [{ id: uid('eva-'), pernyataan: '', keterlaksanaan: '', evaluasi: '', tindak_lanjut: '', hasil_optimalisasi: '' }],
-  evalB: [{ id: uid('evb-'), pernyataan: '', keterlaksanaan: '', evaluasi: '', tindak_lanjut: '', hasil_optimalisasi: '' }],
-  evalC: [{ id: uid('evc-'), pernyataan: '', keterlaksanaan: '', evaluasi: '', tindak_lanjut: '', hasil_optimalisasi: '' }],
-});
+const createEmptyTab = (): TabData => {
+  const emptyRow2Col = () => ({ id: uid('row-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' });
+  const emptyRowEval = () => ({ id: uid('eval-'), pernyataan: '', keterlaksanaan: '', evaluasi: '', tindak_lanjut: '', hasil_optimalisasi: '' });
+  
+  return {
+    penetapanA: [{ id: uid('pa-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
+    penetapanB: [{ id: uid('pb-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
+    penetapanC: [{ id: uid('pc-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
+    penetapanD: [{ id: uid('pd-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
+    pelaksanaanA: [{ id: uid('la-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
+    pelaksanaanB: [{ id: uid('lb-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
+    pelaksanaanC: [{ id: uid('lc-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
+    pelaksanaanD: [{ id: uid('ld-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
+    pengendalianA: [{ id: uid('ca-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
+    pengendalianB: [{ id: uid('cb-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
+    pengendalianC: [{ id: uid('cc-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
+    pengendalianD: [{ id: uid('cd-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
+    peningkatanA: [{ id: uid('ia-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
+    peningkatanB: [{ id: uid('ib-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
+    peningkatanC: [{ id: uid('ic-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
+    peningkatanD: [{ id: uid('id-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }],
+    evalA: [{ id: uid('eva-'), pernyataan: '', keterlaksanaan: '', evaluasi: '', tindak_lanjut: '', hasil_optimalisasi: '' }],
+    evalB: [{ id: uid('evb-'), pernyataan: '', keterlaksanaan: '', evaluasi: '', tindak_lanjut: '', hasil_optimalisasi: '' }],
+    evalC: [{ id: uid('evc-'), pernyataan: '', keterlaksanaan: '', evaluasi: '', tindak_lanjut: '', hasil_optimalisasi: '' }],
+  };
+};
 
 export default function BudayaMutuLEDPage() {
   const router = useRouter();
@@ -120,8 +125,68 @@ export default function BudayaMutuLEDPage() {
     if (param && valid.includes(param)) return param;
     return 'budaya-mutu';
   });
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [tabData, setTabData] = useState<Record<string, TabData>>({});
+  const [loadedTabs, setLoadedTabs] = useState<Set<string>>(new Set());
+
+  // Deklarasi mapServiceToUI dulu sebelum useEffect (untuk menghindari "before initialization" error)
+  const mapServiceToUI = useCallback((svc: any): TabData => {
+    const base = createEmptyTab();
+    if (!svc || typeof svc !== 'object') return base;
+
+    const norm2 = (arr: any[], prefix: string) => {
+      const a = Array.isArray(arr) ? arr : [];
+      if (a.length === 0) {
+        return [{
+          id: uid(`${prefix}-`),
+          pernyataan: '',
+          keterlaksanaan: '',
+          pelaksanaan: '',
+          bukti_pendukung: '',
+        }];
+      }
+      return a.map((r) => ({
+        id: r?.id || uid(`${prefix}-`),
+        pernyataan: String(r?.pernyataan ?? ''),
+        keterlaksanaan: String(r?.keterlaksanaan ?? ''),
+        pelaksanaan: String(r?.pelaksanaan ?? ''),
+        bukti_pendukung: String(r?.bukti_pendukung ?? ''),
+      }));
+    };
+    const normEval = (arr: any[], prefix: string) => {
+      const a = Array.isArray(arr) ? arr : [];
+      return a.map((r) => ({
+        id: r?.id || uid(`${prefix}-`),
+        pernyataan: r?.pernyataan ?? '',
+        keterlaksanaan: r?.keterlaksanaan ?? '',
+        evaluasi: r?.evaluasi ?? '',
+        tindak_lanjut: r?.tindak_lanjut ?? '',
+        hasil_optimalisasi: r?.hasil_optimalisasi ?? '',
+      }));
+    };
+
+    return {
+      penetapanA: norm2(svc.penetapanA, 'pa'),
+      penetapanB: norm2(svc.penetapanB, 'pb'),
+      penetapanC: norm2(svc.penetapanC, 'pc'),
+      penetapanD: norm2(svc.penetapanD, 'pd'),
+      pelaksanaanA: norm2(svc.pelaksanaanA || [], 'la'),
+      pelaksanaanB: norm2(svc.pelaksanaanB || [], 'lb'),
+      pelaksanaanC: norm2(svc.pelaksanaanC || [], 'lc'),
+      pelaksanaanD: norm2(svc.pelaksanaanD || [], 'ld'),
+      pengendalianA: norm2(svc.pengendalianA, 'ca'),
+      pengendalianB: norm2(svc.pengendalianB, 'cb'),
+      pengendalianC: norm2(svc.pengendalianC, 'cc'),
+      pengendalianD: norm2(svc.pengendalianD, 'cd'),
+      peningkatanA: norm2(svc.peningkatanA, 'ia'),
+      peningkatanB: norm2(svc.peningkatanB, 'ib'),
+      peningkatanC: norm2(svc.peningkatanC, 'ic'),
+      peningkatanD: norm2(svc.peningkatanD, 'id'),
+      evalA: Array.isArray(svc.evalA) ? normEval(svc.evalA, 'eva') : Array.isArray(svc.evalRows) ? normEval(svc.evalRows, 'eva') : base.evalA,
+      evalB: Array.isArray(svc.evalB) ? normEval(svc.evalB, 'evb') : base.evalB,
+      evalC: Array.isArray(svc.evalC) ? normEval(svc.evalC, 'evc') : base.evalC,
+    };
+  }, []);
 
   useEffect(() => {
     setIsClient(true);
@@ -142,30 +207,27 @@ export default function BudayaMutuLEDPage() {
 
     const loadData = async () => {
       try {
-        const stored = localStorage.getItem('budaya_mutu_led_data');
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          // Ensure all tabs have all required fields
-          const updatedData: Record<string, TabData> = {};
-          tabs.forEach(([key]) => {
-            // Map service shape (evalRows) into UI shape (evalA/evalB/evalC)
-            const svcTab = parsed[key] || {};
-            updatedData[key] = {
-              ...createEmptyTab(),
-              ...(parsed[key] || {}),
-              evalA: Array.isArray(svcTab.evalRows) ? svcTab.evalRows : (parsed[key]?.evalA || createEmptyTab().evalA),
-              evalB: parsed[key]?.evalB || createEmptyTab().evalB,
-              evalC: parsed[key]?.evalC || createEmptyTab().evalC,
-            };
-          });
-          setTabData(updatedData);
-        } else {
-          const initialTabs: Record<string, TabData> = {};
-          tabs.forEach(([key]) => {
-            initialTabs[key] = createEmptyTab();
-          });
-          setTabData(initialTabs);
-        }
+        // Load data dari backend untuk semua tabs
+        const user_id = getUserId();
+        const all = await getAllLEDData(user_id);
+        console.log('Initial load - data dari backend:', all);
+        
+        const initialTabs: Record<string, TabData> = {};
+        tabs.forEach(([key]) => {
+          let svc = null as any;
+          if (all) {
+            if (all[key]) {
+              svc = all[key];
+            } else if (Array.isArray(all)) {
+              svc = all.find((x: any) => x?.type === key || x?.tab === key || x?.key === key) || null;
+            }
+          }
+          initialTabs[key] = svc ? mapServiceToUI(svc) : createEmptyTab();
+        });
+        setTabData(initialTabs);
+        
+        // Mark all tabs as loaded
+        setLoadedTabs(new Set(tabs.map(([key]) => key)));
       } catch (err) {
         console.error('Gagal memuat data:', err);
         const initialTabs: Record<string, TabData> = {};
@@ -179,7 +241,7 @@ export default function BudayaMutuLEDPage() {
     };
 
     loadData();
-  }, [isClient]);
+  }, [isClient, mapServiceToUI]);
 
   const transformUIToServiceTabData = useCallback((ui: TabData): ServiceTabData => {
     const { evalA, evalB, evalC, ...rest } = ui as any;
@@ -208,7 +270,6 @@ export default function BudayaMutuLEDPage() {
       const user_id = getUserId();
       const svcData = transformUIToServiceTabData(tabData[activeTab]);
       await saveLEDTab(user_id, activeTab, svcData);
-      localStorage.setItem('budaya_mutu_led_data', JSON.stringify(tabData));
 
       if (notify && !auto) {
         toast.success(`✅ Data ${activeLabel} berhasil disimpan!`);
@@ -223,6 +284,15 @@ export default function BudayaMutuLEDPage() {
 
   const handleSaveDraft = useCallback(async () => {
     try {
+      toast('Menyimpan draft...', { icon: <Save size={16} /> });
+      
+      // PENTING: Save data ke LED table dulu sebelum create draft
+      const user_id = getUserId();
+      const svcData = transformUIToServiceTabData(tabData[activeTab]);
+      await saveLEDTab(user_id, activeTab, svcData);
+      console.log('Data LED berhasil di-save:', { activeTab, svcData });
+      
+      // Sekarang save draft reference
       const payload = {
         nama: `LED - ${activeTab}`,
         path: `/dashboard/tim-akreditasi/led?tab=${activeTab}`,
@@ -230,26 +300,22 @@ export default function BudayaMutuLEDPage() {
         type: activeTab,
         currentData: tabData[activeTab],
       };
-      toast('Menyimpan draft...', { icon: <Save size={16} /> });
+      
       const json = await saveLEDDraft(payload);
       toast.success(json?.message || 'Draft LED berhasil disimpan');
+      
       // redirect to bukti pendukung
       setTimeout(() => {
         router.push('/dashboard/tim-akreditasi/bukti-pendukung');
       }, 1200);
     } catch (err: any) {
       console.error('Error save draft:', err);
-      toast.error(err?.message || 'Gagal menyimpan draft');
+      toast.error(err?.message || 'Gagal menyimpan draft: ' + (err?.message || ''));
     }
-  }, [tabData, activeTab, router]);
+  }, [tabData, activeTab, router, transformUIToServiceTabData]);
 
-  useEffect(() => {
-    if (!isClient || loading) return;
-    const interval = setInterval(() => {
-      handleSave(false, true);
-    }, 30000);
-    return () => clearInterval(interval);
-  }, [isClient, loading, handleSave]);
+  // Auto-save ke localStorage/DB dinonaktifkan agar data hilang jika tidak disimpan manual
+  // Tidak ada interval auto-save.
 
   const handleAddRow = useCallback((sectionKey: keyof TabData, template: any) => {
     setTabData((prev) => {
@@ -307,6 +373,47 @@ export default function BudayaMutuLEDPage() {
       };
     });
   }, [activeTab]);
+
+  const loadTabFromBackend = useCallback(async (tabKey: string) => {
+    // Jika tab sudah di-load, skip
+    if (loadedTabs.has(tabKey)) {
+      console.log(`Tab ${tabKey} sudah di-load, skip reload`);
+      return;
+    }
+
+    try {
+      const user_id = getUserId();
+      console.log(`Loading tab ${tabKey} for user ${user_id}...`);
+      const all = await getAllLEDData(user_id);
+      console.log(`Data dari backend:`, all);
+      
+      // Asumsi getAllLEDData mengembalikan record/tab map atau array berisi objek dengan key 'type'/'tab'
+      let svc = null as any;
+      if (all) {
+        if (all[tabKey]) {
+          svc = all[tabKey];
+        } else if (Array.isArray(all)) {
+          svc = all.find((x: any) => x?.type === tabKey || x?.tab === tabKey || x?.key === tabKey) || null;
+        }
+      }
+      
+      console.log(`Data untuk tab ${tabKey}:`, svc);
+      
+      // Gunakan mapServiceToUI untuk data dari backend (akan create empty jika null)
+      const mapped = mapServiceToUI(svc);
+      console.log(`Mapped data untuk tab ${tabKey}:`, mapped);
+      
+      setTabData((prev) => ({ ...prev, [tabKey]: mapped }));
+      setLoadedTabs((prev) => new Set(prev).add(tabKey));
+    } catch (e) {
+      console.error('Gagal memuat data tab dari backend:', e);
+      // Tetap gunakan empty tab jika error
+      setTabData((prev) => ({ ...prev, [tabKey]: createEmptyTab() }));
+      setLoadedTabs((prev) => new Set(prev).add(tabKey));
+    }
+  }, [mapServiceToUI, loadedTabs]);
+
+  // Tidak perlu load per tab karena sudah di-load semua di initial load
 
   if (!isClient) return null;
 
@@ -495,9 +602,9 @@ export default function BudayaMutuLEDPage() {
             
             {shouldShowTable('pelaksanaanC') && (
               <div className="mb-3 sm:mb-4">
-                <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-1.5 sm:mb-2">Tabel C</h4>
+                <h4 className="text-xs sm:text-sm font-medium text-gray-600 mb-1.5 sm:mb-2">Tabel C - Pelaksanaan</h4>
                 <Table2Col
-                  rows={currentTabData.pelaksanaanC}
+                  rows={currentTabData?.pelaksanaanC || [{ id: uid('lc-default-'), pernyataan: '', keterlaksanaan: '', pelaksanaan: '', bukti_pendukung: '' }]}
                   sectionKey="pelaksanaanC"
                   onAdd={handleAddRow}
                   onRemove={handleRemoveRow}
@@ -647,23 +754,27 @@ function Table2Col({ rows, sectionKey, onAdd, onRemove, onUpdate, extended = fal
           <tbody>
             {safeRows.map((r, index) => (
               <tr
-                key={r.id}
+                key={`${sectionKey}-${r.id}-${index}`}
                 className={`${
                   index % 2 === 0 ? 'bg-white' : 'bg-[#ADE7F7]/10'
                 } hover:bg-[#ADE7F7]/20 transition-colors`}
               >
                 <td className="border border-gray-300 p-1.5 sm:p-2 align-top">
                   <textarea
+                    key={`${sectionKey}-${r.id}-pernyataan`}
                     value={r.pernyataan || ''}
                     onChange={(e) => onUpdate(sectionKey, r.id, 'pernyataan', e.target.value)}
+                    readOnly={false}
                     className="w-full min-h-[60px] sm:min-h-[80px] border border-gray-300 rounded p-1.5 sm:p-2 text-xs sm:text-sm resize-y focus:border-[#183A64] focus:ring-2 focus:ring-[#ADE7F7]/50 focus:outline-none"
                     placeholder="Isi pernyataan standar..."
                   />
                 </td>
                 <td className="border border-gray-300 p-1.5 sm:p-2 align-top">
                   <textarea
+                    key={`${sectionKey}-${r.id}-keterlaksanaan`}
                     value={r.keterlaksanaan || ''}
                     onChange={(e) => onUpdate(sectionKey, r.id, 'keterlaksanaan', e.target.value)}
+                    readOnly={false}
                     className="w-full min-h-[60px] sm:min-h-[80px] border border-gray-300 rounded p-1.5 sm:p-2 text-xs sm:text-sm resize-y focus:border-[#183A64] focus:ring-2 focus:ring-[#ADE7F7]/50 focus:outline-none"
                     placeholder="Isi indikator..."
                   />
@@ -672,16 +783,20 @@ function Table2Col({ rows, sectionKey, onAdd, onRemove, onUpdate, extended = fal
                   <>
                     <td className="border border-gray-300 p-1.5 sm:p-2 align-top">
                       <textarea
+                        key={`${sectionKey}-${r.id}-pelaksanaan`}
                         value={r.pelaksanaan || ''}
                         onChange={(e) => onUpdate(sectionKey, r.id, 'pelaksanaan', e.target.value)}
+                        readOnly={false}
                         className="w-full min-h-[60px] sm:min-h-[80px] border border-gray-300 rounded p-1.5 sm:p-2 text-xs sm:text-sm resize-y focus:border-[#183A64] focus:ring-2 focus:ring-[#ADE7F7]/50 focus:outline-none"
                         placeholder="Isi pelaksanaan..."
                       />
                     </td>
                     <td className="border border-gray-300 p-1.5 sm:p-2 align-top">
                       <textarea
+                        key={`${sectionKey}-${r.id}-bukti_pendukung`}
                         value={r.bukti_pendukung || ''}
                         onChange={(e) => onUpdate(sectionKey, r.id, 'bukti_pendukung', e.target.value)}
+                        readOnly={false}
                         className="w-full min-h-[60px] sm:min-h-[80px] border border-gray-300 rounded p-1.5 sm:p-2 text-xs sm:text-sm resize-y focus:border-[#183A64] focus:ring-2 focus:ring-[#ADE7F7]/50 focus:outline-none"
                         placeholder="Isi bukti pendukung..."
                       />

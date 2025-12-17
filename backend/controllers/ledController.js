@@ -17,9 +17,12 @@ export const getAllLEDData = async (req, res) => {
       orderBy: { updated_at: 'desc' },
     });
 
+    console.log(`getAllLEDData for user ${parsedUserId}: found ${rows.length} rows`);
+
     // Transform ke format FE: { subtab: data }
     const result = {};
     rows.forEach(row => {
+      console.log(`  - subtab: ${row.subtab}, data keys:`, Object.keys(row.data || {}));
       result[row.subtab] = row.data;
     });
 
@@ -117,6 +120,9 @@ export const saveLEDTab = async (req, res) => {
       return res.status(400).json({ message: 'subtab and data are required' });
     }
 
+    console.log(`saveLEDTab for user ${parsedUserId}, subtab: ${subtab}`);
+    console.log('  Data keys:', Object.keys(data || {}));
+
     // Upsert: update jika ada, create jika tidak
     const upserted = await prisma.led.upsert({
       where: {
@@ -134,6 +140,7 @@ export const saveLEDTab = async (req, res) => {
       },
     });
 
+    console.log(`  Successfully saved LED for subtab ${subtab}`);
     res.json({ data: upserted });
   } catch (err) {
     console.error('saveLEDTab error:', err);
