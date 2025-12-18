@@ -159,17 +159,35 @@ export const getRekapBagian = async (req, res) => {
       // Default: tidak diketahui
       return undefined;
     };
+    
+    // Helper untuk deteksi apakah item adalah LED atau LKPS
+    const isLEDKode = (kode) => {
+      const k = String(kode || '').toUpperCase();
+      return k.includes('LED') || 
+             k.startsWith('C.1') || k.startsWith('C.2') || 
+             k.startsWith('C.3') || k.startsWith('C.4') || 
+             k.startsWith('C.5') || k.startsWith('C.6');
+    };
 
-    const rekap = Array.from(groups.values()).map(g => ({
-      id: autoId++,
-      kode_bagian: g.kode_bagian,
-      nama_bagian: g.nama_bagian,
-      deskripsi: g.deskripsi || `${g.nama_bagian} - Bukti Pendukung`,
-      tanggal_update: g.tanggal_update || new Date().toISOString(),
-      status: mapStatus(g.statusRaw),
-      // Tambahkan type agar frontend bisa kirim selectedTypes ke endpoint export
-      type: mapKodeToType(g.kode_bagian) || null,
-    }));
+    const rekap = Array.from(groups.values()).map(g => {
+      // Jika kode tidak memiliki prefix LED atau C.x, tambahkan prefix "LKPS"
+      let finalKode = g.kode_bagian;
+      if (!isLEDKode(finalKode)) {
+        // Ini adalah item LKPS, pastikan tidak ada ambiguitas
+        finalKode = `LKPS-${finalKode}`;
+      }
+      
+      return {
+        id: autoId++,
+        kode_bagian: finalKode,
+        nama_bagian: g.nama_bagian,
+        deskripsi: g.deskripsi || `${g.nama_bagian} - Bukti Pendukung`,
+        tanggal_update: g.tanggal_update || new Date().toISOString(),
+        status: mapStatus(g.statusRaw),
+        // Tambahkan type agar frontend bisa kirim selectedTypes ke endpoint export
+        type: mapKodeToType(g.kode_bagian) || null,
+      };
+    });
 
     // Jika tidak ada dokumen sama sekali, kembalikan array kosong
     return res.json(rekap);

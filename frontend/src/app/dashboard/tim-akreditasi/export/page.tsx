@@ -33,7 +33,32 @@ export default function ExportAkreditasi() {
   const [loading, setLoading] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  
+  // Modal state
+  const [showModal, setShowModal] = useState(false);
+  const [modalType, setModalType] = useState<'success' | 'error' | 'warning' | 'info'>('info');
+  const [modalTitle, setModalTitle] = useState('');
+  const [modalMessage, setModalMessage] = useState('');
+  const [modalCallback, setModalCallback] = useState<(() => void) | null>(null);
 
+  // Helper to show modal
+  const showNotification = (type: 'success' | 'error' | 'warning' | 'info', title: string, message: string, callback?: () => void) => {
+    setModalType(type);
+    setModalTitle(title);
+    setModalMessage(message);
+    setModalCallback(() => callback || null);
+    setShowModal(true);
+  };
+  
+  // Helper to close modal
+  const closeModal = () => {
+    setShowModal(false);
+    if (modalCallback) {
+      modalCallback();
+      setModalCallback(null);
+    }
+  };
+  
   useEffect(() => {
     fetchData();
   }, []);
@@ -41,6 +66,147 @@ export default function ExportAkreditasi() {
   useEffect(() => {
     filterBagianData();
   }, [bagianList, filterStatus, searchQuery]);
+
+  // Fungsi untuk cek kelengkapan data dari backend
+  const checkDataCompleteness = async (kodeBagian: string, namaBagian: string): Promise<boolean> => {
+    try {
+      const userId = localStorage.getItem("user_id") || sessionStorage.getItem("user_id");
+      if (!userId) return false;
+
+      const name = namaBagian.toLowerCase().trim();
+      const code = kodeBagian.toLowerCase().trim();
+
+      // Untuk LED items, cek SEMUA tabel yang seharusnya ada berdasarkan tab
+      if (code.includes('led') || code.includes('c.')) {
+        const response = await fetch(`${API_URL}/led/${userId}`, { credentials: 'include' });
+        if (!response.ok) return false;
+        
+        const ledData = await response.json();
+        
+        // Tentukan tab key berdasarkan nama
+        let tabKey = '';
+        if (name.includes('budaya mutu') || code.includes('c.1')) tabKey = 'budaya-mutu';
+        else if (name.includes('relevansi pendidikan') || code.includes('c.2')) tabKey = 'relevansi-pendidikan';
+        else if (name.includes('relevansi penelitian') || code.includes('c.3')) tabKey = 'relevansi-penelitian';
+        else if (name.includes('relevansi pkm') || code.includes('c.4')) tabKey = 'relevansi-pkm';
+        else if (name.includes('akuntabilitas') || code.includes('c.5')) tabKey = 'akuntabilitas';
+        else if (name.includes('diferensiasi') || code.includes('c.6')) tabKey = 'diferensiasi-misi';
+        
+        if (!tabKey || !ledData[tabKey]) return false;
+        
+        const data = ledData[tabKey];
+        
+        // Tentukan tabel mana yang harus diisi berdasarkan tab
+        let requiredTables: string[] = [];
+        
+        if (tabKey === 'diferensiasi-misi') {
+          // Diferensiasi Misi: hanya Tabel A
+          requiredTables = ['A'];
+        } else if (tabKey === 'relevansi-pendidikan') {
+          // Relevansi Pendidikan: Tabel A, B, C, D
+          requiredTables = ['A', 'B', 'C', 'D'];
+        } else if (tabKey === 'relevansi-penelitian' || tabKey === 'relevansi-pkm') {
+          // Relevansi Penelitian & PkM: Tabel A, B, C
+          requiredTables = ['A', 'B', 'C'];
+        } else {
+          // Default (Budaya Mutu, Akuntabilitas): Tabel A, B
+          requiredTables = ['A', 'B'];
+        }
+        
+        // Cek PENETAPAN: semua tabel yang required harus terisi
+        const penetapanComplete = requiredTables.every(table => {
+          const key = `penetapan${table}` as keyof typeof data;
+          return Array.isArray(data[key]) && data[key].length > 0;
+        });
+        
+        // Cek PELAKSANAAN: semua tabel yang required harus terisi
+        const pelaksanaanComplete = requiredTables.every(table => {
+          const key = `pelaksanaan${table}` as keyof typeof data;
+          return Array.isArray(data[key]) && data[key].length > 0;
+        });
+        
+        // Cek EVALUASI: Tabel A, B, C harus terisi (untuk semua tab kecuali diferensiasi yang hanya A)
+        const evalTables = tabKey === 'diferensiasi-misi' ? ['A'] : ['A', 'B', 'C'];
+        const evaluasiComplete = evalTables.every(table => {
+          const key = `eval${table}` as keyof typeof data;
+          return Array.isArray(data[key]) && data[key].length > 0;
+        });
+        
+        return penetapanComplete && pelaksanaanComplete && evaluasiComplete;
+      }
+      
+      // Untuk LKPS Budaya Mutu - cek SEMUA 6 sub tab harus terisi
+      if (name.includes('budaya mutu') && !code.includes('led')) {
+        const types = ['tupoksi', 'pendanaan', 'penggunaan-dana', 'ewmp', 'ktk', 'spmi'];
+        const checks = await Promise.all(
+          types.map(async (type) => {
+            const res = await fetch(`${API_URL}/budaya-mutu?userId=${userId}&type=${type}`, { credentials: 'include' });
+            if (!res.ok) return false;
+            const data = await res.json();
+            return data?.data?.length > 0;
+          })
+        );
+        // Semua 6 sub tab harus terisi
+        return checks.every(check => check === true);
+      }
+      
+      // Untuk LKPS Relevansi Pendidikan - cek SEMUA 11 sub tab harus terisi
+      if (name.includes('relevansi') && name.includes('pendidikan') && !code.includes('led')) {
+        const subtabs = [
+          'mahasiswa', 'keragaman-asal', 'kondisi-jumlah-mahasiswa', 
+          'tabel-pembelajaran', 'pemetaan-CPL-PL', 'peta-pemenuhan-CPL',
+          'rata-rata-masa-tunggu-lulusan', 'kesesuaian-bidang', 
+          'kepuasan-pengguna', 'fleksibilitas', 'rekognisi-apresiasi'
+        ];
+        const checks = await Promise.all(
+          subtabs.map(async (subtab) => {
+            const res = await fetch(`${API_URL}/relevansi-pendidikan?subtab=${subtab}`, { credentials: 'include' });
+            if (!res.ok) return false;
+            const data = await res.json();
+            return data?.data?.length > 0;
+          })
+        );
+        return checks.every(check => check === true);
+      }
+      
+      // Untuk LKPS Relevansi Penelitian - cek sub tab terisi
+      if (name.includes('relevansi') && name.includes('penelitian') && !code.includes('led')) {
+        const res = await fetch(`${API_URL}/relevansi-penelitian`, { credentials: 'include' });
+        if (!res.ok) return false;
+        const data = await res.json();
+        return data?.data?.length > 0;
+      }
+      
+      // Untuk LKPS Relevansi PKM - cek sub tab terisi
+      if (name.includes('relevansi') && name.includes('pkm') && !code.includes('led')) {
+        const res = await fetch(`${API_URL}/relevansi-pkm`, { credentials: 'include' });
+        if (!res.ok) return false;
+        const data = await res.json();
+        return data?.data?.length > 0;
+      }
+      
+      // Untuk LKPS Akuntabilitas - cek sub tab terisi
+      if (name.includes('akuntabilitas') && !code.includes('led')) {
+        const res = await fetch(`${API_URL}/akuntabilitas?userId=${userId}`, { credentials: 'include' });
+        if (!res.ok) return false;
+        const data = await res.json();
+        return data?.length > 0;
+      }
+      
+      // Untuk LKPS Diferensiasi Misi - cek sub tab terisi
+      if (name.includes('diferensiasi') && !code.includes('led')) {
+        const res = await fetch(`${API_URL}/diferensiasi-misi`, { credentials: 'include' });
+        if (!res.ok) return false;
+        const data = await res.json();
+        return data?.data?.length > 0;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Error checking data completeness:', error);
+      return false;
+    }
+  };
 
   // Ambil data real dari bukti pendukung dan hitung statistik
   const fetchData = async () => {
@@ -99,26 +265,33 @@ export default function ExportAkreditasi() {
             { key: 'relevansi-pkm', code: 'C.4', name: 'Relevansi PkM' }
           ];
           
-          relevansiTabs.forEach(tab => {
+          for (const tab of relevansiTabs) {
             // Hanya tambahkan jika ada data di LED
             if (availableLEDTabs.includes(tab.key)) {
+              // Cek kelengkapan data
+              const isComplete = await checkDataCompleteness(`LED ${tab.code}`, tab.name);
+              
               expandedData.push({
                 id: nextId++,
                 kode_bagian: `LED ${tab.code}`,
                 nama_bagian: tab.name,
                 deskripsi: `${tab.name} - Data dari LED Database`,
                 tanggal_update: item.tanggal_update,
-                status: 'Siap Export',
+                status: isComplete ? 'Siap Export' : 'Belum Lengkap',
                 type: item.type,
                 // Tambahkan flag untuk identifikasi nanti
                 _isExpandedLED: true,
                 _ledTabKey: tab.key
               } as any);
             }
-          });
+          }
         } else {
-          // Item normal, masukkan langsung
-          expandedData.push(item);
+          // Item normal, cek kelengkapan data
+          const isComplete = await checkDataCompleteness(item.kode_bagian, item.nama_bagian);
+          expandedData.push({
+            ...item,
+            status: isComplete ? 'Siap Export' : 'Belum Lengkap'
+          });
         }
       }
 
@@ -175,56 +348,21 @@ export default function ExportAkreditasi() {
     const code = String(item?.kode_bagian || '').toLowerCase().trim();
     
     // Normalize spaces and special characters
-    const normalizeName = name.replace(/\s+/g, ' ');
     const normalizeCode = code.replace(/\s+/g, '');
     
-    // Check for LED patterns in BOTH code and name
+    // ⚠️ CRITICAL: LED HARUS PUNYA KODE LED atau C.1-C.6 di kode_bagian
+    // Jangan deteksi dari nama saja karena nama bisa sama dengan LKPS
     const isLED = 
-      // ✅ Check in CODE first
-      normalizeCode.includes('led') || normalizeCode === 'led' ||
-      normalizeCode.includes('c.1') || normalizeCode.includes('c1') ||
-      normalizeCode.includes('c.2') || normalizeCode.includes('c2') ||
-      normalizeCode.includes('c.3') || normalizeCode.includes('c3') ||
-      normalizeCode.includes('c.4') || normalizeCode.includes('c4') ||
-      normalizeCode.includes('c.5') || normalizeCode.includes('c5') ||
-      normalizeCode.includes('c.6') || normalizeCode.includes('c6') ||
-      // ✅ Check in NAME - C.1 Budaya Mutu
-      normalizeName.includes('led') || 
-      normalizeName.includes('laporan evaluasi diri') ||
-      normalizeName.includes('budaya mutu') || 
-      normalizeName.includes('budaya-mutu') || 
-      normalizeName.includes('budayamutu') ||
-      (normalizeName.includes('budaya') && !normalizeName.includes('non')) ||
-      // ✅ C.2 Relevansi Pendidikan
-      normalizeName.includes('relevansi pendidikan') ||
-      normalizeName.includes('relevansi-pendidikan') ||
-      normalizeName.includes('relevansipendidikan') ||
-      (normalizeName.includes('pendidikan') && normalizeName.includes('relevansi')) ||
-      // ✅ C.3 Relevansi Penelitian
-      normalizeName.includes('relevansi penelitian') ||
-      normalizeName.includes('relevansi-penelitian') ||
-      normalizeName.includes('relevansipenelitian') ||
-      (normalizeName.includes('penelitian') && normalizeName.includes('relevansi')) ||
-      // ✅ C.4 Relevansi PKM/UKM
-      normalizeName.includes('relevansi pkm') ||
-      normalizeName.includes('relevansi-pkm') ||
-      normalizeName.includes('relevansipkm') ||
-      normalizeName.includes('relevansi pengabdian') ||
-      normalizeName.includes('relevansi ukm') ||
-      normalizeName.includes('relevansi-ukm') ||
-      (normalizeName.includes('pkm') && normalizeName.includes('relevansi')) ||
-      (normalizeName.includes('pengabdian') && normalizeName.includes('relevansi')) ||
-      (normalizeName.includes('ukm') && normalizeName.includes('relevansi')) ||
-      // ✅ C.5 Akuntabilitas
-      normalizeName.includes('akuntabilitas') ||
-      normalizeName.includes('akuntabilitas-') ||
-      // ✅ C.6 Diferensiasi Misi
-      normalizeName.includes('diferensiasi misi') ||
-      normalizeName.includes('diferensiasi-misi') ||
-      normalizeName.includes('diferensiasimisi') ||
-      normalizeName.includes('diferensiasi');
+      // ✅ Check ONLY in CODE - ini yang paling penting!
+      normalizeCode.includes('led') ||
+      normalizeCode.startsWith('c.1') || normalizeCode.startsWith('c1') ||
+      normalizeCode.startsWith('c.2') || normalizeCode.startsWith('c2') ||
+      normalizeCode.startsWith('c.3') || normalizeCode.startsWith('c3') ||
+      normalizeCode.startsWith('c.4') || normalizeCode.startsWith('c4') ||
+      normalizeCode.startsWith('c.5') || normalizeCode.startsWith('c5') ||
+      normalizeCode.startsWith('c.6') || normalizeCode.startsWith('c6');
     
-    console.log(`[LED Detection] ${code} - ${name.substring(0, 30)}... => ${isLED ? '✓ LED' : '✗ Non-LED'}`);
+    console.log(`[LED Detection] Code="${code}" Name="${name.substring(0, 30)}..." => ${isLED ? '✓ LED' : '✗ LKPS'}`);
     return isLED;
   };
 
@@ -235,84 +373,62 @@ export default function ExportAkreditasi() {
     
     console.log(`[Tab Mapping] Checking: code="${code}", name="${name}"`);
     
-    // ⚠️ SPECIAL CASE: Jika nama hanya "relevansi" tanpa spesifik
-    if ((code.includes('led') || code === 'led') && 
-        name === 'relevansi' && 
-        !name.includes('pendidikan') && 
-        !name.includes('penelitian') && 
-        !name.includes('pkm') &&
-        !name.includes('pengabdian')) {
-      console.log(`⚠️ [Tab Key] Item generic "relevansi" detected - need user input`);
-      // Return null untuk trigger alert dengan pilihan manual
+    // ⚠️ HARUS ada LED atau C.x di kode, kalau tidak bukan LED!
+    if (!code.includes('led') && 
+        !code.startsWith('c.1') && !code.startsWith('c1') &&
+        !code.startsWith('c.2') && !code.startsWith('c2') &&
+        !code.startsWith('c.3') && !code.startsWith('c3') &&
+        !code.startsWith('c.4') && !code.startsWith('c4') &&
+        !code.startsWith('c.5') && !code.startsWith('c5') &&
+        !code.startsWith('c.6') && !code.startsWith('c6')) {
+      console.log(`⚠️ [Tab Key] Not LED item (no LED/C.x code) - returning null`);
       return null;
     }
     
-    // ⚠️ CHECK C.2 FIRST (lebih spesifik: "pendidikan" harus sebelum "budaya")
+    // Mapping berdasarkan KODE terlebih dahulu, baru nama
+    // C.1 - Budaya Mutu
+    if (code.startsWith('c.1') || code.startsWith('c1') || 
+        (code.includes('led') && name.includes('budaya'))) {
+      console.log(`[Tab Key] ✅ Mapped to: budaya-mutu`);
+      return 'budaya-mutu';
+    }
+    
     // C.2 - Relevansi Pendidikan
-    if (code.includes('c.2') || code.includes('c2') || 
-        name.includes('relevansi pendidikan') ||
-        name.includes('relevansi-pendidikan') ||
-        name.includes('relevansipendidikan') ||
-        name.includes('pendidikan') ||
-        (code.includes('led') && name.includes('pendidikan')) ||
-        (name.includes('pendidikan') && !name.includes('penelitian') && !name.includes('non'))) {
-      console.log(`[Tab Key] ✅ Mapped to: relevansi-pendidikan (code: "${code}", name: "${name.substring(0, 50)}...")`);
+    if (code.startsWith('c.2') || code.startsWith('c2') || 
+        (code.includes('led') && name.includes('pendidikan') && !name.includes('penelitian'))) {
+      console.log(`[Tab Key] ✅ Mapped to: relevansi-pendidikan`);
       return 'relevansi-pendidikan';
     }
     
-    // C.1 - Budaya Mutu (termasuk kode "LED" dengan nama budaya mutu)
-    if (code.includes('c.1') || code.includes('c1') || 
-        name.includes('budaya mutu') || name.includes('budayamutu') || 
-        name.includes('budaya-mutu') || 
-        (code.includes('led') && name.includes('budaya')) ||
-        (name.includes('budaya') && !name.includes('non'))) {
-      console.log(`[Tab Key] ✅ Mapped to: budaya-mutu (code: "${code}", name: "${name.substring(0, 50)}...")`);
-      return 'budaya-mutu';
-    }
     // C.3 - Relevansi Penelitian
-    if (code.includes('c.3') || code.includes('c3') || 
-        name.includes('relevansi penelitian') ||
-        name.includes('relevansi-penelitian') ||
-        name.includes('relevansipenelitian') ||
-        name.includes('penelitian') ||
+    if (code.startsWith('c.3') || code.startsWith('c3') || 
         (code.includes('led') && name.includes('penelitian'))) {
-      console.log(`[Tab Key] ✅ Mapped to: relevansi-penelitian (code: "${code}", name: "${name.substring(0, 50)}...")`);
+      console.log(`[Tab Key] ✅ Mapped to: relevansi-penelitian`);
       return 'relevansi-penelitian';
     }
+    
     // C.4 - Relevansi PKM/UKM
-    if (code.includes('c.4') || code.includes('c4') || 
-        name.includes('relevansi pkm') || 
-        name.includes('relevansi-pkm') ||
-        name.includes('relevansipkm') ||
-        name.includes('relevansi pengabdian') ||
-        name.includes('relevansi ukm') ||
-        name.includes('relevansi-ukm') ||
-        name.includes('pkm') ||
-        name.includes('pengabdian') ||
-        name.includes('ukm') ||
+    if (code.startsWith('c.4') || code.startsWith('c4') || 
         (code.includes('led') && (name.includes('pkm') || name.includes('pengabdian') || name.includes('ukm')))) {
-      console.log(`[Tab Key] ✅ Mapped to: relevansi-pkm (code: "${code}", name: "${name.substring(0, 50)}...")`);
+      console.log(`[Tab Key] ✅ Mapped to: relevansi-pkm`);
       return 'relevansi-pkm';
     }
+    
     // C.5 - Akuntabilitas
-    if (code.includes('c.5') || code.includes('c5') || 
-        name.includes('akuntabilitas') ||
+    if (code.startsWith('c.5') || code.startsWith('c5') || 
         (code.includes('led') && name.includes('akuntabilitas'))) {
       console.log(`[Tab Key] ✅ Mapped to: akuntabilitas`);
       return 'akuntabilitas';
     }
+    
     // C.6 - Diferensiasi Misi
-    if (code.includes('c.6') || code.includes('c6') || 
-        name.includes('diferensiasi misi') || 
-        name.includes('diferensiasi-misi') ||
-        name.includes('diferensiasimisi') ||
-        name.includes('diferensiasi') ||
+    if (code.startsWith('c.6') || code.startsWith('c6') || 
         (code.includes('led') && name.includes('diferensiasi'))) {
       console.log(`[Tab Key] ✅ Mapped to: diferensiasi-misi`);
       return 'diferensiasi-misi';
     }
     
-    console.log(`[Tab Key] ⚠️ No mapping found for: ${code} - ${name}`);
+    console.log(`[Tab Key] ⚠️ No specific mapping found for: ${code} - ${name}`);
     return null;
   };
 
@@ -323,15 +439,15 @@ export default function ExportAkreditasi() {
       let tabKey = (bagian as any)._ledTabKey || getLEDTabKey(bagian);
       
       if (!tabKey) {
-        alert(`Tidak dapat menentukan tipe LED untuk bagian "${bagian.nama_bagian}".\n\n` +
-              `Pastikan nama bagian mengandung kata kunci seperti:\n` +
-              `- Budaya Mutu (C.1)\n` +
-              `- Relevansi Pendidikan (C.2)\n` +
-              `- Relevansi Penelitian (C.3)\n` +
-              `- Relevansi PKM (C.4)\n` +
-              `- Akuntabilitas (C.5)\n` +
-              `- Diferensiasi Misi (C.6)`);
-        return;
+        showNotification('error', 'Tidak Dapat Menentukan Tipe LED', 
+          `Tidak dapat menentukan tipe LED untuk bagian "${bagian.nama_bagian}".\n\n` +
+          `Pastikan nama bagian mengandung kata kunci seperti:\n` +
+          `• Budaya Mutu (C.1)\n` +
+          `• Relevansi Pendidikan (C.2)\n` +
+          `• Relevansi Penelitian (C.3)\n` +
+          `• Relevansi PKM (C.4)\n` +
+          `• Akuntabilitas (C.5)\n` +
+          `• Diferensiasi Misi (C.6)`);
       }
       
       const userIdStr = localStorage.getItem("user_id") || sessionStorage.getItem("user_id");
@@ -376,19 +492,22 @@ export default function ExportAkreditasi() {
         console.warn(`⚠️ No data found for tabKey: "${tabKey}"`);
         console.log('💡 Available subtabs in response:', Object.keys(allData));
         console.log('💡 Full response data:', JSON.stringify(allData, null, 2));
-        alert(`❌ Data LED untuk "${bagian.nama_bagian}" belum tersedia di database.\n\n` +
-              `Silakan:\n` +
-              `1. Buka halaman LED → ${bagian.nama_bagian}\n` +
-              `2. Isi data (Penetapan, Pelaksanaan, Evaluasi)\n` +
-              `3. Klik SAVE atau DRAFT\n` +
-              `4. Kembali ke halaman Export dan coba lagi\n\n` +
-              `Subtab yang ada: ${Object.keys(allData).join(', ') || 'Tidak ada'}`);
+        showNotification('warning', 'Data LED Belum Tersedia', 
+          `Data LED untuk "${bagian.nama_bagian}" belum tersedia di database.\n\n` +
+          `Langkah-langkah:\n` +
+          `1. Buka halaman LED → ${bagian.nama_bagian}\n` +
+          `2. Isi data (Penetapan, Pelaksanaan, Evaluasi)\n` +
+          `3. Klik SAVE atau DRAFT\n` +
+          `4. Kembali ke halaman Export dan coba lagi\n\n` +
+          `Subtab yang ada: ${Object.keys(allData).join(', ') || 'Tidak ada'}`);
         return;
       }
       
       if (typeof ledData === 'object' && Object.keys(ledData).length === 0) {
         console.warn(`⚠️ Data for "${tabKey}" exists but is empty object`);
-        alert(`❌ Data LED untuk "${bagian.nama_bagian}" kosong di database.\n\nSilakan isi data terlebih dahulu di halaman LED.`);
+        showNotification('warning', 'Data LED Kosong', 
+          `Data LED untuk "${bagian.nama_bagian}" kosong di database.\n\n` +
+          `Silakan isi data terlebih dahulu di halaman LED.`);
         return;
       }
       
@@ -405,12 +524,12 @@ export default function ExportAkreditasi() {
       console.log('✅ PDF generation completed');
     } catch (error) {
       console.error("❌ Error export LED PDF:", error);
-      alert(`❌ Gagal export PDF LED.\n\n` +
-            `Error: ${error instanceof Error ? error.message : 'Unknown error'}\n\n` +
-            `Pastikan:\n` +
-            `1. Data LED sudah disimpan di database\n` +
-            `2. Backend server berjalan\n` +
-            `3. Anda sudah login`);
+      showNotification('error', 'Gagal Export PDF LED', 
+        `Error: ${error instanceof Error ? error.message : 'Unknown error'}\n\n` +
+        `Pastikan:\n` +
+        `1. Data LED sudah disimpan di database\n` +
+        `2. Backend server berjalan\n` +
+        `3. Anda sudah login`);
     }
   };
 
@@ -423,7 +542,7 @@ export default function ExportAkreditasi() {
       const userId = userIdStr ? Number(userIdStr) : null;
       
       if (!userId) {
-        alert("User ID tidak ditemukan. Silakan login ulang.");
+        showNotification('error', 'User ID Tidak Ditemukan', 'Silakan login ulang untuk melanjutkan.');
         return;
       }
       
@@ -453,12 +572,13 @@ export default function ExportAkreditasi() {
       });
       
       if (tabsToExport.length === 0) {
-        alert(`❌ Tidak ada data Relevansi yang sudah di-save di database.\n\n` +
-              `Silakan:\n` +
-              `1. Buka halaman LED\n` +
-              `2. Pilih tab Relevansi (Pendidikan/Penelitian/PKM)\n` +
-              `3. Isi data dan klik SAVE/DRAFT\n` +
-              `4. Kembali ke halaman Export dan coba lagi`);
+        showNotification('warning', 'Tidak Ada Data Relevansi', 
+          `Tidak ada data Relevansi yang sudah di-save di database.\n\n` +
+          `Langkah-langkah:\n` +
+          `1. Buka halaman LED\n` +
+          `2. Pilih tab Relevansi (Pendidikan/Penelitian/PKM)\n` +
+          `3. Isi data dan klik SAVE/DRAFT\n` +
+          `4. Kembali ke halaman Export dan coba lagi`);
         return;
       }
       
@@ -469,11 +589,12 @@ export default function ExportAkreditasi() {
       
       const printWindow = window.open("", "_blank");
       if (!printWindow) {
-        alert("❌ Popup diblokir oleh browser.\n\n" +
-              "Solusi:\n" +
-              "1. Klik icon 🔒 di address bar\n" +
-              "2. Izinkan popup untuk situs ini\n" +
-              "3. Refresh halaman dan coba lagi");
+        showNotification('error', 'Popup Diblokir', 
+          `Popup diblokir oleh browser.\n\n` +
+          `Solusi:\n` +
+          `1. Klik icon 🔒 di address bar\n` +
+          `2. Izinkan popup untuk situs ini\n` +
+          `3. Refresh halaman dan coba lagi`);
         return;
       }
       
@@ -548,14 +669,16 @@ export default function ExportAkreditasi() {
       
     } catch (error) {
       console.error("❌ Error export All Relevansi:", error);
-      alert(`❌ Gagal export Relevansi.\n\nError: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      showNotification('error', 'Gagal Export Relevansi', 
+        `Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
   const generateLEDPDF = (data: any, tabKey: string, title: string) => {
     const printWindow = window.open("", "_blank");
     if (!printWindow) {
-      alert("Popup diblokir. Silakan izinkan popup untuk export PDF.");
+      showNotification('error', 'Popup Diblokir', 
+        'Popup diblokir oleh browser. Silakan izinkan popup untuk export PDF.');
       return;
     }
     
@@ -909,27 +1032,42 @@ export default function ExportAkreditasi() {
 
   const handleExport = async () => {
     if (selectedBagian.length === 0) {
-      alert('Pilih minimal satu bagian untuk export');
+      showNotification('warning', 'Belum Ada Pilihan', 'Pilih minimal satu bagian untuk export.');
       return;
     }
 
     const selectedItems = filteredBagian.filter((b) => selectedBagian.includes(b.id));
     
+    console.log('\n🔍 === EXPORT VALIDATION ===');
+    console.log('Selected items:', selectedItems.length);
+    selectedItems.forEach((item, idx) => {
+      console.log(`  [${idx + 1}] ${item.kode_bagian} - ${item.nama_bagian}`);
+    });
+    
     // Validasi: LED tidak bisa Excel, LKPS tidak bisa PDF
     const ledItems = selectedItems.filter(isLEDItem);
     const lkpsItems = selectedItems.filter(item => !isLEDItem(item));
     
+    console.log(`\n📊 Detection Results:`);
+    console.log(`  LED items: ${ledItems.length}`);
+    ledItems.forEach(item => console.log(`    ✓ ${item.kode_bagian} - ${item.nama_bagian}`));
+    console.log(`  LKPS items: ${lkpsItems.length}`);
+    lkpsItems.forEach(item => console.log(`    ✓ ${item.kode_bagian} - ${item.nama_bagian}`));
+    console.log(`  Format: ${exportFormat}\n`);
+    
     if (ledItems.length > 0 && exportFormat === 'EXCEL') {
-      alert('Item LED tidak dapat di-export ke Excel!\n\n' +
-            'Item LED hanya dapat di-export dalam format PDF.\n' +
-            'Silakan ubah format export ke PDF atau hapus item LED dari pilihan.');
+      showNotification('error', 'Format Tidak Sesuai', 
+        'Item LED tidak dapat di-export ke Excel!\n\n' +
+        'Item LED hanya dapat di-export dalam format PDF.\n' +
+        'Silakan ubah format export ke PDF atau hapus item LED dari pilihan.');
       return;
     }
     
     if (lkpsItems.length > 0 && exportFormat === 'PDF') {
-      alert('Item LKPS tidak dapat di-export ke PDF!\n\n' +
-            'Item LKPS hanya dapat di-export dalam format Excel.\n' +
-            'Silakan ubah format export ke Excel atau hapus item LKPS dari pilihan.');
+      showNotification('error', 'Format Tidak Sesuai', 
+        'Item LKPS tidak dapat di-export ke PDF!\n\n' +
+        'Item LKPS hanya dapat di-export dalam format Excel.\n' +
+        'Silakan ubah format export ke Excel atau hapus item LKPS dari pilihan.');
       return;
     }
     
@@ -1038,6 +1176,20 @@ export default function ExportAkreditasi() {
       setLoading(true);
       try {
         const endpoint = '/akreditasi/export';
+        
+        // Prepare selected bagian info
+        const selectedBagianInfo = itemsToExport.map(item => ({
+          id: item.id,
+          kode_bagian: item.kode_bagian,
+          nama_bagian: item.nama_bagian
+        }));
+        
+        console.log('📤 Sending to backend:', {
+          format: exportFormat,
+          selectedIds: idsToExport,
+          selectedBagian: selectedBagianInfo
+        });
+        
         const res = await fetch(`${API_URL}${endpoint}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1045,7 +1197,8 @@ export default function ExportAkreditasi() {
           body: JSON.stringify({ 
             format: exportFormat, 
             selectedIds: idsToExport,
-            selectedTypes: []
+            selectedTypes: [],
+            selectedBagian: selectedBagianInfo
           }),
         });
 
@@ -1059,23 +1212,42 @@ export default function ExportAkreditasi() {
           console.error('Request Body:', { format: exportFormat, selectedIds: idsToExport, selectedTypes: [] });
           
           const errorMsg = errorData?.message || `Export gagal (${res.status}): ${res.statusText}`;
-          alert(`❌ ${errorMsg}\n\nℹ️ Jika Anda mencoba export item LED (C.1-C.6), pastikan:\n1. Item terdeteksi sebagai LED (lihat console log)\n2. Data sudah disimpan di database LED`);
+          showNotification('error', 'Export Gagal', 
+            `${errorMsg}\n\n` +
+            `ℹ️ Jika Anda mencoba export item LED (C.1-C.6), pastikan:\n` +
+            `1. Item terdeteksi sebagai LED (lihat console log)\n` +
+            `2. Data sudah disimpan di database LED`);
           throw new Error(errorMsg);
         }
 
         const blob = await res.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
+        const filename = `LKPS-Export-${new Date().toISOString().split('T')[0]}.${exportFormat === 'PDF' ? 'pdf' : 'xlsx'}`;
         a.href = url;
-        a.download = `akreditasi-export-${Date.now()}.${exportFormat === 'PDF' ? 'pdf' : 'xlsx'}`;
+        a.download = filename;
         document.body.appendChild(a);
         a.click();
         a.remove();
         window.URL.revokeObjectURL(url);
-        console.log(`✅ [${exportFormat}] Export completed`);
+        console.log(`✅ [${exportFormat}] Export completed: ${filename}`);
+        
+        // Show success notification
+        showNotification('success', 'Export Berhasil!', 
+          `File: ${filename}\n` +
+          `Format: ${exportFormat}\n` +
+          `Jumlah bagian: ${itemsToExport.length}\n\n` +
+          `File telah diunduh ke folder Downloads Anda.`);
       } catch (e) {
         console.error('❌ Export error:', e);
-        alert(`Terjadi kesalahan saat export: ${e instanceof Error ? e.message : 'Unknown error'}`);
+        const errorMsg = e instanceof Error ? e.message : 'Unknown error';
+        showNotification('error', 'Export Gagal', 
+          `${errorMsg}\n\n` +
+          `Kemungkinan penyebab:\n` +
+          `• Data belum tersimpan di database\n` +
+          `• Koneksi ke server terputus\n` +
+          `• Format data tidak sesuai\n\n` +
+          `Silakan periksa console log untuk detail lebih lanjut.`);
       } finally {
         setLoading(false);
       }
@@ -1354,6 +1526,77 @@ export default function ExportAkreditasi() {
           )}
         </div>
       </div>
+      
+      {/* Modal Notification */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex min-h-screen items-center justify-center p-4">
+            {/* Backdrop */}
+            <div 
+              className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+              onClick={closeModal}
+            ></div>
+            
+            {/* Modal Content */}
+            <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6 z-10">
+              {/* Icon */}
+              <div className="flex items-center justify-center mb-4">
+                {modalType === 'success' && (
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                    <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                )}
+                {modalType === 'error' && (
+                  <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
+                    <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </div>
+                )}
+                {modalType === 'warning' && (
+                  <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center">
+                    <svg className="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                )}
+                {modalType === 'info' && (
+                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+                    <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                )}
+              </div>
+              
+              {/* Title */}
+              <h3 className="text-xl font-semibold text-gray-900 text-center mb-3">
+                {modalTitle}
+              </h3>
+              
+              {/* Message */}
+              <div className="text-sm text-gray-600 text-center mb-6 whitespace-pre-line">
+                {modalMessage}
+              </div>
+              
+              {/* Button */}
+              <button
+                onClick={closeModal}
+                className={`w-full py-2.5 px-4 rounded-lg font-medium transition ${
+                  modalType === 'success' ? 'bg-green-600 hover:bg-green-700 text-white' :
+                  modalType === 'error' ? 'bg-red-600 hover:bg-red-700 text-white' :
+                  modalType === 'warning' ? 'bg-yellow-600 hover:bg-yellow-700 text-white' :
+                  'bg-blue-600 hover:bg-blue-700 text-white'
+                }`}
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

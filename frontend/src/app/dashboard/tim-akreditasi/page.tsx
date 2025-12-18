@@ -182,7 +182,6 @@ export default function DashboardAkreditasi() {
                 </div>
                 <div className="text-left mt-4">
                   
-                  <p className="text-xs text-gray-600 mt-1">Dokumen terupload</p>
                 </div>
               </div>
             </Link>
@@ -201,35 +200,43 @@ export default function DashboardAkreditasi() {
             </Link>
           </div>
 
-          {/* Bottom Section */}
-          <div className="grid grid-cols-1 gap-6">
-          </div>
-
           {/* Aksi Cepat */}
           <div className="mt-6 bg-white rounded-lg shadow p-4">
             <h3 className="font-bold text-gray-800 mb-4">Aksi Cepat</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-3">
               <Link href="/dashboard/tim-akreditasi/bukti-pendukung">
-                <button className="w-full p-6 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all">
-                  <Upload className="mx-auto mb-2 text-gray-600" size={32} />
-                  <h4 className="font-semibold text-gray-800">Upload Dokumen</h4>
-                  <p className="text-xs text-gray-600 mt-1">Unggah dokumen akreditasi baru</p>
+                <button className="w-full p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all flex items-center gap-4">
+                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Upload className="text-blue-600" size={24} />
+                  </div>
+                  <div className="text-left flex-1">
+                    <h4 className="font-semibold text-gray-800">Upload Dokumen</h4>
+                    <p className="text-xs text-gray-600 mt-0.5">Unggah dokumen akreditasi baru</p>
+                  </div>
                 </button>
               </Link>
               
               <Link href="/dashboard/tim-akreditasi/bukti-pendukung">
-                <button className="w-full p-6 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all">
-                  <FileText className="mx-auto mb-2 text-gray-600" size={32} />
-                  <h4 className="font-semibold text-gray-800">Cari Dokumen</h4>
-                  <p className="text-xs text-gray-600 mt-1">Pencarian dan unduh dengan filter</p>
+                <button className="w-full p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all flex items-center gap-4">
+                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <FileText className="text-green-600" size={24} />
+                  </div>
+                  <div className="text-left flex-1">
+                    <h4 className="font-semibold text-gray-800">Cari Dokumen</h4>
+                    <p className="text-xs text-gray-600 mt-0.5">Pencarian dan unduh dengan filter</p>
+                  </div>
                 </button>
               </Link>
               
               <Link href="/dashboard/tim-akreditasi/matriks-penilaian">
-                <button className="w-full p-6 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all">
-                  <BarChart3 className="mx-auto mb-2 text-gray-600" size={32} />
-                  <h4 className="font-semibold text-gray-800">Lihat Statistik</h4>
-                  <p className="text-xs text-gray-600 mt-1">Analisa laporan dari Laporan Data</p>
+                <button className="w-full p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-all flex items-center gap-4">
+                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <BarChart3 className="text-purple-600" size={24} />
+                  </div>
+                  <div className="text-left flex-1">
+                    <h4 className="font-semibold text-gray-800">Lihat Statistik</h4>
+                    <p className="text-xs text-gray-600 mt-0.5">Analisa laporan dari Laporan Data</p>
+                  </div>
                 </button>
               </Link>
             </div>

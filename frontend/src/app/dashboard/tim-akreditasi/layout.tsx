@@ -44,6 +44,8 @@ export default function LayoutTimAkreditasi({
   children: React.ReactNode;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const [open, setOpen] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
   const [user, setUser] = useState<{ username: string; role: string; photo?: string; email?: string } | null>(null);
@@ -51,20 +53,39 @@ export default function LayoutTimAkreditasi({
   const router = useRouter();
   const [checking, setChecking] = useState(true);
   
+  // Detect mobile screen and auto-collapse sidebar on mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (mobile) {
+        setSidebarOpen(false);
+      }
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   // Persist sidebar state across tabs/pages using localStorage so it's consistent
   useEffect(() => {
     try {
       const stored = typeof window !== 'undefined' ? localStorage.getItem('sidebarOpen') : null;
-      if (stored !== null) setSidebarOpen(stored === 'true');
+      if (stored !== null && !isMobile) setSidebarOpen(stored === 'true');
     } catch (err) {}
-  }, []);
+  }, [isMobile]);
 
   const toggleSidebar = () => {
-    const next = !sidebarOpen;
-    setSidebarOpen(next);
-    try {
-      localStorage.setItem('sidebarOpen', String(next));
-    } catch {}
+    if (isMobile) {
+      setMobileMenuOpen(!mobileMenuOpen);
+    } else {
+      const next = !sidebarOpen;
+      setSidebarOpen(next);
+      try {
+        localStorage.setItem('sidebarOpen', String(next));
+      } catch {}
+    }
   };
 
   // Sync sidebar state across tabs in real-time
@@ -153,34 +174,47 @@ export default function LayoutTimAkreditasi({
 
   return (
     <div className={`flex w-full min-h-screen bg-gray-100 ${poppins.variable} font-sans`}>
+      {/* Mobile Overlay */}
+      {isMobile && mobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
       {/* === SIDEBAR === */}
       <div
         className={`
-          ${sidebarOpen ? 'w-64' : 'w-20'}
+          ${isMobile ? (
+            mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+          ) : (
+            sidebarOpen ? 'w-64' : 'w-20'
+          )}
+          ${isMobile ? 'fixed left-0 top-0 w-64 z-50' : 'sticky top-0'}
           bg-[#183A64] text-white transition-all duration-300 overflow-hidden 
-          sticky top-0 h-screen flex flex-col
+          h-screen flex flex-col shadow-2xl
         `}
       >
         {/* Sidebar Header */}
-        <div className="p-4 border-b border-[#ADE7F7]/30 flex items-center gap-3">
-          <div className="w-12 h-12 bg-[#ADE7F7] rounded-full flex items-center justify-center text-[#183A64] font-bold shadow-md flex-shrink-0 overflow-hidden">
+        <div className="p-3 sm:p-4 border-b border-[#ADE7F7]/30 flex items-center gap-3">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-[#ADE7F7] rounded-full flex items-center justify-center text-[#183A64] font-bold shadow-md flex-shrink-0 overflow-hidden">
             {profilePhoto ? (
               <img src={profilePhoto} alt="Profile" className="w-full h-full object-cover" />
             ) : (
-              user?.username.charAt(0).toUpperCase()
+              <span className="text-sm sm:text-base">{user?.username.charAt(0).toUpperCase()}</span>
             )}
           </div>
 
-          {sidebarOpen && (
-            <div className="flex-1">
-              <h2 className="text-[#ADE7F7] text-base font-bold leading-tight">
+          {(sidebarOpen || isMobile) && (
+            <div className="flex-1 min-w-0">
+              <h2 className="text-[#ADE7F7] text-sm sm:text-base font-bold leading-tight truncate">
                 Repository Akreditasi
               </h2>
               <p className="text-[#ADE7F7]/80 text-xs font-bold">POLIBATAM</p>
               {user && (
-                <div className="mt-2">
-                  <p className="text-xs text-gray-300">{user.email}</p>
-                  <p className="text-xs text-gray-300">{getRoleDisplayName(user.role)}</p>
+                <div className="mt-1 sm:mt-2">
+                  <p className="text-xs text-gray-300 truncate">{user.email}</p>
+                  <p className="text-xs text-gray-300 truncate">{getRoleDisplayName(user.role)}</p>
                 </div>
               )}
             </div>
@@ -205,19 +239,24 @@ export default function LayoutTimAkreditasi({
                       : pathname.startsWith(item.href);
 
                   return (
-                    <Link key={item.name} href={item.href}>
+                    <Link 
+                      key={item.name} 
+                      href={item.href}
+                      onClick={() => isMobile && setMobileMenuOpen(false)}
+                    >
                       <div
                         className={`
-                          flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition
+                          flex items-center gap-3 px-3 py-2.5 sm:py-2 rounded-lg text-sm transition
+                          active:scale-95
                           ${
                             isActive
-                              ? 'bg-[#ADE7F7] text-[#183A64]'
+                              ? 'bg-[#ADE7F7] text-[#183A64] font-semibold'
                               : 'hover:bg-[#ADE7F7]/30 hover:text-[#ADE7F7]'
                           }
                         `}
                       >
-                        {item.icon}
-                        {sidebarOpen && <span>{item.name}</span>}
+                        <span className="flex-shrink-0">{item.icon}</span>
+                        {(sidebarOpen || isMobile) && <span className="truncate">{item.name}</span>}
                       </div>
                     </Link>
                   );
@@ -269,16 +308,20 @@ export default function LayoutTimAkreditasi({
         {/* Toggle Button */}
         <button
           onClick={toggleSidebar}
-          className="fixed top-8 z-50 p-2 bg-[#183A64] text-white rounded-lg hover:bg-[#2A4F85] transition shadow-lg"
+          className={`
+            fixed z-40 p-2 sm:p-2.5 bg-[#183A64] text-white rounded-lg 
+            hover:bg-[#2A4F85] transition shadow-lg
+            ${isMobile ? 'top-4 left-4' : 'top-8'}
+          `}
           style={{
-            left: sidebarOpen ? 'calc(16rem + 1rem)' : 'calc(5rem + 1rem)',
+            left: isMobile ? '1rem' : (sidebarOpen ? 'calc(16rem + 1rem)' : 'calc(5rem + 1rem)'),
           }}
         >
-          {sidebarOpen ? <ChevronLeft size={20} /> : <Menu size={20} />}
+          {isMobile || !sidebarOpen ? <Menu size={20} /> : <ChevronLeft size={20} />}
         </button>
 
         {/* Page Content */}
-        <main className="w-full p-2 sm:p-4 md:p-6">{children}</main>
+        <main className="w-full p-4 sm:p-6 md:p-8 pt-16 sm:pt-20 md:pt-6">{children}</main>
       </div>
 
 

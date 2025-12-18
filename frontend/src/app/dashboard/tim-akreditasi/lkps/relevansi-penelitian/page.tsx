@@ -533,45 +533,30 @@ export default function RelevansiPenelitianPage() {
             
 
                       {/* Form Modal */}
-
                       {showForm && (
-
                         <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
-
-                          <div className="bg-white p-6 sm:p-8 rounded-lg shadow-lg w-full max-w-xl sm:max-w-3xl max-h-[90vh] overflow-y-auto">
-
-                            <div className="flex justify-between items-center mb-6">
-
-                              <h2 className="text-lg font-semibold text-gray-800">{editIndex!==null?'Edit Data':'Tambah Data Baru'}</h2>
-
-                              <button onClick={()=>setShowForm(false)} className="text-gray-500 hover:text-gray-700"><X size={24} /></button>
-
+                          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
+                            <div className="flex justify-between items-center mb-4">
+                              <h3 className="text-lg font-semibold text-gray-800">{editIndex!==null?'Edit Data':'Tambah Data'}</h3>
+                              <button onClick={()=>setShowForm(false)} className="text-gray-600 hover:text-gray-800"><X size={20} /></button>
                             </div>
-
-                            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-
+                            <div className="space-y-2">
                               {(subtabFields[activeSubTab]||[]).map(f => (
-
-                                <div key={f.key}>
-
-                                  <label className="block text-sm text-gray-700 mb-1">{f.label}</label>
-
-                                  <input name={f.key} value={formData[f.key]??''} onChange={handleChange} type={f.type} className="w-full px-3 py-2 border rounded" />
-
-                                </div>
-
+                                <input
+                                  key={f.key}
+                                  name={f.key}
+                                  placeholder={f.label}
+                                  value={formData[f.key]??''}
+                                  onChange={handleChange}
+                                  type={f.type}
+                                  className="w-full border p-2 rounded"
+                                />
                               ))}
-
                             </div>
-
-                            <div className="flex flex-col sm:flex-row justify-end gap-2 mt-6">
-
-                              <button onClick={()=>setShowForm(false)} className="w-full sm:w-auto px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300">Batal</button>
-
-                              <button onClick={handleSave} className="w-full sm:w-auto px-4 py-2 bg-blue-700 text-white rounded hover:bg-blue-800">{saving?'Menyimpan...':'Simpan'}</button>
-
+                            <div className="flex justify-end gap-2 mt-4">
+                              <button onClick={()=>setShowForm(false)} className="px-4 py-2 border border-red-500 rounded-lg hover:bg-red-300">Batal</button>
+                              <button onClick={handleSave} className="px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800">{saving?'Menyimpan...':'Simpan'}</button>
                             </div>
-
                           </div>
 
                         </div>
@@ -636,316 +621,85 @@ export default function RelevansiPenelitianPage() {
 
                       )}
 
-            
-
-                                            {confirmDelete.open && (
-
-            
-
-                                              <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4">
-
-            
-
-                                                <div className="bg-white w-full max-w-md rounded-lg shadow-xl">
-
-            
-
-                                                  <div className="p-4 border-b flex items-center gap-2">
-
-            
-
-                                                    <AlertCircle className="text-red-600" size={20} />
-
-            
-
-                                                    <h3 className="font-semibold text-gray-800">Konfirmasi Hapus</h3>
-
-            
-
-                                                  </div>
-
-            
-
-                                                  <div className="p-4 text-sm text-gray-700">
-
-            
-
-                                                    Apakah Anda yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.
-
-            
-
-                                                  </div>
-
-            
-
-                                                  <div className="p-4 border-t flex justify-end gap-2">
-
-            
-
-                                                    <button
-
-            
-
-                                                      onClick={() => setConfirmDelete({ open: false, id: null })}
-
-            
-
-                                                      className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
-
-            
-
-                                                    >
-
-            
-
-                                                      Batal
-
-            
-
-                                                    </button>
-
-            
-
-                                                    <button
-
-            
-
-                                                      onClick={async () => {
-
-            
-
-                                                        const id = confirmDelete.id;
-
-            
-
-                                                        setConfirmDelete({ open: false, id: null });
-
-            
-
-                                                        if (id !== null) {
-
-            
-
-                                                          await handleDelete(id);
-
-            
-
-                                                        }
-
-            
-
-                                                      }}
-
-            
-
-                                                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-
-            
-
-                                                    >
-
-            
-
-                                                      Hapus
-
-            
-
-                                                    </button>
-
-            
-
-                                                  </div>
-
-            
-
-                                                </div>
-
-            
-
-                                              </div>
-
-            
-
-                                            )}
-
-            
-
-                      
-
-            
-
-                                {/* Modal Catatan P4M */}
-
-            
-
-                                {showP4MNotes && selectedItemForNotes && (
-
-            
-
-                                  <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-start md:items-center overflow-auto z-50 p-4">
-
-            
-
-                                    <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-
-            
-
-                                      <div className="flex justify-between items-center mb-6">
-
-            
-
-                                        <h2 className="text-lg font-semibold text-gray-800">Catatan dari P4M Reviewer</h2>
-
-            
-
-                                        <button onClick={() => setShowP4MNotes(false)} className="text-gray-500 hover:text-gray-700"><X size={24} /></button>
-
-            
-
-                                      </div>
-
-            
-
-                                      {loadingP4mNotes ? (
-
-            
-
-                                        <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>
-
-            
-
-                                      ) : p4mNotes.length === 0 ? (
-
-            
-
-                                        <div className="bg-gray-50 p-6 rounded-lg text-center text-gray-500">Belum ada catatan dari P4M reviewer untuk item ini.</div>
-
-            
-
-                                      ) : (
-
-            
-
-                                        <div className="space-y-4">
-
-            
-
-                                          {p4mNotes.map((note, index) => (
-
-            
-
-                                            <div key={index} className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
-
-            
-
-                                              <div className="flex justify-between items-start mb-2">
-
-            
-
-                                                <h4 className="font-semibold text-blue-900">Catatan #{index + 1}</h4>
-
-            
-
-                                                <span className="text-xs text-gray-600">
-
-            
-
-                                                  {note.created_at ? new Date(note.created_at).toLocaleDateString('id-ID', {year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'}) : '-'}
-
-            
-
-                                                </span>
-
-            
-
-                                              </div>
-
-            
-
-                                              <p className="text-sm text-gray-700 whitespace-pre-wrap mb-2">{note.note}</p>
-
-            
-
-                                              {note.reviewer_id && <p className="text-xs text-gray-600">Oleh: Reviewer #{note.reviewer_id}</p>}
-
-            
-
-                                            </div>
-
-            
-
-                                          ))}
-
-            
-
-                                        </div>
-
-            
-
-                                      )}
-
-            
-
-                                      <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
-
-            
-
-                                        <button onClick={() => setShowP4MNotes(false)} className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition">Tutup</button>
-
-            
-
-                                      </div>
-
-            
-
-                                    </div>
-
-            
-
-                                  </div>
-
-            
-
-                                )}
-
-            
-
-                              </main>
-
-            
-
-                              <style>{`
-
-            
-
-                                @keyframes slideDown {
-
-            
-
-                                  from { transform: translateY(-100%); opacity: 0; }
-
-            
-
-                                  to { transform: translateY(0); opacity: 1; }
-
-            
-
-                                }
-
-            
-
-                                .animate-slideDown { animation: slideDown 0.3s ease-out; }
-
-            
-
-                              `}</style>
-
-            
-
-                            </div>
-
-            
-
-                          </div>
+          {/* Modal Konfirmasi Hapus */}
+          {confirmDelete.open && (
+            <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4">
+              <div className="bg-white w-full max-w-md rounded-lg shadow-xl">
+                <div className="p-4 border-b flex items-center gap-2">
+                  <AlertCircle className="text-red-600" size={20} />
+                  <h3 className="font-semibold text-gray-800">Konfirmasi Hapus</h3>
+                </div>
+                <div className="p-4 text-sm text-gray-700">
+                  Apakah Anda yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.
+                </div>
+                <div className="p-4 border-t flex justify-end gap-2">
+                  <button
+                    onClick={() => setConfirmDelete({ open: false, id: null })}
+                    className="px-4 py-2 bg-black-500 text-red rounded-lg hover:bg-grey-600"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    onClick={async () => {
+                      const id = confirmDelete.id;
+                      setConfirmDelete({ open: false, id: null });
+                      if (id !== null) {
+                        await handleDelete(id);
+                      }
+                    }}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                  >
+                    Hapus
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Modal Catatan P4M */}
+          {showP4MNotes && selectedItemForNotes && (
+            <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-start md:items-center overflow-auto z-50 p-4">
+              <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-lg font-semibold text-gray-800">Catatan dari P4M Reviewer</h2>
+                  <button onClick={() => setShowP4MNotes(false)} className="text-gray-500 hover:text-gray-700"><X size={24} /></button>
+                </div>
+                {loadingP4mNotes ? (
+                  <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>
+                ) : p4mNotes.length === 0 ? (
+                  <div className="bg-gray-50 p-6 rounded-lg text-center text-gray-500">Belum ada catatan dari P4M reviewer untuk item ini.</div>
+                ) : (
+                  <div className="space-y-4">
+                    {p4mNotes.map((note, index) => (
+                      <div key={index} className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+                        <div className="flex justify-between items-start mb-2">
+                          <h4 className="font-semibold text-blue-900">Catatan #{index + 1}</h4>
+                          <span className="text-xs text-gray-600">
+                            {note.created_at ? new Date(note.created_at).toLocaleDateString('id-ID', {year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'}) : '-'}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-700 whitespace-pre-wrap mb-2">{note.note}</p>
+                        {note.reviewer_id && <p className="text-xs text-gray-600">Oleh: Reviewer #{note.reviewer_id}</p>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
+                  <button onClick={() => setShowP4MNotes(false)} className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition">Tutup</button>
+                </div>
+              </div>
+            </div>
+          )}
+        </main>
+
+        <style>{`
+          @keyframes slideDown {
+            from { transform: translateY(-100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+          }
+          .animate-slideDown { animation: slideDown 0.3s ease-out; }
+        `}</style>
+      </div>
+    </div>
   );
 }

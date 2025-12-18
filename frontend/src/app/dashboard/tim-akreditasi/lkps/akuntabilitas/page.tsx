@@ -46,7 +46,20 @@ export default function AkuntabilitasPage() {
     message: '',
     type: 'success',
   });
-  const [incompleteModal, setIncompleteModal] = useState<{ open: boolean; missing: string[] }>({ open: false, missing: [] });
+  
+  // State untuk modal konfirmasi
+  const [modal, setModal] = useState<{
+    show: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    show: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
+  
   const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; id: string | null }>({ open: false, id: null });
   const [showP4MNotes, setShowP4MNotes] = useState(false);
   const [selectedItemForNotes, setSelectedItemForNotes] = useState<any>(null);
@@ -73,6 +86,20 @@ export default function AkuntabilitasPage() {
   const showPopup = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     setPopup({ show: true, message, type });
     setTimeout(() => setPopup({ show: false, message: '', type: 'success' }), 3000);
+  };
+
+  // Fungsi untuk menampilkan modal konfirmasi
+  const showModal = (title: string, message: string, onConfirm: () => void) => {
+    setModal({ show: true, title, message, onConfirm });
+  };
+
+  const closeModal = () => {
+    setModal({ show: false, title: '', message: '', onConfirm: () => {} });
+  };
+
+  const handleModalConfirm = () => {
+    modal.onConfirm();
+    closeModal();
   };
 
   // --- Fungsi untuk melihat catatan P4M ---
@@ -219,7 +246,9 @@ export default function AkuntabilitasPage() {
     try {
       const missing = validateRequired(activeSubTab, formData || {});
       if (missing.length > 0) {
-        setIncompleteModal({ open: true, missing });
+        const fieldLabels = getFieldMappingForSubTab(activeSubTab);
+        const missingLabels = missing.map(key => fieldLabels.find(f => f.key === key)?.label || key).join(', ');
+        showPopup(`⚠️ Field wajib diisi: ${missingLabels}`, 'error');
         return;
       }
 
@@ -239,32 +268,46 @@ export default function AkuntabilitasPage() {
         setTabData(newData);
         saveDraftAkuntabilitas(activeSubTab, newData);
         setShowForm(false);
-        showPopup('Data berhasil disimpan', 'success');
+        showPopup('✅ Data berhasil disimpan', 'success');
       } else {
-        showPopup(res.message || 'Gagal menyimpan data', 'error');
+        showPopup(res.message || '❌ Gagal menyimpan data', 'error');
       }
     } catch (err: any) {
       console.error('Save error:', err);
-      showPopup(err.message || 'Gagal menyimpan data', 'error');
+      showPopup(err.message || '❌ Gagal menyimpan data', 'error');
     }
   };
 
   const handleDelete = async (id: string | null | undefined) => {
     if (!id) {
-      const updated = tabData.filter((d: any) => d.id !== id);
-      setTabData(updated);
-      saveDraftAkuntabilitas(activeSubTab, updated);
-      showPopup("🗑️ Data import berhasil dihapus dari tampilan (belum ada di database).", 'info');
+      showModal(
+        'Hapus Data',
+        'Apakah Anda yakin ingin menghapus data ini? Data yang dihapus tidak dapat dikembalikan.',
+        async () => {
+          const updated = tabData.filter((d: any) => d.id !== id);
+          setTabData(updated);
+          saveDraftAkuntabilitas(activeSubTab, updated);
+          showPopup("✅ Data import berhasil dihapus dari tampilan (belum ada di database).", 'info');
+        }
+      );
       return;
     }
 
-    const res = await deleteAkuntabilitasData(id);
-    if (res.success) {
-      const updated = tabData.filter((d: any) => d.id !== id);
-      setTabData(updated);
-      saveDraftAkuntabilitas(activeSubTab, updated);
-      showPopup('Data berhasil dihapus', 'success');
-    } else showPopup(res.message || 'Gagal menghapus data', 'error');
+    showModal(
+      'Hapus Data',
+      'Apakah Anda yakin ingin menghapus data ini? Data yang dihapus tidak dapat dikembalikan.',
+      async () => {
+        const res = await deleteAkuntabilitasData(id);
+        if (res.success) {
+          const updated = tabData.filter((d: any) => d.id !== id);
+          setTabData(updated);
+          saveDraftAkuntabilitas(activeSubTab, updated);
+          showPopup('✅ Data berhasil dihapus', 'success');
+        } else {
+          showPopup(res.message || '❌ Gagal menghapus data', 'error');
+        }
+      }
+    );
   };
 
 
@@ -327,8 +370,101 @@ export default function AkuntabilitasPage() {
           { key: 'link', label: 'Link Bukti' },
         ];
 
+  // Komponen Modal Konfirmasi
+  const ConfirmModal = () => {
+    if (!modal.show) return null;
+
+    const isDeleteAction = modal.title.includes('Hapus');
+    const isImportAction = modal.title.includes('Import');
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[70] animate-fadeIn">
+        <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4 animate-scaleIn">
+          <div className="flex items-start gap-4 mb-4">
+            <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${
+              isDeleteAction ? 'bg-red-100' : isImportAction ? 'bg-blue-100' : 'bg-yellow-100'
+            }`}>
+              <AlertCircle className={`${
+                isDeleteAction ? 'text-red-600' : isImportAction ? 'text-blue-600' : 'text-yellow-600'
+              }`} size={24} />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                {modal.title}
+              </h3>
+              <p className="text-gray-600 text-sm">
+                {modal.message}
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-3 justify-end mt-6">
+            <button
+              onClick={closeModal}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
+            >
+              Batal
+            </button>
+            <button
+              onClick={handleModalConfirm}
+              className={`px-4 py-2 text-white rounded-lg transition ${
+                isDeleteAction
+                  ? 'bg-red-600 hover:bg-red-700'
+                  : isImportAction
+                  ? 'bg-blue-600 hover:bg-blue-700'
+                  : 'bg-yellow-600 hover:bg-yellow-700'
+              }`}
+            >
+              {isDeleteAction ? 'Hapus' : isImportAction ? 'Import' : 'Ya, Lanjutkan'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Komponen Popup Notifikasi
+  const PopupNotification = () => {
+    if (!popup.show) return null;
+
+    const bgColor = popup.type === 'success' ? 'bg-green-50 border-green-500' : 
+                    popup.type === 'error' ? 'bg-red-50 border-red-500' : 
+                    'bg-blue-50 border-blue-500';
+    const textColor = popup.type === 'success' ? 'text-green-800' : 
+                      popup.type === 'error' ? 'text-red-800' : 
+                      'text-blue-800';
+    const Icon = popup.type === 'success' ? CheckCircle : 
+                 popup.type === 'error' ? AlertCircle : 
+                 Info;
+
+    return (
+      <div className="fixed top-0 left-0 right-0 flex justify-center z-[60] pt-4">
+        <div className={`${bgColor} ${textColor} border-l-4 rounded-lg shadow-2xl p-5 flex items-center gap-4 min-w-[350px] max-w-md animate-slideDown`}>
+          <Icon size={28} className={popup.type === 'success' ? 'text-green-500' : 
+                                     popup.type === 'error' ? 'text-red-500' : 
+                                     'text-blue-500'} />
+          <div className="flex-1">
+            <p className="font-bold text-base mb-1">
+              {popup.type === 'success' ? 'Berhasil!' : 
+               popup.type === 'error' ? 'Error!' : 
+               'Info'}
+            </p>
+            <p className="text-sm">{popup.message}</p>
+          </div>
+          <button 
+            onClick={() => setPopup({ show: false, message: '', type: 'success' })}
+            className="hover:opacity-70 transition-opacity"
+          >
+            <X size={20} />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="flex w-full bg-gray-100">
+      <ConfirmModal />
+      <PopupNotification />
       <div className="flex-1 w-full">
         <main className="w-full p-4 md:p-6">
 
@@ -557,32 +693,6 @@ export default function AkuntabilitasPage() {
               </div>
             </div>
           )}
-        {incompleteModal.open && (
-            <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4">
-              <div className="bg-white w-full max-w-md rounded-lg shadow-xl">
-                <div className="p-4 border-b">
-                  <h3 className="font-semibold text-gray-800">Data Tidak Lengkap</h3>
-                </div>
-                <div className="p-4 text-sm text-gray-700 space-y-2">
-                  <p>Mohon lengkapi semua field yang wajib diisi sebelum menyimpan data.</p>
-                </div>
-                <div className="p-4 border-t flex justify-end gap-2">
-                  <button
-                    onClick={() => setIncompleteModal({ open: false, missing: [] })}
-                    className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
-                  >
-                    Batal
-                  </button>
-                  <button
-                    onClick={() => setIncompleteModal({ open: false, missing: [] })}
-                    className="px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800"
-                  >
-                    Ya, Lanjutkan
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
 
           {confirmDelete.open && (
             <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4">
@@ -647,17 +757,6 @@ export default function AkuntabilitasPage() {
                   <button onClick={() => setShowP4MNotes(false)} className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition">Tutup</button>
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* Popup Notification */}
-          {popup.show && (
-            <div className={`fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 text-white ${
-              popup.type === 'success' ? 'bg-green-500' :
-              popup.type === 'error' ? 'bg-red-500' :
-              'bg-blue-500'
-            }`}>
-              {popup.message}
             </div>
           )}
         </main>

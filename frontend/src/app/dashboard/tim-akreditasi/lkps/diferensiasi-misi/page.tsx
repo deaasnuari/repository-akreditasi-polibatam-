@@ -39,6 +39,20 @@ export default function DiferensiasiMisiPage() {
       type: 'success',
     }
   );
+  
+  // State untuk modal konfirmasi
+  const [modal, setModal] = useState<{
+    show: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    show: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
+  
   const [showP4MNotes, setShowP4MNotes] = useState(false);
   const [selectedItemForNotes, setSelectedItemForNotes] = useState<any>(null);
   const [p4mNotes, setP4mNotes] = useState<any[]>([]);
@@ -69,6 +83,20 @@ export default function DiferensiasiMisiPage() {
     setTimeout(() => setPopup({ show: false, message: '', type: 'success' }), 3000);
   };
 
+  // Fungsi untuk menampilkan modal konfirmasi
+  const showModal = (title: string, message: string, onConfirm: () => void) => {
+    setModal({ show: true, title, message, onConfirm });
+  };
+
+  const closeModal = () => {
+    setModal({ show: false, title: '', message: '', onConfirm: () => {} });
+  };
+
+  const handleModalConfirm = () => {
+    modal.onConfirm();
+    closeModal();
+  };
+
   // --- Fungsi untuk melihat catatan P4M ---
   const handleViewP4mNotes = async (item: any) => {
     setSelectedItemForNotes(item);
@@ -84,6 +112,55 @@ export default function DiferensiasiMisiPage() {
     } finally {
       setLoadingP4mNotes(false);
     }
+  };
+
+  // Komponen Modal Konfirmasi
+  const ConfirmModal = () => {
+    if (!modal.show) return null;
+
+    const isDeleteAction = modal.title.includes('Hapus');
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[70] animate-fadeIn">
+        <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4 animate-scaleIn">
+          <div className="flex items-start gap-4 mb-4">
+            <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${
+              isDeleteAction ? 'bg-red-100' : 'bg-yellow-100'
+            }`}>
+              <AlertCircle className={`${
+                isDeleteAction ? 'text-red-600' : 'text-yellow-600'
+              }`} size={24} />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                {modal.title}
+              </h3>
+              <p className="text-gray-600 text-sm">
+                {modal.message}
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-3 justify-end mt-6">
+            <button
+              onClick={closeModal}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
+            >
+              Batal
+            </button>
+            <button
+              onClick={handleModalConfirm}
+              className={`px-4 py-2 text-white rounded-lg transition ${
+                isDeleteAction
+                  ? 'bg-red-600 hover:bg-red-700'
+                  : 'bg-yellow-600 hover:bg-yellow-700'
+              }`}
+            >
+              {isDeleteAction ? 'Hapus' : 'Ya, Lanjutkan'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   const PopupNotification = () => {
@@ -201,6 +278,21 @@ export default function DiferensiasiMisiPage() {
 
   const handleSave = async () => {
     try {
+      // Validasi field yang wajib diisi
+      const requiredFields = ['unit_kerja', 'tipe_data', 'konten'];
+      const emptyFields = requiredFields.filter(field => !formData[field as keyof DataItem]);
+      
+      if (emptyFields.length > 0) {
+        const fieldNames: Record<string, string> = {
+          unit_kerja: 'Unit Kerja',
+          tipe_data: 'Tipe Data',
+          konten: 'Konten'
+        };
+        const missingFieldNames = emptyFields.map(field => fieldNames[field]).join(', ');
+        showPopup(`Field wajib diisi: ${missingFieldNames}`, 'error');
+        return;
+      }
+
       let result;
 
       if (formData.id) {
@@ -210,7 +302,7 @@ export default function DiferensiasiMisiPage() {
       }
 
       if (result.success) {
-        showPopup('Data berhasil disimpan', 'success');
+        showPopup('✅ Data berhasil disimpan', 'success');
         setShowForm(false);
         fetchData();
       } else {
@@ -230,19 +322,29 @@ export default function DiferensiasiMisiPage() {
   };
 
   const handleDelete = async (id?: number) => {
-    if (!id || !confirm('Yakin hapus data ini?')) return;
-    try {
-      const result = await deleteDiferensiasiMisiData(id);
-      if (result.success) {
-        showPopup('Data berhasil dihapus', 'success');
-        setData(prev => prev.filter(d => d.id !== id));
-      } else {
-        showPopup(result.message || 'Gagal menghapus data', 'error');
-      }
-    } catch (err) {
-      console.error('Delete error:', err);
-      showPopup('Terjadi kesalahan saat menghapus data', 'error');
+    if (!id) {
+      showPopup('⚠️ ID data tidak valid', 'error');
+      return;
     }
+    
+    showModal(
+      'Hapus Data',
+      'Apakah Anda yakin ingin menghapus data ini? Data yang dihapus tidak dapat dikembalikan.',
+      async () => {
+        try {
+          const result = await deleteDiferensiasiMisiData(id);
+          if (result.success) {
+            showPopup('✅ Data berhasil dihapus', 'success');
+            setData(prev => prev.filter(d => d.id !== id));
+          } else {
+            showPopup(result.message || '❌ Gagal menghapus data', 'error');
+          }
+        } catch (err) {
+          console.error('Delete error:', err);
+          showPopup('❌ Terjadi kesalahan saat menghapus data', 'error');
+        }
+      }
+    );
   };
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -312,6 +414,8 @@ export default function DiferensiasiMisiPage() {
   // --- Render utama ---
   return (
     <div className="flex w-full bg-gray-100">
+      <ConfirmModal />
+      <PopupNotification />
       <div className="flex-1 w-full">
         <main className="w-full p-4 md:p-6 max-w-full overflow-x-hidden">
           {/* Header LKPS */}

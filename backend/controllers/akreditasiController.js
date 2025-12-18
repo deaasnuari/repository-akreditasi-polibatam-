@@ -151,7 +151,7 @@ export const getItems = async (req, res) => {
 // ---------- POST /api/akreditasi/export ----------
 export const exportData = async (req, res) => {
   try {
-    const { format, selectedIds, selectedTypes } = req.body;
+    const { format, selectedIds, selectedTypes, selectedBagian } = req.body;
     const userId = req.user?.id;
     const userRole = req.user?.role;
     const userProdi = req.user?.prodi;
@@ -161,7 +161,7 @@ export const exportData = async (req, res) => {
     }
 
     console.log('🔵 EXPORT - User info:', { userId, userRole, userProdi });
-    console.log('🔵 EXPORT - Request:', { format, selectedIds, selectedTypes });
+    console.log('🔵 EXPORT - Request:', { format, selectedIds, selectedTypes, selectedBagian });
 
     // Ambil SEMUA data dari budaya_mutu (semua type)
     let whereClause = {};
@@ -186,23 +186,251 @@ export const exportData = async (req, res) => {
 
     console.log('🔵 EXPORT - Where clause:', whereClause);
 
-    const allRecords = await prisma.budaya_mutu.findMany({
-      where: whereClause,
-      orderBy: [{ type: 'asc' }, { id: 'asc' }],
-      select: {
-        id: true,
-        type: true,
-        prodi: true,
-        data: true,
-        created_at: true,
-        updated_at: true,
+    // ✅ Mapping nama bagian ke source table dan subtabs
+    const bagianMapping = {
+      'budaya mutu': {
+        sources: ['budaya_mutu'],
+        types: ['tupoksi', 'pendanaan', 'penggunaan-dana', 'ewmp', 'ktk', 'spmi']
       },
-    });
+      'relevansi pendidikan': {
+        sources: ['relevansi_pendidikan'],
+        subtabs: ['mahasiswa', 'keragaman-asal', 'kondisi-jumlah-mahasiswa', 'tabel-pembelajaran', 
+                  'pemetaan-cpl-pl', 'peta-pemenuhan-cpl', 'rata-rata-masa-tunggu-lulusan', 
+                  'kesesuaian-bidang', 'kepuasan-pengguna', 'fleksibilitas', 'rekognisi-apresiasi']
+      },
+      'relevansi penelitian': {
+        sources: ['relevansi_penelitian'],
+        subtabs: ['all'] // All subtabs
+      },
+      'relevansi pkm': {
+        sources: ['relevansi_pkm'],
+        subtabs: ['all']
+      },
+      'akuntabilitas': {
+        sources: ['akuntabilitas'],
+        subtabs: ['all']
+      },
+      'diferensiasi misi': {
+        sources: ['diferensiasi_misi'],
+        subtabs: ['all']
+      }
+    };
 
-    console.log(`🔵 EXPORT - Found ${allRecords.length} records`);
+    // Determine which bagian are selected
+    let selectedBagianNames = [];
+    if (selectedBagian && Array.isArray(selectedBagian)) {
+      selectedBagianNames = selectedBagian.map(b => String(b.nama_bagian || '').toLowerCase().trim());
+    }
+    
+    console.log('🔵 EXPORT - Selected bagian:', selectedBagianNames);
+    
+    // Determine which sources to fetch
+    const sourcesToFetch = new Set();
+    const typesToInclude = new Set();
+    const subtabsToInclude = {};
+    
+    if (selectedBagianNames.length === 0) {
+      // No specific selection, fetch all
+      console.log('⚠️ No specific bagian selected, fetching all data');
+      sourcesToFetch.add('budaya_mutu');
+      sourcesToFetch.add('relevansi_pendidikan');
+      sourcesToFetch.add('relevansi_penelitian');
+      sourcesToFetch.add('relevansi_pkm');
+      sourcesToFetch.add('akuntabilitas');
+      sourcesToFetch.add('diferensiasi_misi');
+    } else {
+      // Filter based on selected bagian
+      selectedBagianNames.forEach(bagianName => {
+        Object.keys(bagianMapping).forEach(key => {
+          if (bagianName.includes(key) || key.includes(bagianName)) {
+            const mapping = bagianMapping[key];
+            mapping.sources.forEach(src => sourcesToFetch.add(src));
+            if (mapping.types) {
+              mapping.types.forEach(t => typesToInclude.add(t));
+            }
+            if (mapping.subtabs) {
+              subtabsToInclude[mapping.sources[0]] = mapping.subtabs;
+            }
+          }
+        });
+      });
+    }
+    
+    console.log('🔵 EXPORT - Sources to fetch:', Array.from(sourcesToFetch));
+    console.log('🔵 EXPORT - Types to include:', Array.from(typesToInclude));
+    console.log('🔵 EXPORT - Subtabs to include:', subtabsToInclude);
+
+    // Fetch data dari tabel yang dipilih saja
+    const allRecords = [];
+    
+    // 1. Budaya Mutu (dari budaya_mutu table)
+    if (sourcesToFetch.has('budaya_mutu')) {
+      try {
+        let budayaMutuWhere = { ...whereClause };
+        
+        // Filter by types if specified
+        if (typesToInclude.size > 0) {
+          budayaMutuWhere.type = { in: Array.from(typesToInclude) };
+        }
+        
+        const budayaMutuData = await prisma.budaya_mutu.findMany({
+          where: budayaMutuWhere,
+          orderBy: [{ type: 'asc' }, { id: 'asc' }],
+          select: {
+            id: true,
+            type: true,
+            prodi: true,
+            data: true,
+            created_at: true,
+            updated_at: true,
+          },
+        });
+        allRecords.push(...budayaMutuData.map(r => ({ ...r, source: 'budaya_mutu' })));
+        console.log(`✅ Fetched ${budayaMutuData.length} records from budaya_mutu`);
+      } catch (err) {
+        console.error('❌ Error fetching budaya_mutu:', err);
+      }
+    }
+    
+    // 2. Relevansi Pendidikan (dari relevansi_pendidikan table)
+    if (sourcesToFetch.has('relevansi_pendidikan')) {
+      try {
+        let relPendidikanWhere = whereClause.user_id ? { userId: whereClause.user_id } : {};
+        
+        // Filter by subtabs if specified
+        if (subtabsToInclude['relevansi_pendidikan'] && !subtabsToInclude['relevansi_pendidikan'].includes('all')) {
+          relPendidikanWhere.subtab = { in: subtabsToInclude['relevansi_pendidikan'] };
+        }
+        
+        const relPendidikanData = await prisma.relevansi_pendidikan.findMany({
+          where: relPendidikanWhere,
+          orderBy: { id: 'asc' },
+        });
+        // Transform to match budaya_mutu structure
+        relPendidikanData.forEach(item => {
+          allRecords.push({
+            id: item.id,
+            type: item.subtab || 'relevansi-pendidikan',
+            prodi: item.prodi || userProdi || 'N/A',
+            data: item.data || {},
+            created_at: item.createdAt,
+            updated_at: item.updatedAt,
+            source: 'relevansi_pendidikan'
+          });
+        });
+        console.log(`✅ Fetched ${relPendidikanData.length} records from relevansi_pendidikan`);
+      } catch (err) {
+        console.error('❌ Error fetching relevansi_pendidikan:', err);
+      }
+    }
+    
+    // 3. Relevansi Penelitian (dari relevansi_penelitian table)
+    if (sourcesToFetch.has('relevansi_penelitian')) {
+      try {
+        const relPenelitianData = await prisma.relevansi_penelitian.findMany({
+          where: whereClause.user_id ? { userId: whereClause.user_id } : {},
+          orderBy: { id: 'asc' },
+        });
+        relPenelitianData.forEach(item => {
+          allRecords.push({
+            id: item.id,
+            type: item.subtab || 'relevansi-penelitian',
+            prodi: item.prodi || userProdi || 'N/A',
+            data: item.data || {},
+            created_at: item.createdAt,
+            updated_at: item.updatedAt,
+            source: 'relevansi_penelitian'
+          });
+        });
+        console.log(`✅ Fetched ${relPenelitianData.length} records from relevansi_penelitian`);
+      } catch (err) {
+        console.error('❌ Error fetching relevansi_penelitian:', err);
+      }
+    }
+    
+    // 4. Relevansi PKM (dari relevansi_pkm table)
+    if (sourcesToFetch.has('relevansi_pkm')) {
+      try {
+        const relPkmData = await prisma.relevansi_pkm.findMany({
+          where: whereClause.user_id ? { userId: whereClause.user_id } : {},
+          orderBy: { id: 'asc' },
+        });
+        relPkmData.forEach(item => {
+          allRecords.push({
+            id: item.id,
+            type: item.subtab || 'relevansi-pkm',
+            prodi: item.prodi || userProdi || 'N/A',
+            data: item.data || {},
+            created_at: item.createdAt,
+            updated_at: item.updatedAt,
+            source: 'relevansi_pkm'
+          });
+        });
+        console.log(`✅ Fetched ${relPkmData.length} records from relevansi_pkm`);
+      } catch (err) {
+        console.error('❌ Error fetching relevansi_pkm:', err);
+      }
+    }
+    
+    // 5. Akuntabilitas (dari akuntabilitas table)
+    if (sourcesToFetch.has('akuntabilitas')) {
+      try {
+        const akuntabilitasData = await prisma.akuntabilitas.findMany({
+          where: whereClause.user_id ? { userId: whereClause.user_id } : {},
+          orderBy: { id: 'asc' },
+        });
+        akuntabilitasData.forEach(item => {
+          allRecords.push({
+            id: item.id,
+            type: 'akuntabilitas',
+            prodi: item.prodi || userProdi || 'N/A',
+            data: item.data || {},
+            created_at: item.createdAt,
+            updated_at: item.updatedAt,
+            source: 'akuntabilitas'
+          });
+        });
+        console.log(`✅ Fetched ${akuntabilitasData.length} records from akuntabilitas`);
+      } catch (err) {
+        console.error('❌ Error fetching akuntabilitas:', err);
+      }
+    }
+    
+    // 6. Diferensiasi Misi (dari diferensiasi_misi table)
+    if (sourcesToFetch.has('diferensiasi_misi')) {
+      try {
+        const diferensiasiData = await prisma.diferensiasi_misi.findMany({
+          where: whereClause.user_id ? { userId: whereClause.user_id } : {},
+          orderBy: { id: 'asc' },
+        });
+        diferensiasiData.forEach(item => {
+          allRecords.push({
+            id: item.id,
+            type: 'diferensiasi-misi',
+            prodi: item.prodi || userProdi || 'N/A',
+            data: item.data || {},
+            created_at: item.createdAt,
+            updated_at: item.updatedAt,
+            source: 'diferensiasi_misi'
+          });
+        });
+        console.log(`✅ Fetched ${diferensiasiData.length} records from diferensiasi_misi`);
+      } catch (err) {
+        console.error('❌ Error fetching diferensiasi_misi:', err);
+      }
+    }
+
+    console.log(`🔵 EXPORT - Total records from all tables: ${allRecords.length}`);
+    
+    // Group by source untuk log detail
+    const bySource = {};
+    allRecords.forEach(r => {
+      bySource[r.source] = (bySource[r.source] || 0) + 1;
+    });
+    console.log(`📊 Records by source:`, bySource);
 
     if (allRecords.length === 0) {
-      return res.status(400).json({ message: "Tidak ada data LKPS untuk di-export" });
+      return res.status(400).json({ message: "Tidak ada data LKPS untuk di-export. Pastikan data sudah disimpan di database." });
     }
 
     // Group records by type
@@ -426,9 +654,35 @@ export const exportData = async (req, res) => {
           }
 
           // Create sheet name (capitalize and limit to 31 chars for Excel)
-          const sheetName = toTitleCase(type);
+          const sheetNameMap = {
+            'tupoksi': 'Tupoksi',
+            'pendanaan': 'Pendanaan',
+            'penggunaan-dana': 'Penggunaan Dana',
+            'ewmp': 'EWMP',
+            'ktk': 'KTK',
+            'spmi': 'SPMI',
+            'mahasiswa': 'Mahasiswa',
+            'keragaman-asal': 'Keragaman Asal',
+            'kondisi-jumlah-mahasiswa': 'Kondisi Mahasiswa',
+            'tabel-pembelajaran': 'Pembelajaran',
+            'pemetaan-cpl-pl': 'Pemetaan CPL-PL',
+            'peta-pemenuhan-cpl': 'Pemenuhan CPL',
+            'rata-rata-masa-tunggu-lulusan': 'Masa Tunggu Lulusan',
+            'kesesuaian-bidang': 'Kesesuaian Bidang',
+            'kepuasan-pengguna': 'Kepuasan Pengguna',
+            'fleksibilitas': 'Fleksibilitas',
+            'rekognisi-apresiasi': 'Rekognisi',
+            'relevansi-pendidikan': 'Relevansi Pendidikan',
+            'relevansi-penelitian': 'Relevansi Penelitian',
+            'relevansi-pkm': 'Relevansi PKM',
+            'akuntabilitas': 'Akuntabilitas',
+            'diferensiasi-misi': 'Diferensiasi Misi'
+          };
+          
+          const sheetName = sheetNameMap[type.toLowerCase()] || toTitleCase(type);
           const truncatedName = sheetName.substring(0, 31);
           
+          console.log(`📊 Creating sheet: "${truncatedName}" with ${allRows.length} rows`);
           XLSX.utils.book_append_sheet(workbook, worksheet, truncatedName);
         }
       });
@@ -459,7 +713,10 @@ export const exportData = async (req, res) => {
       doc.pipe(res);
 
       // Title
-      doc.fontSize(14).text('DATA LKPS - BUDAYA MUTU', { align: 'center' });
+      doc.fontSize(16).fillColor('#000').text('DATA LKPS - LAPORAN AKREDITASI', { align: 'center' });
+      doc.moveDown(0.3);
+      doc.fontSize(10).fillColor('#666').text(`Politeknik Negeri Batam`, { align: 'center' });
+      doc.fontSize(9).fillColor('#666').text(`Dicetak: ${new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`, { align: 'center' });
       doc.moveDown(0.5);
       doc.moveTo(doc.page.margins.left, doc.y).lineTo(doc.page.width - doc.page.margins.right, doc.y).stroke();
       doc.moveDown(1);

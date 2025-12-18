@@ -1192,7 +1192,7 @@ export default function RelevansiPendidikanPage() {
                     )}
                     <button 
                       onClick={() => setShowForm(false)} 
-                      className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                      className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
                     >
                       Batal
                     </button>
@@ -1342,7 +1342,7 @@ export default function RelevansiPendidikanPage() {
                 <div className="p-4 border-t flex justify-end gap-2">
                   <button
                     onClick={() => setIncompleteModal({ open: false, missing: [] })}
-                    className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                    className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
                   >
                     Batal
                   </button>

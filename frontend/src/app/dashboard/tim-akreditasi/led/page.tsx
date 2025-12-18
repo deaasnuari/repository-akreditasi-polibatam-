@@ -182,9 +182,9 @@ export default function BudayaMutuLEDPage() {
       peningkatanB: norm2(svc.peningkatanB, 'ib'),
       peningkatanC: norm2(svc.peningkatanC, 'ic'),
       peningkatanD: norm2(svc.peningkatanD, 'id'),
-      evalA: Array.isArray(svc.evalA) ? normEval(svc.evalA, 'eva') : Array.isArray(svc.evalRows) ? normEval(svc.evalRows, 'eva') : base.evalA,
-      evalB: Array.isArray(svc.evalB) ? normEval(svc.evalB, 'evb') : base.evalB,
-      evalC: Array.isArray(svc.evalC) ? normEval(svc.evalC, 'evc') : base.evalC,
+      evalA: Array.isArray(svc.evalA) && svc.evalA.length > 0 ? normEval(svc.evalA, 'eva') : base.evalA,
+      evalB: Array.isArray(svc.evalB) && svc.evalB.length > 0 ? normEval(svc.evalB, 'evb') : base.evalB,
+      evalC: Array.isArray(svc.evalC) && svc.evalC.length > 0 ? normEval(svc.evalC, 'evc') : base.evalC,
     };
   }, []);
 
@@ -261,7 +261,14 @@ export default function BudayaMutuLEDPage() {
     if (Array.isArray(evalB)) combined.push(...evalB.map(toSvcEval));
     if (Array.isArray(evalC)) combined.push(...evalC.map(toSvcEval));
 
-    return { ...rest, evalRows: combined } as ServiceTabData;
+    // Simpan evalRows (gabungan) DAN evalA, evalB, evalC terpisah agar bisa di-load kembali
+    return { 
+      ...rest, 
+      evalRows: combined,
+      evalA: Array.isArray(evalA) ? evalA.map(toSvcEval) : [],
+      evalB: Array.isArray(evalB) ? evalB.map(toSvcEval) : [],
+      evalC: Array.isArray(evalC) ? evalC.map(toSvcEval) : [],
+    } as ServiceTabData;
   }, []);
 
   const handleSave = useCallback(async (notify = true, auto = false) => {
@@ -283,6 +290,7 @@ export default function BudayaMutuLEDPage() {
   }, [tabData, activeTab]);
 
   const handleSaveDraft = useCallback(async () => {
+    const activeLabel = tabs.find(([k]) => k === activeTab)?.[1] || activeTab;
     try {
       toast('Menyimpan draft...', { icon: <Save size={16} /> });
       
@@ -302,7 +310,7 @@ export default function BudayaMutuLEDPage() {
       };
       
       const json = await saveLEDDraft(payload);
-      toast.success(json?.message || 'Draft LED berhasil disimpan');
+      toast.success(`✅ Draft ${activeLabel} berhasil disimpan!`);
       
       // redirect to bukti pendukung
       setTimeout(() => {
@@ -310,7 +318,7 @@ export default function BudayaMutuLEDPage() {
       }, 1200);
     } catch (err: any) {
       console.error('Error save draft:', err);
-      toast.error(err?.message || 'Gagal menyimpan draft: ' + (err?.message || ''));
+      toast.error(`❌ Gagal menyimpan draft ${activeLabel}`);
     }
   }, [tabData, activeTab, router, transformUIToServiceTabData]);
 

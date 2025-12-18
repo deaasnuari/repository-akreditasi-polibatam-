@@ -50,6 +50,7 @@ export default function BuktiPendukungPage() {
 
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [confirmModal, setConfirmModal] = useState<{ open: boolean; path: string; judul: string }>({ open: false, path: '', judul: '' });
 
   // State upload/tautan bukti
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -62,6 +63,22 @@ export default function BuktiPendukungPage() {
   const [fileData, setFileData] = useState<TableItem[]>([]);
   const [borangData, setBorangData] = useState<TableItem[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Fungsi untuk handle lanjutkan dengan modal konfirmasi
+  const handleLanjutkan = (item: TableItem) => {
+    setConfirmModal({
+      open: true,
+      path: item.path || '',
+      judul: item.judul
+    });
+  };
+
+  const confirmLanjutkan = () => {
+    if (confirmModal.path) {
+      window.location.href = confirmModal.path;
+    }
+    setConfirmModal({ open: false, path: '', judul: '' });
+  };
 
   // Ambil data draft borang (tidak diubah, hanya tampilkan dan lanjutkan)
   useEffect(() => {
@@ -433,9 +450,12 @@ export default function BuktiPendukungPage() {
                 </td>
                 <td className="px-4 py-2 flex gap-2 justify-center items-center">
                   {item.isBorang ? (
-                    <a href={item.path || ""} className="bg-blue-600 text-white px-3 py-1 rounded-md text-xs hover:bg-blue-700">
+                    <button 
+                      onClick={() => handleLanjutkan(item)}
+                      className="bg-blue-600 text-white px-3 py-1 rounded-md text-xs hover:bg-blue-700"
+                    >
                       Lanjutkan
-                    </a>
+                    </button>
                   ) : (
                     <>
                       <button title="Lihat" className="text-blue-600 hover:text-blue-800">
@@ -462,6 +482,36 @@ export default function BuktiPendukungPage() {
           <div className="text-sm text-gray-600">Belum ada implementasi preview. Fokus perubahan: pengaitan per-bagian tanpa menyentuh draft LKPS.</div>
         </DialogContent>
       </Dialog>
+
+      {/* Modal Konfirmasi Lanjutkan */}
+      {confirmModal.open && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white w-full max-w-md rounded-lg shadow-xl">
+            <div className="p-4 border-b flex items-center gap-2">
+              <FileText className="text-blue-600" size={20} />
+              <h3 className="font-semibold text-gray-800">Konfirmasi Lanjutkan</h3>
+            </div>
+            <div className="p-4 text-sm text-gray-700">
+              <p className="mb-2">Apakah Anda yakin ingin melanjutkan pengisian borang:</p>
+              <p className="font-semibold text-gray-900">{confirmModal.judul}</p>
+            </div>
+            <div className="p-4 border-t flex justify-end gap-2">
+              <button
+                onClick={() => setConfirmModal({ open: false, path: '', judul: '' })}
+                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+              >
+                Batal
+              </button>
+              <button
+                onClick={confirmLanjutkan}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Ya, Lanjutkan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
