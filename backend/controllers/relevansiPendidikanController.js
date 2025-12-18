@@ -336,36 +336,28 @@ export const saveDraft = async (req, res) => {
   }
 
   try {
-    // 1. Save/Update detailed Relevansi Pendidikan data (treating it as the draft)
-    const existingRelevansiPendidikanEntry = await prisma.relevansi_pendidikan.findFirst({
+    console.log('💾 [SAVE DRAFT Relevansi Pendidikan] Data yang akan disimpan:', {
+      type,
+      user_id,
+      user_prodi,
+      currentDataLength: currentData?.length
+    });
+
+    // PENTING: Data sudah tersimpan melalui CREATE/UPDATE endpoint
+    // Save draft hanya perlu membuat referensi di bukti_pendukung
+    // JANGAN update relevansi_pendidikan di sini karena akan menghapus data yang sudah ada!
+
+    const existingDataCount = await prisma.relevansi_pendidikan.count({
       where: {
         user_id: user_id,
         prodi: user_prodi,
-        subtab: type, // Using 'type' from frontend for 'subtab' field
+        subtab: type,
       },
     });
 
-    let savedRelevansiPendidikan;
-    if (existingRelevansiPendidikanEntry) {
-      savedRelevansiPendidikan = await prisma.relevansi_pendidikan.update({
-        where: { id: existingRelevansiPendidikanEntry.id },
-        data: {
-          data: currentData, // Update the data field with the new draft content
-          updated_at: new Date(),
-        },
-      });
-    } else {
-      savedRelevansiPendidikan = await prisma.relevansi_pendidikan.create({
-        data: {
-          user_id: user_id,
-          prodi: user_prodi,
-          subtab: type, // Using 'type' from frontend for 'subtab' field
-          data: currentData,
-        },
-      });
-    }
+    console.log(`✅ [SAVE DRAFT] Data exists: ${existingDataCount} rows`);
 
-    // 2. Create/Update a reference in Bukti Pendukung
+    // Create/Update a reference in Bukti Pendukung
     const existingBukti = await prisma.buktiPendukung.findFirst({
       where: {
         userId: user_id,
@@ -392,10 +384,10 @@ export const saveDraft = async (req, res) => {
 
     res.json({ 
       success: true, 
-      message: "Draft Relevansi Pendidikan berhasil disimpan dan referensi Bukti Pendukung diperbarui", 
-      relevansiPendidikanDraft: savedRelevansiPendidikan,
+      message: "Draft Relevansi Pendidikan berhasil disimpan - referensi Bukti Pendukung dibuat", 
+      existingDataCount: existingDataCount,
       buktiPendukungReference: buktiPendukungEntry,
-      redirect: "/dashboard/tim-akreditasi/bukti-pendukung" // Assuming this is the redirect path
+      redirect: "/dashboard/tim-akreditasi/bukti-pendukung"
     });
 
   } catch (err) {

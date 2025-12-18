@@ -37,7 +37,7 @@ export const getData = async (req, res) => {
       whereClause.prodi = userProdi;
     }
 
-    const data = await prisma.akuntabilitas.findMany({
+    const rows = await prisma.akuntabilitas.findMany({
       where: whereClause,
       orderBy: { id: "asc" },
       select: {
@@ -48,6 +48,42 @@ export const getData = async (req, res) => {
         created_at: true,
         updated_at: true,
       }
+    });
+
+    console.log('\ud83d\udce5 [Akuntabilitas Backend] Raw data from DB:', { 
+      rowCount: rows.length, 
+      sample: rows[0],
+      dataType: rows[0] ? typeof rows[0].data : 'none'
+    });
+
+    // Transform data - if data field is an array (from draft), unpack it
+    // Otherwise, keep the structure as-is for compatibility
+    const data = [];
+    rows.forEach(row => {
+      if (Array.isArray(row.data)) {
+        // Data is array (from draft) - unpack each item
+        row.data.forEach(item => {
+          data.push({
+            id: item.id || row.id,
+            subtab: row.subtab,
+            prodi: row.prodi,
+            data: item.data || item
+          });
+        });
+      } else {
+        // Data is object (normal case) - keep as-is
+        data.push({
+          id: row.id,
+          subtab: row.subtab,
+          prodi: row.prodi,
+          data: row.data
+        });
+      }
+    });
+
+    console.log('\u2705 [Akuntabilitas Backend] Transformed data:', {
+      count: data.length,
+      sample: data[0]
     });
 
     res.json({ success: true, data });
@@ -368,36 +404,28 @@ export const saveDraft = async (req, res) => {
   }
 
   try {
-    // 1. Save/Update detailed Akuntabilitas data (treating it as the draft)
-    const existingAkuntabilitasEntry = await prisma.akuntabilitas.findFirst({
+    console.log('💾 [SAVE DRAFT Akuntabilitas] Data yang akan disimpan:', {
+      type,
+      user_id,
+      user_prodi,
+      currentDataLength: currentData?.length
+    });
+
+    // PENTING: Data sudah tersimpan melalui CREATE/UPDATE endpoint
+    // Save draft hanya perlu membuat referensi di bukti_pendukung
+    // JANGAN update akuntabilitas di sini karena akan menghapus data yang sudah ada!
+
+    const existingDataCount = await prisma.akuntabilitas.count({
       where: {
         user_id: user_id,
         prodi: user_prodi,
-        subtab: type, // Using 'type' from frontend for 'subtab' field
+        subtab: type,
       },
     });
 
-    let savedAkuntabilitas;
-    if (existingAkuntabilitasEntry) {
-      savedAkuntabilitas = await prisma.akuntabilitas.update({
-        where: { id: existingAkuntabilitasEntry.id },
-        data: {
-          data: currentData, // Update the data field with the new draft content
-          updated_at: new Date(),
-        },
-      });
-    } else {
-      savedAkuntabilitas = await prisma.akuntabilitas.create({
-        data: {
-          user_id: user_id,
-          prodi: user_prodi,
-          subtab: type, // Using 'type' from frontend for 'subtab' field
-          data: currentData,
-        },
-      });
-    }
+    console.log(`✅ [SAVE DRAFT] Data exists: ${existingDataCount} rows`);
 
-    // 2. Create/Update a reference in Bukti Pendukung
+    // Create/Update a reference in Bukti Pendukung
     const existingBukti = await prisma.buktiPendukung.findFirst({
       where: {
         userId: user_id,
@@ -424,10 +452,10 @@ export const saveDraft = async (req, res) => {
 
     res.json({
       success: true,
-      message: "Draft Akuntabilitas berhasil disimpan dan referensi Bukti Pendukung diperbarui",
-      akuntabilitasDraft: savedAkuntabilitas,
+      message: "Draft Akuntabilitas berhasil disimpan - referensi Bukti Pendukung dibuat",
+      existingDataCount: existingDataCount,
       buktiPendukungReference: buktiPendukungEntry,
-      redirect: "/dashboard/tim-akreditasi/bukti-pendukung" // Redirect to bukti pendukung page
+      redirect: "/dashboard/tim-akreditasi/bukti-pendukung"
     });
 
   } catch (err) {

@@ -282,3 +282,53 @@ export const clearDraftBudayaMutuLED = (): void => {
     localStorage.removeItem('draftBudayaMutuLED');
   }
 };
+
+/* ==================== GET LED BY SUBTAB (untuk validasi export) ==================== */
+export async function getLEDBySubtab(user_id: number, subtab: string): Promise<{ success: boolean; hasData: boolean; data?: TabData; message?: string }> {
+  try {
+    const res = await fetch(`${API_BASE_LED}/${user_id}/${subtab}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      cache: "no-store",
+      credentials: "include",
+    });
+
+    if (res.status === 404) {
+      return { success: false, hasData: false, message: 'Data LED tidak ditemukan' };
+    }
+
+    if (!res.ok) {
+      console.error('getLEDBySubtab fetch error, status:', res.status);
+      return { success: false, hasData: false, message: 'Gagal mengambil data LED' };
+    }
+
+    const result = await res.json();
+    return result;
+  } catch (error) {
+    console.error("Error getLEDBySubtab:", error);
+    return { success: false, hasData: false, message: 'Terjadi kesalahan' };
+  }
+}
+
+/* ==================== VALIDATE LED DATA FOR EXPORT ==================== */
+export async function validateLEDForExport(user_id: number, subtabs: string[]): Promise<{ valid: boolean; missing: string[]; found: string[] }> {
+  const missing: string[] = [];
+  const found: string[] = [];
+
+  for (const subtab of subtabs) {
+    const result = await getLEDBySubtab(user_id, subtab);
+    if (result.hasData && result.data) {
+      found.push(subtab);
+    } else {
+      missing.push(subtab);
+    }
+  }
+
+  return {
+    valid: missing.length === 0,
+    missing,
+    found
+  };
+}

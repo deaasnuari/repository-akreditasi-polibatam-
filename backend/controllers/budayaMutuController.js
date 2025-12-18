@@ -634,8 +634,20 @@ export const saveDraft = async (req, res) => {
   }
 
   try {
-    // 1. Save/Update detailed Budaya Mutu data (treating it as the draft)
-    const existingBudayaMutuEntry = await prisma.budaya_mutu.findFirst({
+    console.log('💾 [SAVE DRAFT] Data yang akan disimpan:', {
+      type,
+      user_id,
+      user_prodi,
+      currentDataLength: currentData?.length,
+      currentDataSample: currentData?.[0]
+    });
+
+    // PENTING: Data sudah tersimpan di budaya_mutu melalui CREATE/UPDATE endpoint
+    // Save draft hanya perlu membuat referensi di bukti_pendukung
+    // JANGAN update budaya_mutu di sini karena akan menghapus data yang sudah ada!
+
+    // Verifikasi data exists di budaya_mutu
+    const existingDataCount = await prisma.budaya_mutu.count({
       where: {
         user_id: user_id,
         prodi: user_prodi,
@@ -643,27 +655,9 @@ export const saveDraft = async (req, res) => {
       },
     });
 
-    let savedBudayaMutu;
-    if (existingBudayaMutuEntry) {
-      savedBudayaMutu = await prisma.budaya_mutu.update({
-        where: { id: existingBudayaMutuEntry.id },
-        data: {
-          data: currentData, // Update the data field with the new draft content
-          updated_at: new Date(),
-        },
-      });
-    } else {
-      savedBudayaMutu = await prisma.budaya_mutu.create({
-        data: {
-          user_id: user_id,
-          prodi: user_prodi,
-          type: type,
-          data: currentData,
-        },
-      });
-    }
+    console.log(`✅ [SAVE DRAFT] Data exists di budaya_mutu: ${existingDataCount} rows`);
 
-    // 2. Create/Update a reference in Bukti Pendukung
+    // Create/Update a reference in Bukti Pendukung
     // We need to simulate req, res objects for createOrUpdateBuktiPendukung
     const buktiPendukungReq = {
       body: { nama, path, status },
@@ -703,8 +697,8 @@ export const saveDraft = async (req, res) => {
 
     res.json({ 
       success: true, 
-      message: "Draft Budaya Mutu berhasil disimpan dan referensi Bukti Pendukung diperbarui", 
-      budayaMutuDraft: savedBudayaMutu,
+      message: "Draft Budaya Mutu berhasil disimpan - referensi Bukti Pendukung dibuat", 
+      existingDataCount: existingDataCount,
       buktiPendukungReference: buktiPendukungEntry
     });
 

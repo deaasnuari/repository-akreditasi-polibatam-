@@ -21,6 +21,13 @@ export const fetchAkuntabilitasData = async (subtab: SubTab, prodi: string | nul
       credentials: 'include',
     });
     const json = await res.json();
+    console.log('📥 [Akuntabilitas] Data dari backend:', {
+      subtab,
+      success: json.success,
+      dataCount: json.data?.length || 0,
+      sample: json.data?.[0],
+      fullData: json.data
+    });
     return json.success ? json.data : [];
   } catch (err) {
     console.error(err);
@@ -140,6 +147,13 @@ export const saveAkuntabilitasDraftToBackend = async (
   prodi: string // Add prodi here
 ) => {
   try {
+    console.log('💾 [Akuntabilitas] Menyimpan draft dengan data:', {
+      type,
+      dataCount: currentData?.length || 0,
+      sample: currentData?.[0],
+      fullData: currentData
+    });
+    
     const res = await fetch(`${API_BASE}/savedraft`, {
       method: 'POST',
       headers: getAuthHeaders(),

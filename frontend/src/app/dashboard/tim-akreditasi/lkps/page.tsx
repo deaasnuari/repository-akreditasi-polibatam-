@@ -139,6 +139,16 @@ export default function LKPSPage() {
   const handleSaveDraft = async () => {
     showPopup('Menyimpan draft...', 'info');
     try {
+      const dataToSave = tabData[activeSubTab] || [];
+      
+      console.log('💾 Menyimpan draft dengan data:', {
+        activeSubTab,
+        dataCount: dataToSave.length,
+        sample: dataToSave[0]
+      });
+
+      // Save draft creates a reference in bukti_pendukung only
+      // The actual data is already in budaya_mutu table (created via CREATE DATA)
       await fetch(`${API_BASE}/draft`, {
         method: 'POST',
         headers: {
@@ -146,10 +156,10 @@ export default function LKPSPage() {
         },
         body: JSON.stringify({
           nama: `LKPS - Budaya Mutu`,
-          path: `/dashboard/tim-akreditasi/lkps`, // Current page path, used for bukti pendukung reference
+          path: `/dashboard/tim-akreditasi/lkps`,
           status: 'Draft',
-          type: activeSubTab, // Send activeSubTab as 'type'
-          currentData: tabData[activeSubTab], // Send the detailed data
+          type: activeSubTab,
+          currentData: dataToSave, // This will be stored but getData returns individual rows
         }),
         credentials: 'include',
       });
@@ -432,14 +442,32 @@ export default function LKPSPage() {
       }
 
       const json = await res.json();
+      console.log('📥 Data dari backend:', {
+        activeSubTab,
+        success: json.success,
+        dataLength: json.data?.length,
+        sample: json.data?.[0]
+      });
 
       if (json.success && Array.isArray(json.data)) {
+        // Backend returns array of { id, type, prodi, data, ... }
+        // Each entry represents one row of data
+        // Convert to format: [{ id, data }, ...]
+        
+        const reconstructedData = json.data.map(item => ({
+          id: item.id,
+          data: item.data
+        }));
+
+        console.log('✅ Data diload dari backend:', {
+          activeSubTab,
+          count: reconstructedData.length,
+          items: reconstructedData
+        });
+
         setTabData(prev => ({
           ...prev,
-          [activeSubTab]: json.data.map(item => ({
-            id: item.id,
-            data: item.data
-          }))
+          [activeSubTab]: reconstructedData
         }));
       } else {
         setTabData(prev => ({ ...prev, [activeSubTab]: [] }));

@@ -115,6 +115,13 @@ export default function RelevansiPendidikanPage() {
   const handleSaveDraft = async () => {
     showPopup('Menyimpan draft...', 'info');
     try {
+      console.log('💾 [Relevansi Pendidikan] Menyimpan draft dengan data:', {
+        activeSubTab,
+        dataCount: data?.length || 0,
+        sample: data?.[0],
+        fullData: data
+      });
+
       await fetch(`${API_BASE}/draft`, {
         method: 'POST',
         headers: {
@@ -155,6 +162,12 @@ export default function RelevansiPendidikanPage() {
   const fetchData = async () => {
     try {
       const result = await relevansiPendidikanService.fetchData(activeSubTab);
+      console.log('📥 [Relevansi Pendidikan] Data dari backend:', {
+        activeSubTab,
+        dataCount: result?.length || 0,
+        sample: result?.[0],
+        fullData: result
+      });
       setData(result);
     } catch (err) {
       console.error('Fetch error:', err);
