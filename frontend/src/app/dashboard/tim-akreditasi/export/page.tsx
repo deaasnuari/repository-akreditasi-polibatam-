@@ -915,6 +915,24 @@ export default function ExportAkreditasi() {
 
     const selectedItems = filteredBagian.filter((b) => selectedBagian.includes(b.id));
     
+    // Validasi: LED tidak bisa Excel, LKPS tidak bisa PDF
+    const ledItems = selectedItems.filter(isLEDItem);
+    const lkpsItems = selectedItems.filter(item => !isLEDItem(item));
+    
+    if (ledItems.length > 0 && exportFormat === 'EXCEL') {
+      alert('Item LED tidak dapat di-export ke Excel!\n\n' +
+            'Item LED hanya dapat di-export dalam format PDF.\n' +
+            'Silakan ubah format export ke PDF atau hapus item LED dari pilihan.');
+      return;
+    }
+    
+    if (lkpsItems.length > 0 && exportFormat === 'PDF') {
+      alert('Item LKPS tidak dapat di-export ke PDF!\n\n' +
+            'Item LKPS hanya dapat di-export dalam format Excel.\n' +
+            'Silakan ubah format export ke Excel atau hapus item LKPS dari pilihan.');
+      return;
+    }
+    
     console.log('\n'.repeat(3) + '='.repeat(80));
     console.log('🔍 EXPORT HANDLER - DEBUGGING INFO');
     console.log('='.repeat(80));
@@ -953,9 +971,8 @@ export default function ExportAkreditasi() {
       console.log('  ANY MATCH?', Object.values(checks).some(v => v));
     });
     
-    // Pisahkan LED dan non-LED items
-    const ledItems = selectedItems.filter(isLEDItem);
-    const nonLedItems = selectedItems.filter(item => !isLEDItem(item));
+    // Gunakan ledItems dan lkpsItems yang sudah dideklarasikan di atas (untuk non-LED)
+    const nonLedItems = lkpsItems;
 
     console.log('\n=== LED DETECTION RESULTS ===');
     console.log('Format:', exportFormat);
@@ -1247,46 +1264,44 @@ export default function ExportAkreditasi() {
                 </select>
               </div>
             </div>
-
-            {/* Info LED Export */}
+            
+            {/* Notifikasi Kombinasi Salah */}
             {(() => {
               const selectedItems = filteredBagian.filter((b) => selectedBagian.includes(b.id));
               const ledItems = selectedItems.filter(isLEDItem);
+              const lkpsItems = selectedItems.filter(item => !isLEDItem(item));
               
-              if (ledItems.length > 0 && exportFormat === 'PDF') {
+              // LKPS + PDF = TIDAK BISA
+              if (lkpsItems.length > 0 && exportFormat === 'PDF') {
                 return (
-                  <div className="mt-4 bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
+                  <div className="mt-4 bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">
                     <div className="flex items-start gap-3">
-                      <svg className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      <svg className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
                       <div className="flex-1">
-                        <h4 className="font-semibold text-blue-900 mb-1">Export LED dari Database</h4>
-                        <p className="text-sm text-blue-800 mb-2">
-                          Anda memilih <strong>{ledItems.length} item LED</strong>. Data LED akan diambil dari database (data yang sudah disimpan/draft).
+                        <h4 className="font-semibold text-red-900 mb-1">Item LKPS Tidak Dapat Di-Export ke PDF</h4>
+                        <p className="text-sm text-red-800">
+                          Anda memilih <strong>{lkpsItems.length} item LKPS</strong>. Item LKPS hanya dapat di-export dalam format <strong>Excel</strong>. Silakan ubah format export ke Excel atau hapus item LKPS dari pilihan.
                         </p>
-                        <ul className="text-sm text-blue-700 space-y-1 ml-4 list-disc">
-                          {ledItems.map((item) => (
-                            <li key={item.id}>{item.kode_bagian} - {item.nama_bagian}</li>
-                          ))}
-                        </ul>
                       </div>
                     </div>
                   </div>
                 );
               }
               
+              // LED + Excel = TIDAK BISA
               if (ledItems.length > 0 && exportFormat === 'EXCEL') {
                 return (
-                  <div className="mt-4 bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-r-lg">
+                  <div className="mt-4 bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">
                     <div className="flex items-start gap-3">
-                      <svg className="w-6 h-6 text-yellow-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      <svg className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
                       <div className="flex-1">
-                        <h4 className="font-semibold text-yellow-900 mb-1">Export Excel untuk LED</h4>
-                        <p className="text-sm text-yellow-800">
-                          Anda memilih <strong>{ledItems.length} item LED</strong>. Export Excel akan menggunakan data LKPS dari tabel budaya_mutu. Untuk export LED dengan data dari database, gunakan format <strong>PDF</strong>.
+                        <h4 className="font-semibold text-red-900 mb-1">Item LED Tidak Dapat Di-Export ke Excel</h4>
+                        <p className="text-sm text-red-800">
+                          Anda memilih <strong>{ledItems.length} item LED</strong>. Item LED hanya dapat di-export dalam format <strong>PDF</strong>. Silakan ubah format export ke PDF atau hapus item LED dari pilihan.
                         </p>
                       </div>
                     </div>
@@ -1296,12 +1311,22 @@ export default function ExportAkreditasi() {
               
               return null;
             })()}
+
           </div>
 
           {/* Export Button */}
           <button
             onClick={handleExport}
-            disabled={loading || selectedBagian.length === 0}
+            disabled={(() => {
+              if (loading || selectedBagian.length === 0) return true;
+              const selectedItems = filteredBagian.filter((b) => selectedBagian.includes(b.id));
+              const ledItems = selectedItems.filter(isLEDItem);
+              const lkpsItems = selectedItems.filter(item => !isLEDItem(item));
+              // Disable jika LKPS + PDF atau LED + Excel
+              if (lkpsItems.length > 0 && exportFormat === 'PDF') return true;
+              if (ledItems.length > 0 && exportFormat === 'EXCEL') return true;
+              return false;
+            })()}
             className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium text-lg"
           >
             {loading ? (

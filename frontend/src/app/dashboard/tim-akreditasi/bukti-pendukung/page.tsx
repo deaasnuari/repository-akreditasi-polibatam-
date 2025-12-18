@@ -46,6 +46,7 @@ export default function BuktiPendukungPage() {
   const [filterKategori, setFilterKategori] = useState("Semua Kategori");
   const [filterBagian, setFilterBagian] = useState<string | "Semua">("Semua");
   const [filterItemId, setFilterItemId] = useState<string | "Semua">("Semua");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -164,24 +165,59 @@ export default function BuktiPendukungPage() {
     }
   };
 
-  // Filter gabungan termasuk filter per-bagian dan per-item
+  // Filter gabungan termasuk filter per-bagian, per-item, dan search
   const filteredData = combinedData.filter((item) => {
     const statusOk = filterStatus === "Semua Status" || item.status === filterStatus;
     const kategoriOk = filterKategori === "Semua Kategori" || item.kategori === filterKategori;
     const bagianOk = filterBagian === "Semua" || item.bagian === filterBagian || item.isBorang; // item borang tetap tampil
     const itemOk = filterItemId === "Semua" || `${item.itemId ?? ""}` === `${filterItemId}` || item.isBorang; // item borang tetap tampil
-    return statusOk && kategoriOk && bagianOk && itemOk;
+    
+    // Search filter
+    const searchOk = !searchQuery.trim() || 
+      item.judul.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.jenis.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.kategori.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.status.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.file && item.file.toLowerCase().includes(searchQuery.toLowerCase()));
+    
+    return statusOk && kategoriOk && bagianOk && itemOk && searchOk;
   });
 
   return (
     <div className="p-6 space-y-6 font-sans">
       {/* Header */}
-      <div className="flex justify-between items-start">
+      <div className="flex justify-between items-start gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-[#183A64]">Bukti Pendukung</h1>
           <p className="text-gray-600">Kelola bukti pendukung dan lanjutkan isian borang. Pengaitan bukti dilakukan per-bagian tanpa mengubah draft LKPS.</p>
         </div>
-        <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
+        <div className="flex items-center gap-3">
+          {/* Search Bar */}
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <input
+              type="text"
+              placeholder="Cari..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-64 pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
+          <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
           <DialogTrigger asChild>
             <button className="flex items-center gap-2 bg-[#183A64] hover:bg-[#2A4F85] text-white px-4 py-2 rounded-lg shadow transition">
               <Upload size={18} />
@@ -291,6 +327,7 @@ export default function BuktiPendukungPage() {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Statistik */}
@@ -303,7 +340,7 @@ export default function BuktiPendukungPage() {
       </div>
 
       {/* Filter tambahan per-bagian dan per-item */}
-      <div className="bg-gray-100 rounded-xl p-4 grid grid-cols-5 gap-4 items-end">
+      <div className="bg-gray-100 rounded-xl p-4 grid grid-cols-4 gap-4 items-end">
         <div>
           <label className="block text-sm font-medium text-gray-700">Status</label>
           <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full">
