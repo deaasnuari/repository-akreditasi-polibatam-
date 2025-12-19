@@ -36,6 +36,10 @@ export default function P4MReviewBudayaMutuPage() {
   const [loadingNotes, setLoadingNotes] = useState(false);
   const [prodiList, setProdiList] = useState<string[]>([]);
   const [selectedProdi, setSelectedProdi] = useState<string>('');
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewStatus, setReviewStatus] = useState<'Diterima' | 'Perlu Revisi'>('Diterima');
+  const [reviewNotes, setReviewNotes] = useState('');
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   // State untuk popup notifikasi
   const [popup, setPopup] = useState<{ 
@@ -226,6 +230,38 @@ export default function P4MReviewBudayaMutuPage() {
     }
   };
 
+  const handleSubmitReview = async () => {
+    if (!selectedItem?.id) {
+      showPopup('Item tidak ditemukan', 'error');
+      return;
+    }
+
+    if (!reviewNotes.trim()) {
+      showPopup('Mohon isi catatan review', 'error');
+      return;
+    }
+
+    setSubmittingReview(true);
+    try {
+      // Simpan review dengan status
+      await postReview('budaya-mutu', selectedItem.id, reviewNotes);
+      
+      // TODO: Update status di backend jika diperlukan
+      // Untuk sekarang kita hanya simpan catatan dengan status di dalamnya
+      const statusNote = `[Status: ${reviewStatus}] ${reviewNotes}`;
+      
+      showPopup(`Review berhasil disimpan dengan status: ${reviewStatus}`, 'success');
+      setShowReviewModal(false);
+      setReviewNotes('');
+      setReviewStatus('Diterima');
+    } catch (err) {
+      console.error('Submit review error:', err);
+      showPopup('Gagal menyimpan review', 'error');
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
   const subTabFields: Record<SubTab, { label: string; key: string }[]> = {
     tupoksi: [
       { key: 'unitKerja', label: 'Unit Kerja' },
@@ -333,11 +369,17 @@ export default function P4MReviewBudayaMutuPage() {
         ))}
         <td className="px-6 py-4 text-center">
           <button 
-            onClick={() => handleViewDetail(item)} 
-            className="text-blue-700 hover:text-blue-900 inline-flex items-center gap-1"
-            title="Lihat Detail"
+            onClick={() => {
+              setSelectedItem(item);
+              setReviewStatus('Diterima');
+              setReviewNotes('');
+              setShowReviewModal(true);
+            }} 
+            className="bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 inline-flex items-center gap-1 text-xs font-medium"
+            title="Review Item"
           >
-            <Eye size={16} />
+            <Eye size={14} />
+            Review
           </button>
         </td>
       </tr>
@@ -379,9 +421,6 @@ export default function P4MReviewBudayaMutuPage() {
             <div className="flex gap-2">
               <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
                 <Download size={16} /> Export PDF
-              </button>
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-                <Save size={16} /> Save Review
               </button>
             </div>
           </div>
@@ -502,7 +541,119 @@ export default function P4MReviewBudayaMutuPage() {
               </div>
             </div>
 
-            {/* Modal Detail */}
+            {/* Modal Review - Seperti LED */}
+            {showReviewModal && selectedItem && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+                <div className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+                  <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-xl font-semibold text-gray-800">
+                      Review Data {activeSubTab.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                    </h2>
+                    <button 
+                      onClick={() => setShowReviewModal(false)}
+                      className="text-gray-500 hover:text-gray-700"
+                    >
+                      <X size={24} />
+                    </button>
+                  </div>
+
+                  {/* Data Preview - Read Only */}
+                  <div className="space-y-3 mb-6 max-h-96 overflow-y-auto border rounded-lg p-4 bg-gray-50">
+                    <h3 className="font-semibold text-gray-700 mb-3">Data yang Direview:</h3>
+                    {subTabFields[activeSubTab]
+                      .filter(field => field.key !== 'no')
+                      .map(field => (
+                        <div key={field.key} className="grid grid-cols-3 gap-2 py-2 border-b">
+                          <label className="text-sm font-medium text-gray-600">
+                            {field.label}:
+                          </label>
+                          <p className="col-span-2 text-sm text-gray-900">
+                            {field.key === 'linkBukti' || 
+                             field.key === 'dokumenSPMI' || 
+                             field.key === 'buktiCertifiedAuditor' || 
+                             field.key === 'laporanAudit' ? (
+                              selectedItem.data?.[field.key] ? (
+                                <a 
+                                  href={selectedItem.data[field.key]} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer" 
+                                  className="text-blue-600 hover:underline"
+                                >
+                                  Buka Link
+                                </a>
+                              ) : (
+                                '-'
+                              )
+                            ) : (
+                              selectedItem.data?.[field.key] || '-'
+                            )}
+                          </p>
+                        </div>
+                      ))}
+                  </div>
+
+                  {/* Form Review */}
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Status Review <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={reviewStatus}
+                        onChange={(e) => setReviewStatus(e.target.value as 'Diterima' | 'Perlu Revisi')}
+                        className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="Diterima">Diterima</option>
+                        <option value="Perlu Revisi">Perlu Revisi</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Catatan Review <span className="text-red-500">*</span>
+                      </label>
+                      <textarea
+                        value={reviewNotes}
+                        onChange={(e) => setReviewNotes(e.target.value)}
+                        placeholder="Berikan catatan atau feedback untuk item ini..."
+                        rows={6}
+                        className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
+                    <button
+                      onClick={() => setShowReviewModal(false)}
+                      className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
+                      disabled={submittingReview}
+                    >
+                      Batal
+                    </button>
+                    <button
+                      onClick={handleSubmitReview}
+                      disabled={submittingReview || !reviewNotes.trim()}
+                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      {submittingReview ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          Menyimpan...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle size={16} />
+                          Submit Review
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Modal Detail - Keep for viewing notes history */}
             {showDetail && selectedItem && (
               <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-start md:items-center overflow-auto z-50 p-4">
                 <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto">

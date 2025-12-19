@@ -146,6 +146,79 @@ export async function saveLEDDraft(payload: { nama?: string; path?: string; stat
   }
 }
 
+/* ==================== SUBMIT LED REVIEW (P4M) ==================== */
+export async function submitLEDReview(payload: {
+  tab: string;
+  status: string;
+  notes: string;
+  reviewed_user_id: number;
+}): Promise<any> {
+  try {
+    const res = await fetch(`${API_URL}/api/p4m/reviewLED/submit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(payload),
+    });
+    
+    const text = await res.text();
+    let json: any = null;
+    try { json = text ? JSON.parse(text) : null; } catch {}
+    
+    if (!res.ok) {
+      const msg = json?.message || text || `Failed to submit review (status ${res.status})`;
+      throw new Error(msg);
+    }
+    
+    return json;
+  } catch (err) {
+    console.error('submitLEDReview error:', err);
+    throw err;
+  }
+}
+
+/* ==================== GET ALL SUBMITTED LEDs (P4M) ==================== */
+export async function getAllSubmittedLEDs(): Promise<any[]> {
+  try {
+    const res = await fetch(`${API_URL}/api/p4m/reviewLED`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    });
+    
+    if (!res.ok) {
+      console.error('Failed to fetch submitted LEDs, status:', res.status);
+      return [];
+    }
+    
+    return await res.json();
+  } catch (err) {
+    console.error('getAllSubmittedLEDs error:', err);
+    return [];
+  }
+}
+
+/* ==================== GET REVIEW HISTORY (P4M) ==================== */
+export async function getReviewHistory(user_id: number): Promise<any[]> {
+  try {
+    const res = await fetch(`${API_URL}/api/p4m/reviewLED/history/${user_id}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    });
+    
+    if (!res.ok) {
+      console.error('Failed to fetch review history, status:', res.status);
+      return [];
+    }
+    
+    return await res.json();
+  } catch (err) {
+    console.error('getReviewHistory error:', err);
+    return [];
+  }
+}
+
 /* ==================== FETCH ALL LED (Alternative) ==================== */
 export const fetchBudayaMutuLED = async (): Promise<any[]> => {
   try {

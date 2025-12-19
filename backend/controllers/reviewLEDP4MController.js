@@ -1,60 +1,127 @@
-import pool from "../db.js"; // sesuaikan dengan file koneksi databasenya
+import prisma from "../prismaClient.js";
 
-// ✅ Ambil semua data review LED
-export const getAllReviewLED = async (req, res) => {
+/**
+ * GET - Ambil semua LED yang sudah disubmit untuk review
+ * Status = "Submitted" di BuktiPendukung
+ */
+export const getAllSubmittedLED = async (req, res) => {
   try {
-    const result = await pool.query("SELECT * FROM review_led_p4m ORDER BY id ASC");
-    res.json(result.rows);
+    console.log('📥 [Review LED] Fetching all submitted LEDs');
+    
+    // Ambil semua BuktiPendukung dengan status "Submitted"
+    const submittedItems = await prisma.buktiPendukung.findMany({
+      where: { status: 'Submitted' },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            nama_lengkap: true,
+            prodi: true,
+          }
+        }
+      },
+      orderBy: { updatedAt: 'desc' }
+    });
+
+    console.log(`✅ [Review LED] Found ${submittedItems.length} submitted items`);
+    
+    res.json(submittedItems);
   } catch (error) {
-    console.error("Error fetching review LED:", error);
-    res.status(500).json({ message: "Gagal mengambil data review LED" });
+    console.error("❌ [Review LED] Error fetching submitted LEDs:", error);
+    res.status(500).json({ message: "Gagal mengambil data LED yang disubmit" });
   }
 };
 
-// ✅ Tambah data review baru
-export const addReviewLED = async (req, res) => {
+/**
+ * POST - Submit review (catatan + status) untuk LED tertentu
+ * Body: { tab, status, notes, reviewed_user_id }
+ */
+export const submitLEDReview = async (req, res) => {
   try {
-    const { nama_file, catatan, status } = req.body;
-    const result = await pool.query(
-      "INSERT INTO review_led_p4m (nama_file, catatan, status) VALUES ($1, $2, $3) RETURNING *",
-      [nama_file, catatan, status]
-    );
-    res.status(201).json(result.rows[0]);
+    const { tab, status, notes, reviewed_user_id } = req.body;
+    const reviewer_id = req.user?.id;
+
+    if (!reviewer_id) {
+      return res.status(401).json({ message: "User tidak terautentikasi" });
+    }
+
+    if (!tab || !status || !reviewed_user_id) {
+      return res.status(400).json({ message: "tab, status, dan reviewed_user_id wajib diisi" });
+    }
+
+    console.log(`💾 [Review LED] Reviewer ${reviewer_id} reviewing user ${reviewed_user_id}, tab: ${tab}`);
+    console.log(`   → Status: ${status}, Notes: ${notes?.substring(0, 50)}...`);
+
+    // Update status di BuktiPendukung
+    const updatedBukti = await prisma.buktiPendukung.updateMany({
+      where: {
+        userId: Number(reviewed_user_id),
+        path: {
+          contains: `tab=${tab}`
+        }
+      },
+      data: {
+        status: status === 'Diterima' ? 'Approved' : 'NeedsRevision'
+      }
+    });
+
+    // Simpan catatan review di table reviews
+    const review = await prisma.reviews.create({
+      data: {
+        module: 'LED',
+        item_id: Number(reviewed_user_id),
+        reviewer_id: reviewer_id,
+        note: `[${tab}] Status: ${status}\n${notes || 'Tidak ada catatan'}`
+      }
+    });
+
+    console.log(`✅ [Review LED] Review saved (id: ${review.id}), updated ${updatedBukti.count} BuktiPendukung records`);
+
+    res.json({
+      success: true,
+      message: 'Review berhasil disimpan',
+      review,
+      updatedCount: updatedBukti.count
+    });
   } catch (error) {
-    console.error("Error adding review LED:", error);
-    res.status(500).json({ message: "Gagal menambah data review LED" });
+    console.error("❌ [Review LED] Error submitting review:", error);
+    res.status(500).json({ message: "Gagal menyimpan review", error: error.message });
   }
 };
 
-// ✅ Update review
-export const updateReviewLED = async (req, res) => {
+/**
+ * GET - Ambil history review untuk user tertentu
+ * Params: user_id
+ */
+export const getReviewHistory = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { catatan, status } = req.body;
-    const result = await pool.query(
-      "UPDATE review_led_p4m SET catatan=$1, status=$2 WHERE id=$3 RETURNING *",
-      [catatan, status, id]
-    );
-    res.json(result.rows[0]);
-  } catch (error) {
-    console.error("Error updating review LED:", error);
-    res.status(500).json({ message: "Gagal memperbarui review LED" });
-  }
-};
+    const { user_id } = req.params;
+    
+    if (!user_id) {
+      return res.status(400).json({ message: "user_id is required" });
+    }
 
-// ✅ Hapus data review
-export const deleteReviewLED = async (req, res) => {
-  try {
-    const { id } = req.params;
-    await pool.query("DELETE FROM review_led_p4m WHERE id=$1", [id]);
-    res.json({ message: "Data review LED dihapus" });
-  } catch (error) {
-    console.error("Error deleting review LED:", error);
-    res.status(500).json({ message: "Gagal menghapus data review LED" });
-  }
-};
+    const reviews = await prisma.reviews.findMany({
+      where: {
+        module: 'LED',
+        item_id: Number(user_id)
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            nama_lengkap: true
+          }
+        }
+      },
+      orderBy: { created_at: 'desc' }
+    });
 
-// ✅ Import Excel (kalau dibutuhkan)
-export const importReviewLED = async (req, res) => {
-  res.json({ message: "Fitur import review LED belum diimplementasikan" });
+    res.json(reviews);
+  } catch (error) {
+    console.error("❌ [Review LED] Error fetching review history:", error);
+    res.status(500).json({ message: "Gagal mengambil history review" });
+  }
 };

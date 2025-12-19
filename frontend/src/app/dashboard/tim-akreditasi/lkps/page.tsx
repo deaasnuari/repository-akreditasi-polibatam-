@@ -1,7 +1,7 @@
 'use client';
 import Link from "next/link";
 import React, { useEffect, useState, useMemo } from 'react';
-import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Info, MessageSquare, Search } from 'lucide-react';
+import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Info, MessageSquare, Search, Send } from 'lucide-react';
 import { usePathname, useRouter } from "next/navigation";
 import { getReviews as fetchReviews } from '@/services/reviewService';
 
@@ -173,6 +173,45 @@ export default function LKPSPage() {
     } catch (error: any) {
       console.error('Gagal menyimpan draft:', error);
       showPopup(error.message || 'Gagal menyimpan draft. Lihat konsol untuk detail.', 'error');
+    }
+  };
+
+  const handleSubmitForReview = async () => {
+    showPopup('Mengajukan untuk review...', 'info');
+    try {
+      const dataToSave = tabData[activeSubTab] || [];
+      
+      console.log('📤 Mengajukan LKPS untuk review:', {
+        activeSubTab,
+        dataCount: dataToSave.length,
+        sample: dataToSave[0]
+      });
+
+      // Submit for review with status "Submitted"
+      await fetch(`${API_BASE}/draft`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          nama: `LKPS - Budaya Mutu`,
+          path: `/dashboard/tim-akreditasi/lkps`,
+          status: 'Submitted',
+          type: activeSubTab,
+          currentData: dataToSave,
+        }),
+        credentials: 'include',
+      });
+
+      showPopup('LKPS berhasil diajukan untuk review. Mengalihkan...', 'success');
+
+      setTimeout(() => {
+        router.push('/dashboard/tim-akreditasi/bukti-pendukung');
+      }, 1500);
+
+    } catch (error: any) {
+      console.error('Gagal mengajukan untuk review:', error);
+      showPopup(error.message || 'Gagal mengajukan untuk review. Lihat konsol untuk detail.', 'error');
     }
   };
 
@@ -1127,10 +1166,10 @@ export default function LKPSPage() {
             <div className="flex gap-2 items-center">
               <NotificationBell />
               <button onClick={handleSaveDraft} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-                <Save size={16} /> Save Draft
+                <Save size={16} /> Draft
               </button>
-              <button className="flex items-center gap-2 px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800">
-                <FileText size={16} /> Submit
+              <button onClick={handleSubmitForReview} className="flex items-center gap-2 px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800">
+                <Send size={16} /> Ajukan untuk Review
               </button>
             </div>
           </div>

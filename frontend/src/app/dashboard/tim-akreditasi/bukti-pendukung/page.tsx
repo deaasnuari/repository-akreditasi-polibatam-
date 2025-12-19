@@ -88,17 +88,46 @@ export default function BuktiPendukungPage() {
         const data: BorangItem[] = await fetchData("bukti-pendukung");
         const transformedData: TableItem[] = data.map((item) => {
           let kategori = "LKPS";
+          let bagian = "";
+          
           try {
             const p = String(item.path || "").toLowerCase();
+            const n = String(item.nama || "").toLowerCase();
+            
+            // Deteksi kategori
             if (p.includes("/led") || p.includes("led?") || p.includes("/dashboard/tim-akreditasi/led")) {
               kategori = "LED";
             } else if (p.includes("/lkps") || p.includes("lkps?") || p.includes("/dashboard/tim-akreditasi/lkps")) {
               kategori = "LKPS";
             } else {
-              const n = String(item.nama || "").toLowerCase();
               if (n.includes("led")) kategori = "LED";
             }
+
+            // Deteksi bagian berdasarkan path atau nama
+            if (n.includes("akuntabilitas") || p.includes("akuntabilitas")) {
+              bagian = "akuntabilitas";
+            } else if (n.includes("relevansi pendidikan") || p.includes("relevansi-pendidikan")) {
+              bagian = "relevansiPendidikan";
+            } else if (n.includes("relevansi penelitian") || p.includes("relevansi-penelitian")) {
+              bagian = "relevansiPenelitian";
+            } else if (n.includes("relevansi pkm") || p.includes("relevansi-pkm")) {
+              bagian = "relevansiPkm";
+            } else if (n.includes("budaya mutu") || p.includes("/lkps") && !p.includes("relevansi") && !p.includes("akuntabilitas") && !p.includes("diferensiasi")) {
+              bagian = "budayaMutu";
+            } else if (n.includes("diferensiasi misi") || p.includes("diferensiasi-misi")) {
+              bagian = "diferensiasiMisi";
+            }
           } catch (e) {}
+
+          // Map status dari database ke UI
+          let displayStatus = item.status;
+          if (item.status === 'Submitted') {
+            displayStatus = 'Menunggu';
+          } else if (item.status === 'Approved') {
+            displayStatus = 'Diterima';
+          } else if (item.status === 'NeedsRevision') {
+            displayStatus = 'Perlu Revisi';
+          }
 
           return {
             id: item.id,
@@ -107,11 +136,12 @@ export default function BuktiPendukungPage() {
             kategori,
             file: item.path,
             tanggal: new Date(item.updatedAt).toISOString().split("T")[0],
-            status: item.status,
+            status: displayStatus,
             isBorang: true,
             path: item.path,
             uploadBy: "Tim Akreditasi",
             size: "-",
+            bagian: bagian || undefined,
           };
         });
         setBorangData(transformedData);
@@ -186,8 +216,8 @@ export default function BuktiPendukungPage() {
   const filteredData = combinedData.filter((item) => {
     const statusOk = filterStatus === "Semua Status" || item.status === filterStatus;
     const kategoriOk = filterKategori === "Semua Kategori" || item.kategori === filterKategori;
-    const bagianOk = filterBagian === "Semua" || item.bagian === filterBagian || item.isBorang; // item borang tetap tampil
-    const itemOk = filterItemId === "Semua" || `${item.itemId ?? ""}` === `${filterItemId}` || item.isBorang; // item borang tetap tampil
+    const bagianOk = filterBagian === "Semua" || item.bagian === filterBagian;
+    const itemOk = filterItemId === "Semua" || `${item.itemId ?? ""}` === `${filterItemId}`;
     
     // Search filter
     const searchOk = !searchQuery.trim() || 

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Plus, Trash, Save, Info } from 'lucide-react';
+import { Plus, Trash, Save, Info, Send } from 'lucide-react';
 import { saveLEDDraft } from '../../../../services/ledService';
 import type { TabData as ServiceTabData, RowEval as ServiceRowEval } from '../../../../services/ledService';
 import { Toaster, toast } from 'sonner';
@@ -319,6 +319,40 @@ export default function BudayaMutuLEDPage() {
     } catch (err: any) {
       console.error('Error save draft:', err);
       toast.error(`❌ Gagal menyimpan draft ${activeLabel}`);
+    }
+  }, [tabData, activeTab, router, transformUIToServiceTabData]);
+
+  const handleSubmitForReview = useCallback(async () => {
+    const activeLabel = tabs.find(([k]) => k === activeTab)?.[1] || activeTab;
+    try {
+      toast('Mengajukan untuk review...', { icon: <Save size={16} /> });
+      
+      // Save data ke LED table
+      const user_id = getUserId();
+      const svcData = transformUIToServiceTabData(tabData[activeTab]);
+      await saveLEDTab(user_id, activeTab, svcData);
+      console.log('✅ Data LED berhasil di-save untuk review:', { activeTab, user_id });
+      
+      // Save draft reference dengan status untuk review
+      const payload = {
+        nama: `LED - ${activeTab}`,
+        path: `/dashboard/tim-akreditasi/led?tab=${activeTab}`,
+        status: 'Submitted',
+        type: activeTab,
+        currentData: tabData[activeTab],
+      };
+      
+      await saveLEDDraft(payload);
+      console.log('✅ Draft reference berhasil disimpan dengan status Submitted');
+      toast.success(`✅ ${activeLabel} berhasil diajukan untuk review!`);
+      
+      // Redirect ke bukti pendukung untuk melihat status
+      setTimeout(() => {
+        router.push(`/dashboard/tim-akreditasi/bukti-pendukung`);
+      }, 1200);
+    } catch (err: any) {
+      console.error('❌ Error submit for review:', err);
+      toast.error(`❌ Gagal mengajukan ${activeLabel} untuk review`);
     }
   }, [tabData, activeTab, router, transformUIToServiceTabData]);
 
@@ -690,12 +724,12 @@ export default function BudayaMutuLEDPage() {
             </button>
             <button
               type="button"
-              onClick={() => handleSave(true, false)}
+              onClick={handleSubmitForReview}
               className="inline-flex items-center gap-1 sm:gap-2 bg-[#183A64] text-white px-3 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-[#2C5F8D] transition-all duration-200 shadow-md hover:shadow-lg font-medium text-xs sm:text-sm"
             >
-              <Save className="h-4 w-4 sm:h-5 sm:w-5" />
-              <span className="hidden sm:inline">Simpan Data</span>
-              <span className="inline sm:hidden">Simpan</span>
+              <Send className="h-4 w-4 sm:h-5 sm:w-5" />
+              <span className="hidden sm:inline">Ajukan untuk Review</span>
+              <span className="inline sm:hidden">Ajukan</span>
             </button>
           </div>
         </div>

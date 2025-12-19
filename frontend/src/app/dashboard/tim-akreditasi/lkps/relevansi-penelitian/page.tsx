@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Info, MessageSquare, Search } from 'lucide-react';
+import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X, CheckCircle, AlertCircle, Info, MessageSquare, Search, Send } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { relevansiPenelitianService, SubTab, DataItem } from '@/services/relevansiPenelitianService';
@@ -145,6 +145,30 @@ export default function RelevansiPenelitianPage() {
       console.error('Gagal menyimpan draft:', error);
       // fetchData sudah melempar error dengan message yang sesuai
       showPopup(error.message || 'Gagal menyimpan draft. Lihat konsol untuk detail.', 'error');
+    }
+  };
+
+  const handleSubmitForReview = async () => {
+    showPopup('Mengajukan untuk review...', 'info');
+    try {
+      await fetchData('bukti-pendukung', {
+        method: 'POST',
+        body: JSON.stringify({
+          nama: 'LKPS - Relevansi Penelitian',
+          path: pathname,
+          status: 'Submitted',
+        }),
+      });
+
+      showPopup('LKPS berhasil diajukan untuk review. Mengalihkan...', 'success');
+
+      setTimeout(() => {
+        router.push('/dashboard/tim-akreditasi/bukti-pendukung');
+      }, 1500);
+
+    } catch (error) {
+      console.error('Gagal mengajukan untuk review:', error);
+      showPopup(error.message || 'Gagal mengajukan untuk review. Lihat konsol untuk detail.', 'error');
     }
   };
 
@@ -427,7 +451,8 @@ export default function RelevansiPenelitianPage() {
               </div>
             </div>
             <div className="flex gap-2">
-              <button onClick={handleSaveDraft} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"><Save size={16} /> Save Draft</button>
+              <button onClick={handleSaveDraft} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"><Save size={16} /> Draft</button>
+              <button onClick={handleSubmitForReview} className="flex items-center gap-2 px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800"><Send size={16} /> Ajukan untuk Review</button>
             </div>
           </div>
 

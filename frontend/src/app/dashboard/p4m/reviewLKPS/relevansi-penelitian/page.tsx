@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { FileText, Download, Save, Eye, X } from 'lucide-react';
+import { FileText, Download, Save, Eye, X, CheckCircle, XCircle, AlertCircle, Info } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -31,6 +31,10 @@ export default function RelevansiPenelitianPage() {
   const [loadingNotes, setLoadingNotes] = useState(false);
   const [prodiList, setProdiList] = useState<string[]>([]);
   const [selectedProdi, setSelectedProdi] = useState<string>('');
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewStatus, setReviewStatus] = useState<'Diterima' | 'Perlu Revisi'>('Diterima');
+  const [reviewNotes, setReviewNotes] = useState('');
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   // --- Tabs utama ---
   const tabs = [
@@ -148,31 +152,38 @@ export default function RelevansiPenelitianPage() {
   // openAdd (tambah data) dihilangkan; fungsi tambah tidak tersedia dari UI
   const openEdit = (item: any) => { setFormData(item); setEditIndex(item.id ?? null); setShowForm(true); };
 
-  const handleViewDetail = async (item: any) => { 
-    setSelectedItem(item); 
-    setReviewNote('');
-    setNotes([]);
-    setShowDetail(true);
-    try {
-      setLoadingNotes(true);
-      const existing = await fetchReviews('relevansi-penelitian', item.id);
-      setNotes(existing || []);
-    } catch (err) {
-      console.error('Fetch notes error', err);
-    } finally {
-      setLoadingNotes(false);
-    }
+  const handleReview = async (item: any) => {
+    setSelectedItem(item);
+    setReviewStatus('Diterima');
+    setReviewNotes('');
+    setShowReviewModal(true);
   };
 
-  const handleSaveReview = async () => {
+  const handleSubmitReview = async () => {
     if (!selectedItem?.id) return;
+    if (!reviewNotes.trim()) {
+      alert('Catatan review harus diisi');
+      return;
+    }
+
+    setSubmittingReview(true);
     try {
-      await postReview('relevansi-penelitian', selectedItem.id, reviewNote || '');
-      const existing = await fetchReviews('relevansi-penelitian', selectedItem.id);
-      setNotes(existing || []);
-      setReviewNote('');
+      const statusMap: Record<string, string> = {
+        'Diterima': 'Approved',
+        'Perlu Revisi': 'NeedsRevision'
+      };
+
+      const backendStatus = statusMap[reviewStatus] || 'Approved';
+      await postReview('relevansi-penelitian', selectedItem.id, reviewNotes, backendStatus);
+      alert('Review berhasil disimpan');
+      setShowReviewModal(false);
+      setSelectedItem(null);
+      await fetchData();
     } catch (err) {
-      console.error('Save note error', err);
+      console.error('Submit review error:', err);
+      alert('Gagal menyimpan review');
+    } finally {
+      setSubmittingReview(false);
     }
   };
 
@@ -238,8 +249,13 @@ export default function RelevansiPenelitianPage() {
         {cols.map(c => <td key={c.key} className="px-6 py-4 text-gray-800">{item[c.key] ?? ''}</td>)}
         <td className="px-6 py-4 text-center">
           <div className="flex gap-2 justify-center">
-            <button onClick={()=>handleViewDetail(item)} className="text-blue-700 hover:text-blue-900 inline-flex items-center gap-1" title="Lihat Detail">
-              <Eye size={16} />
+            <button 
+              onClick={() => handleReview(item)} 
+              className="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 inline-flex items-center gap-1.5 text-sm" 
+              title="Review Data"
+            >
+              <Eye size={14} />
+              Review
             </button>
           </div>
         </td>
@@ -262,56 +278,120 @@ export default function RelevansiPenelitianPage() {
             </div>
             <div className="flex gap-2">
               <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"><Download size={16} /> Export PDF</button>
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"><Save size={16} /> Save Draft</button>
             </div>
           </div>
 
-          {/* Modal Detail */}
-          {showDetail && selectedItem && (
-            <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-start md:items-center overflow-auto z-50 p-4">
-              <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-4xl">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-lg font-semibold text-gray-800">Detail Data</h2>
-                  <button onClick={() => setShowDetail(false)} className="text-gray-500 hover:text-gray-700">✕</button>
+          {/* Modal Review */}
+          {showReviewModal && selectedItem && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+              <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+                {/* Header */}
+                <div className="flex justify-between items-center p-6 border-b">
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-800">Review Data</h2>
+                    <p className="text-sm text-gray-600 mt-1">Berikan penilaian dan catatan untuk data ini</p>
+                  </div>
+                  <button
+                    onClick={() => setShowReviewModal(false)}
+                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    <X size={24} />
+                  </button>
                 </div>
 
-                <div className="space-y-4">
-                  {Object.keys(selectedItem).filter(k => k !== 'id').map(k => (
-                    <div key={k} className="bg-gray-50 p-4 rounded-lg">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">{k.replace(/_/g,' ')}</label>
-                      <p className="text-gray-900 whitespace-pre-wrap">{String(selectedItem[k] ?? '-')}</p>
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                  {/* Data Preview */}
+                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Info size={18} className="text-blue-600" />
+                      <h3 className="font-semibold text-gray-800">Data yang Direview</h3>
                     </div>
-                  ))}
-
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Catatan Sebelumnya</label>
-                      {loadingNotes ? (
-                        <p className="text-sm text-gray-500">Memuat catatan...</p>
-                      ) : notes.length === 0 ? (
-                        <p className="text-sm text-gray-500">Belum ada catatan</p>
-                      ) : (
-                        <div className="space-y-2 max-h-44 overflow-auto">
-                          {notes.map((n) => (
-                            <div key={n.id} className="border rounded p-3 bg-white">
-                              <div className="text-xs text-gray-500">{n.user?.nama_lengkap || n.user?.username} • {new Date(n.created_at).toLocaleString()}</div>
-                              <div className="text-sm text-gray-900 mt-1 whitespace-pre-wrap">{n.note}</div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Tambahkan Catatan Review (Optional)</label>
-                      <textarea value={reviewNote} onChange={(e)=>setReviewNote(e.target.value)} placeholder="Tambahkan catatan atau komentar review di sini..." rows={4} className="border p-3 rounded-lg w-full bg-white" />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {Object.keys(selectedItem)
+                        .filter(k => k !== 'id')
+                        .map(k => (
+                          <div key={k} className="bg-white p-3 rounded border">
+                            <label className="text-xs font-medium text-gray-600 uppercase tracking-wide">
+                              {k.replace(/_/g, ' ')}
+                            </label>
+                            <p className="text-sm text-gray-900 mt-1 break-words">
+                              {String(selectedItem[k] ?? '-')}
+                            </p>
+                          </div>
+                        ))}
                     </div>
                   </div>
+
+                  {/* Status Review */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Status Review <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={reviewStatus}
+                      onChange={(e) => setReviewStatus(e.target.value as 'Diterima' | 'Perlu Revisi')}
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="Diterima">✓ Diterima</option>
+                      <option value="Perlu Revisi">⚠ Perlu Revisi</option>
+                    </select>
+                  </div>
+
+                  {/* Catatan Review */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Catatan Review <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                      value={reviewNotes}
+                      onChange={(e) => setReviewNotes(e.target.value)}
+                      placeholder="Berikan catatan, komentar, atau saran perbaikan..."
+                      rows={5}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Catatan ini akan dikirimkan ke Tim Akreditasi
+                    </p>
+                  </div>
+
+                  {/* Info Alert */}
+                  {reviewStatus === 'Perlu Revisi' && (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex gap-3">
+                      <AlertCircle size={20} className="text-yellow-600 flex-shrink-0 mt-0.5" />
+                      <div className="text-sm text-yellow-800">
+                        <p className="font-medium">Data akan dikembalikan untuk revisi</p>
+                        <p className="mt-1">Tim Akreditasi akan menerima notifikasi dan dapat memperbaiki data sesuai catatan Anda.</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                <div className="mt-6 flex justify-end gap-2">
-                  <button onClick={() => setShowDetail(false)} className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">Tutup</button>
-                  <button onClick={handleSaveReview} className="px-4 py-2 bg-blue-700 text-white rounded hover:bg-blue-800">Simpan Catatan</button>
+                {/* Footer Actions */}
+                <div className="border-t p-6 bg-gray-50 flex justify-end gap-3">
+                  <button
+                    onClick={() => setShowReviewModal(false)}
+                    className="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 font-medium transition-colors"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    onClick={handleSubmitReview}
+                    disabled={submittingReview || !reviewNotes.trim()}
+                    className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors flex items-center gap-2"
+                  >
+                    {submittingReview ? (
+                      <>
+                        <span className="animate-spin">⏳</span>
+                        Menyimpan...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle size={18} />
+                        Simpan Review
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
             </div>
