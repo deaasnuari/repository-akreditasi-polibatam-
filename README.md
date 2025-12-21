@@ -70,7 +70,7 @@ Sistem ini menyediakan:
   👉
   
 - 📘 **LINK GITHUB PBL**  
-  👉
+  👉 https://github.com/deaasnuari/repository-akreditasi-polibatam-
 
 - 📘 **Logbook PBL**  
   👉 https://pbl.polibatam.ac.id/apps/index.php?page=list_logbook_mhs
