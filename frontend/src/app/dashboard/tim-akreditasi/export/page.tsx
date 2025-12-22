@@ -432,6 +432,92 @@ export default function ExportAkreditasi() {
     return null;
   };
 
+  // Export LED ke Google Docs dengan data dari database
+  const handleExportLEDDocs = async (bagian: BagianAkreditasi) => {
+    try {
+      // ✅ Check jika item sudah expanded dengan _ledTabKey
+      let tabKey = (bagian as any)._ledTabKey || getLEDTabKey(bagian);
+      
+      if (!tabKey) {
+        showNotification('error', 'Tidak Dapat Menentukan Tipe LED', 
+          `Tidak dapat menentukan tipe LED untuk bagian "${bagian.nama_bagian}".\n\n` +
+          `Pastikan nama bagian mengandung kata kunci seperti:\n` +
+          `• Budaya Mutu (C.1)\n` +
+          `• Relevansi Pendidikan (C.2)\n` +
+          `• Relevansi Penelitian (C.3)\n` +
+          `• Relevansi PKM (C.4)\n` +
+          `• Akuntabilitas (C.5)\n` +
+          `• Diferensiasi Misi (C.6)`);
+        return;
+      }
+      
+      const userIdStr = localStorage.getItem("user_id") || sessionStorage.getItem("user_id");
+      const userId = userIdStr ? Number(userIdStr) : null;
+      
+      if (!userId) {
+        showNotification('error', 'User ID Tidak Ditemukan', 'Silakan login ulang untuk melanjutkan.');
+        return;
+      }
+      
+      // Ambil data LED yang sudah disimpan di database (saved/draft)
+      console.log('=== LED DOCS EXPORT ===');
+      console.log(`📄 Bagian: ${bagian.kode_bagian} - ${bagian.nama_bagian}`);
+      console.log(`📄 Tab Key: ${tabKey}`);
+      console.log(`📄 User ID: ${userId}`);
+      console.log(`📄 Fetching from: ${API_URL}/led/${userId}`);
+      console.log('📊 Data source: TABLE led (database)');
+      
+      const response = await fetch(`${API_URL}/led/${userId}`, {
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        console.error(`❌ HTTP Error: ${response.status} ${response.statusText}`);
+        throw new Error('Gagal mengambil data LED dari database');
+      }
+      
+      const allData = await response.json();
+      console.log('✅ Response received');
+      console.log('📦 Available subtabs:', Object.keys(allData));
+      console.log(`🔍 Looking for tabKey: "${tabKey}"`);
+      
+      const ledData = allData[tabKey];
+      
+      if (!ledData || ledData === null) {
+        showNotification('warning', 'Data LED Belum Tersedia', 
+          `Data LED untuk "${bagian.nama_bagian}" belum tersedia di database.\n\n` +
+          `Langkah-langkah:\n` +
+          `1. Buka halaman LED → ${bagian.nama_bagian}\n` +
+          `2. Isi data (Penetapan, Pelaksanaan, Evaluasi)\n` +
+          `3. Klik SAVE atau DRAFT\n` +
+          `4. Kembali ke halaman Export dan coba lagi`);
+        return;
+      }
+      
+      if (typeof ledData === 'object' && Object.keys(ledData).length === 0) {
+        showNotification('warning', 'Data LED Kosong', 
+          `Data LED untuk "${bagian.nama_bagian}" kosong di database.\n\n` +
+          `Silakan isi data terlebih dahulu di halaman LED.`);
+        return;
+      }
+      
+      console.log(`✅ LED data found for "${tabKey}"`);
+      console.log('📄 Generating Google Docs...');
+      
+      generateLEDDocs(ledData, tabKey, bagian.nama_bagian);
+      
+      console.log('✅ Google Docs generation completed');
+    } catch (error) {
+      console.error("❌ Error export LED Docs:", error);
+      showNotification('error', 'Gagal Export Google Docs LED', 
+        `Error: ${error instanceof Error ? error.message : 'Unknown error'}\n\n` +
+        `Pastikan:\n` +
+        `1. Data LED sudah disimpan di database\n` +
+        `2. Backend server berjalan\n` +
+        `3. Anda sudah login`);
+    }
+  };
+
   // Export LED ke PDF dengan data dari database
   const handleExportLEDPDF = async (bagian: BagianAkreditasi) => {
     try {
@@ -689,6 +775,37 @@ export default function ExportAkreditasi() {
     setTimeout(() => {
       printWindow.print();
     }, 500);
+  };
+
+  // Generate LED Google Docs (File .doc yang langsung dibuka di Microsoft Word)
+  const generateLEDDocs = (data: any, tabKey: string, title: string) => {
+    try {
+      const htmlContent = generateLEDHTML(data, tabKey, title);
+      
+      // Create a Blob with Word MIME type untuk langsung dibuka di Microsoft Word
+      const blob = new Blob([htmlContent], { type: 'application/msword' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const filename = `LED-${title.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.doc`;
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      
+      showNotification('success', 'Export Berhasil!', 
+        `File Word telah diunduh: ${filename}\n\n` +
+        `File akan otomatis terbuka di Microsoft Word.\n\n` +
+        `Anda juga dapat membuka file ini dengan:\n` +
+        `• Google Docs (File → Open → Upload)\n` +
+        `• LibreOffice Writer`);
+    } catch (error) {
+      console.error("❌ Error generating Docs:", error);
+      showNotification('error', 'Gagal Generate Word Document', 
+        `Terjadi kesalahan saat membuat dokumen.\n\n` +
+        `Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   };
 
   // Generate HTML untuk 1 tab saja (tanpa wrapper HTML document)
@@ -1058,16 +1175,16 @@ export default function ExportAkreditasi() {
     if (ledItems.length > 0 && exportFormat === 'EXCEL') {
       showNotification('error', 'Format Tidak Sesuai', 
         'Item LED tidak dapat di-export ke Excel!\n\n' +
-        'Item LED hanya dapat di-export dalam format PDF.\n' +
-        'Silakan ubah format export ke PDF atau hapus item LED dari pilihan.');
+        'Item LED hanya dapat di-export dalam format PDF atau Microsoft Word.\n' +
+        'Silakan ubah format export atau hapus item LED dari pilihan.');
       return;
     }
     
     if (lkpsItems.length > 0 && exportFormat === 'PDF') {
       showNotification('error', 'Format Tidak Sesuai', 
         'Item LKPS tidak dapat di-export ke PDF!\n\n' +
-        'Item LKPS hanya dapat di-export dalam format Excel.\n' +
-        'Silakan ubah format export ke Excel atau hapus item LKPS dari pilihan.');
+        'Item LKPS hanya dapat di-export dalam format Excel atau Microsoft Word.\n' +
+        'Silakan ubah format export atau hapus item LKPS dari pilihan.');
       return;
     }
     
@@ -1149,6 +1266,99 @@ export default function ExportAkreditasi() {
       }
       
       console.log('ℹ️ Found non-LED items, will also export non-LED data...');
+    }
+
+    // Jika format DOCS (Microsoft Word) 
+    if (exportFormat === 'DOCS') {
+      console.log('📄 [DOCS] Exporting to Microsoft Word format...');
+      
+      // Handle LED items untuk Docs
+      if (ledItems.length > 0) {
+        console.log('🔵 [DOCS-LED] Exporting LED items as Microsoft Word...');
+        for (const item of ledItems) {
+          console.log(`   → Processing LED: ${item.kode_bagian} - ${item.nama_bagian}`);
+          await handleExportLEDDocs(item);
+          // Delay antar export untuk menghindari konflik
+          if (ledItems.length > 1) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        }
+        console.log('✅ [DOCS-LED] Finished exporting LED items');
+      }
+      
+      // Handle LKPS items untuk Docs
+      if (nonLedItems.length > 0) {
+        console.log('📄 [DOCS-LKPS] Exporting LKPS items as Microsoft Word...');
+        const itemsToExport = nonLedItems;
+        const idsToExport = itemsToExport.map(item => item.id);
+        
+        setLoading(true);
+        try {
+          const endpoint = '/akreditasi/export';
+          
+          const selectedBagianInfo = itemsToExport.map(item => ({
+            id: item.id,
+            kode_bagian: item.kode_bagian,
+            nama_bagian: item.nama_bagian
+          }));
+          
+          console.log('📤 Sending to backend:', {
+            format: 'DOCS',
+            selectedIds: idsToExport,
+            selectedBagian: selectedBagianInfo
+          });
+          
+          const res = await fetch(`${API_URL}${endpoint}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ 
+              format: 'DOCS', 
+              selectedIds: idsToExport,
+              selectedTypes: [],
+              selectedBagian: selectedBagianInfo
+            }),
+          });
+
+          if (!res.ok) {
+            const errorData = await res.json().catch(() => null);
+            console.error('\n❌ EXPORT FAILED!');
+            console.error('Response Status:', res.status);
+            console.error('Error Data:', errorData);
+            
+            const errorMsg = errorData?.message || `Export gagal (${res.status}): ${res.statusText}`;
+            showNotification('error', 'Export Gagal', errorMsg);
+            throw new Error(errorMsg);
+          }
+
+          const blob = await res.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          const filename = `LKPS-Export-${new Date().toISOString().split('T')[0]}.doc`;
+          a.href = url;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          window.URL.revokeObjectURL(url);
+          console.log(`✅ [DOCS] Export completed: ${filename}`);
+          
+          showNotification('success', 'Export Berhasil!', 
+            `File: ${filename}\n` +
+            `Format: Microsoft Word\n` +
+            `Jumlah bagian: ${itemsToExport.length}\n\n` +
+            `File telah diunduh dan akan otomatis terbuka di Microsoft Word.`);
+        } catch (e) {
+          console.error('❌ Export error:', e);
+          const errorMsg = e instanceof Error ? e.message : 'Unknown error';
+          showNotification('error', 'Export Gagal', errorMsg);
+        } finally {
+          setLoading(false);
+        }
+      }
+      
+      // Jika sudah handle semua items dengan Docs, return
+      return;
     }
 
     // Export non-LED items atau Excel (untuk semua items)
@@ -1457,6 +1667,7 @@ export default function ExportAkreditasi() {
                 >
                   <option value="PDF">PDF Document</option>
                   <option value="EXCEL">Excel Spreadsheet</option>
+                  <option value="DOCS">Microsoft Word (.doc)</option>
                 </select>
               </div>
             </div>
@@ -1478,7 +1689,7 @@ export default function ExportAkreditasi() {
                       <div className="flex-1">
                         <h4 className="font-semibold text-red-900 mb-1">Item LKPS Tidak Dapat Di-Export ke PDF</h4>
                         <p className="text-sm text-red-800">
-                          Anda memilih <strong>{lkpsItems.length} item LKPS</strong>. Item LKPS hanya dapat di-export dalam format <strong>Excel</strong>. Silakan ubah format export ke Excel atau hapus item LKPS dari pilihan.
+                          Anda memilih <strong>{lkpsItems.length} item LKPS</strong>. Item LKPS hanya dapat di-export dalam format <strong>Excel atau Microsoft Word</strong>. Silakan ubah format export atau hapus item LKPS dari pilihan.
                         </p>
                       </div>
                     </div>
@@ -1497,7 +1708,7 @@ export default function ExportAkreditasi() {
                       <div className="flex-1">
                         <h4 className="font-semibold text-red-900 mb-1">Item LED Tidak Dapat Di-Export ke Excel</h4>
                         <p className="text-sm text-red-800">
-                          Anda memilih <strong>{ledItems.length} item LED</strong>. Item LED hanya dapat di-export dalam format <strong>PDF</strong>. Silakan ubah format export ke PDF atau hapus item LED dari pilihan.
+                          Anda memilih <strong>{ledItems.length} item LED</strong>. Item LED hanya dapat di-export dalam format <strong>PDF atau Microsoft Word</strong>. Silakan ubah format export atau hapus item LED dari pilihan.
                         </p>
                       </div>
                     </div>
@@ -1518,7 +1729,7 @@ export default function ExportAkreditasi() {
               const selectedItems = filteredBagian.filter((b) => selectedBagian.includes(b.id));
               const ledItems = selectedItems.filter(isLEDItem);
               const lkpsItems = selectedItems.filter(item => !isLEDItem(item));
-              // Disable jika LKPS + PDF atau LED + Excel
+              // Disable jika LKPS + PDF atau LED + Excel (Docs bisa untuk keduanya)
               if (lkpsItems.length > 0 && exportFormat === 'PDF') return true;
               if (ledItems.length > 0 && exportFormat === 'EXCEL') return true;
               return false;
