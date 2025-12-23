@@ -97,42 +97,127 @@ export default function ExportAkreditasi() {
         const data = ledData[tabKey];
         
         // Tentukan tabel mana yang harus diisi berdasarkan tab
-        let requiredTables: string[] = [];
+        let requiredTablesForPenetapanPelaksanaan: string[] = [];
+        let requiredTablesForEvaluasi: string[] = [];
         
         if (tabKey === 'diferensiasi-misi') {
-          // Diferensiasi Misi: hanya Tabel A
-          requiredTables = ['A'];
+          // Diferensiasi Misi: hanya Tabel A untuk semua section
+          requiredTablesForPenetapanPelaksanaan = ['A'];
+          requiredTablesForEvaluasi = ['A'];
+        } else if (tabKey === 'budaya-mutu') {
+          // Budaya Mutu: Penetapan & Pelaksanaan Tabel A, B | Evaluasi Tabel A, B, C
+          requiredTablesForPenetapanPelaksanaan = ['A', 'B'];
+          requiredTablesForEvaluasi = ['A', 'B', 'C'];
         } else if (tabKey === 'relevansi-pendidikan') {
-          // Relevansi Pendidikan: Tabel A, B, C, D
-          requiredTables = ['A', 'B', 'C', 'D'];
+          // Relevansi Pendidikan: Tabel A, B, C, D untuk Penetapan & Pelaksanaan | Evaluasi A, B, C
+          requiredTablesForPenetapanPelaksanaan = ['A', 'B', 'C', 'D'];
+          requiredTablesForEvaluasi = ['A', 'B', 'C'];
         } else if (tabKey === 'relevansi-penelitian' || tabKey === 'relevansi-pkm') {
-          // Relevansi Penelitian & PkM: Tabel A, B, C
-          requiredTables = ['A', 'B', 'C'];
+          // Relevansi Penelitian & PkM: Tabel A, B, C untuk Penetapan & Pelaksanaan | Evaluasi A, B, C
+          requiredTablesForPenetapanPelaksanaan = ['A', 'B', 'C'];
+          requiredTablesForEvaluasi = ['A', 'B', 'C'];
+        } else if (tabKey === 'akuntabilitas') {
+          // Akuntabilitas: Tabel A, B untuk Penetapan & Pelaksanaan | Evaluasi A, B, C
+          requiredTablesForPenetapanPelaksanaan = ['A', 'B'];
+          requiredTablesForEvaluasi = ['A', 'B', 'C'];
         } else {
-          // Default (Budaya Mutu, Akuntabilitas): Tabel A, B
-          requiredTables = ['A', 'B'];
+          // Default: Tabel A, B untuk Penetapan & Pelaksanaan | Evaluasi A, B, C
+          requiredTablesForPenetapanPelaksanaan = ['A', 'B'];
+          requiredTablesForEvaluasi = ['A', 'B', 'C'];
         }
         
-        // Cek PENETAPAN: semua tabel yang required harus terisi
-        const penetapanComplete = requiredTables.every(table => {
+        // Helper untuk cek apakah row benar-benar terisi (minimal field pernyataan dan keterlaksanaan)
+        const isRowFilled = (row: any): boolean => {
+          if (!row || typeof row !== 'object') return false;
+          const pernyataan = String(row.pernyataan || '').trim();
+          const keterlaksanaan = String(row.keterlaksanaan || '').trim();
+          return pernyataan.length > 0 && keterlaksanaan.length > 0;
+        };
+        
+        // Helper untuk cek row evaluasi terisi (pernyataan, keterlaksanaan, DAN evaluasi harus ada)
+        const isEvalRowFilled = (row: any): boolean => {
+          if (!row || typeof row !== 'object') return false;
+          const pernyataan = String(row.pernyataan || '').trim();
+          const keterlaksanaan = String(row.keterlaksanaan || '').trim();
+          const evaluasi = String(row.evaluasi || '').trim();
+          return pernyataan.length > 0 && keterlaksanaan.length > 0 && evaluasi.length > 0;
+        };
+        
+        console.log(`\n🔍 === VALIDASI LED ${tabKey.toUpperCase()} ===`);
+        console.log(`📦 Data yang diterima (keys):`, Object.keys(data));
+        console.log(`📋 Required tables - Penetapan/Pelaksanaan:`, requiredTablesForPenetapanPelaksanaan);
+        console.log(`📋 Required tables - Evaluasi:`, requiredTablesForEvaluasi);
+        
+        // Cek PENETAPAN: semua tabel yang required harus terisi dengan data valid
+        const penetapanResults: Record<string, boolean> = {};
+        const penetapanComplete = requiredTablesForPenetapanPelaksanaan.every(table => {
           const key = `penetapan${table}` as keyof typeof data;
-          return Array.isArray(data[key]) && data[key].length > 0;
+          const rows = data[key];
+          // Array harus ada, tidak kosong, dan ada minimal 1 row yang terisi dengan benar
+          const isValid = Array.isArray(rows) && rows.length > 0 && rows.some(isRowFilled);
+          penetapanResults[`Tabel ${table}`] = isValid;
+          
+          const filledCount = Array.isArray(rows) ? rows.filter(isRowFilled).length : 0;
+          console.log(`  📝 Penetapan ${table}: ${isValid ? '✅' : '❌'} | Total rows: ${Array.isArray(rows) ? rows.length : 0}, Filled: ${filledCount}`);
+          
+          return isValid;
         });
         
-        // Cek PELAKSANAAN: semua tabel yang required harus terisi
-        const pelaksanaanComplete = requiredTables.every(table => {
+        // Cek PELAKSANAAN: semua tabel yang required harus terisi dengan data valid
+        const pelaksanaanResults: Record<string, boolean> = {};
+        const pelaksanaanComplete = requiredTablesForPenetapanPelaksanaan.every(table => {
           const key = `pelaksanaan${table}` as keyof typeof data;
-          return Array.isArray(data[key]) && data[key].length > 0;
+          const rows = data[key];
+          const isValid = Array.isArray(rows) && rows.length > 0 && rows.some(isRowFilled);
+          pelaksanaanResults[`Tabel ${table}`] = isValid;
+          
+          const filledCount = Array.isArray(rows) ? rows.filter(isRowFilled).length : 0;
+          console.log(`  📝 Pelaksanaan ${table}: ${isValid ? '✅' : '❌'} | Total rows: ${Array.isArray(rows) ? rows.length : 0}, Filled: ${filledCount}`);
+          
+          return isValid;
         });
         
-        // Cek EVALUASI: Tabel A, B, C harus terisi (untuk semua tab kecuali diferensiasi yang hanya A)
-        const evalTables = tabKey === 'diferensiasi-misi' ? ['A'] : ['A', 'B', 'C'];
-        const evaluasiComplete = evalTables.every(table => {
+        // Cek EVALUASI: Tabel yang required harus terisi dengan data valid
+        const evaluasiResults: Record<string, boolean> = {};
+        const evaluasiComplete = requiredTablesForEvaluasi.every(table => {
           const key = `eval${table}` as keyof typeof data;
-          return Array.isArray(data[key]) && data[key].length > 0;
+          const rows = data[key];
+          
+          // Cek apakah array valid dan tidak kosong
+          if (!Array.isArray(rows) || rows.length === 0) {
+            evaluasiResults[`Tabel ${table}`] = false;
+            console.log(`  📝 Evaluasi ${table}: ❌ | Tidak ada data (Array invalid atau kosong)`);
+            return false;
+          }
+          
+          // Untuk eval, cek field evaluasi juga harus terisi (bukan hanya pernyataan & keterlaksanaan)
+          const filledCount = rows.filter(isEvalRowFilled).length;
+          const isValid = filledCount > 0;
+          
+          evaluasiResults[`Tabel ${table}`] = isValid;
+          console.log(`  📝 Evaluasi ${table}: ${isValid ? '✅' : '❌'} | Total rows: ${rows.length}, Filled (with evaluasi): ${filledCount}`);
+          
+          // Debug: tampilkan sample row pertama
+          if (rows.length > 0) {
+            const firstRow = rows[0];
+            console.log(`     Sample row:`, {
+              pernyataan: String(firstRow?.pernyataan || '').substring(0, 30) + '...',
+              keterlaksanaan: String(firstRow?.keterlaksanaan || '').substring(0, 30) + '...',
+              evaluasi: String(firstRow?.evaluasi || '').substring(0, 30) + '...',
+            });
+          }
+          
+          return isValid;
         });
         
-        return penetapanComplete && pelaksanaanComplete && evaluasiComplete;
+        const isComplete = penetapanComplete && pelaksanaanComplete && evaluasiComplete;
+        console.log(`\n📊 HASIL VALIDASI LED ${tabKey.toUpperCase()}:`);
+        console.log(`  ✓ Penetapan: ${penetapanComplete ? '✅ LENGKAP' : '❌ BELUM LENGKAP'}`, penetapanResults);
+        console.log(`  ✓ Pelaksanaan: ${pelaksanaanComplete ? '✅ LENGKAP' : '❌ BELUM LENGKAP'}`, pelaksanaanResults);
+        console.log(`  ✓ Evaluasi: ${evaluasiComplete ? '✅ LENGKAP' : '❌ BELUM LENGKAP'}`, evaluasiResults);
+        console.log(`  🎯 STATUS KESELURUHAN: ${isComplete ? '✅ SIAP EXPORT' : '❌ BELUM LENGKAP'}\n`);
+        
+        return isComplete;
       }
       
       // Untuk LKPS Budaya Mutu - cek SEMUA 6 sub tab harus terisi
@@ -222,7 +307,7 @@ export default function ExportAkreditasi() {
         return;
       }
 
-      // ✅ Expand item generic "relevansi" menjadi 3 item terpisah
+      // ✅ Expand items dan tambahkan semua LED items (C.1-C.6)
       const expandedData: BagianAkreditasi[] = [];
       let nextId = Math.max(...data.map((d: any) => d.id), 0) + 1000; // ID virtual untuk item expanded
       
@@ -245,53 +330,65 @@ export default function ExportAkreditasi() {
         }
       }
 
+      // Proses items dari backend
       for (const item of data) {
         const code = (item.kode_bagian || '').toLowerCase().trim();
         const name = (item.nama_bagian || '').toLowerCase().trim();
         
-        // Jika item adalah generic "relevansi", expand menjadi 3 item
-        if ((code === 'led' || code.includes('led')) && 
-            name === 'relevansi' &&
-            !name.includes('pendidikan') && 
-            !name.includes('penelitian') && 
-            !name.includes('pkm')) {
+        // Skip hanya item LED generic dari buktiPendukung yang akan ditambahkan dari LED table
+        // Cek jika kode_bagian mengandung "LED" atau pattern "C.X" tanpa detail lebih lanjut
+        const isGenericLED = code.includes('led') && (
+          code === 'led' || 
+          code.match(/^led\s*[-\s]*c\.\d+?\s*$/i) ||
+          !code.includes('lkps')
+        );
+        
+        if (isGenericLED) {
+          console.log(`⏭️ Skipping generic LED item: ${item.kode_bagian} - ${item.nama_bagian}`);
+          continue;
+        }
+        
+        // Item normal (LKPS dan lainnya), cek kelengkapan data
+        const isComplete = await checkDataCompleteness(item.kode_bagian, item.nama_bagian);
+        expandedData.push({
+          ...item,
+          status: isComplete ? 'Siap Export' : 'Belum Lengkap'
+        });
+      }
+      
+      // Tambahkan semua LED items (C.1-C.6) jika ada datanya
+      const allLEDTabs = [
+        { key: 'budaya-mutu', code: 'C.1', name: 'Budaya Mutu' },
+        { key: 'relevansi-pendidikan', code: 'C.2', name: 'Relevansi Pendidikan' },
+        { key: 'relevansi-penelitian', code: 'C.3', name: 'Relevansi Penelitian' },
+        { key: 'relevansi-pkm', code: 'C.4', name: 'Relevansi PkM' },
+        { key: 'akuntabilitas', code: 'C.5', name: 'Akuntabilitas' },
+        { key: 'diferensiasi-misi', code: 'C.6', name: 'Diferensiasi Misi' }
+      ];
+      
+      console.log('🔄 Adding LED items to export list...');
+      for (const tab of allLEDTabs) {
+        // Hanya tambahkan jika ada data di LED
+        if (availableLEDTabs.includes(tab.key)) {
+          console.log(`✅ Adding LED item: ${tab.code} ${tab.name}`);
           
-          console.log('🔄 Expanding generic "Relevansi" item into 3 separate items');
+          // Cek kelengkapan data
+          const isComplete = await checkDataCompleteness(`LED ${tab.code}`, tab.name);
           
-          // Buat 3 item terpisah untuk setiap tab Relevansi yang ada datanya
-          const relevansiTabs = [
-            { key: 'relevansi-pendidikan', code: 'C.2', name: 'Relevansi Pendidikan' },
-            { key: 'relevansi-penelitian', code: 'C.3', name: 'Relevansi Penelitian' },
-            { key: 'relevansi-pkm', code: 'C.4', name: 'Relevansi PkM' }
-          ];
-          
-          for (const tab of relevansiTabs) {
-            // Hanya tambahkan jika ada data di LED
-            if (availableLEDTabs.includes(tab.key)) {
-              // Cek kelengkapan data
-              const isComplete = await checkDataCompleteness(`LED ${tab.code}`, tab.name);
-              
-              expandedData.push({
-                id: nextId++,
-                kode_bagian: `LED ${tab.code}`,
-                nama_bagian: tab.name,
-                deskripsi: `${tab.name} - Data dari LED Database`,
-                tanggal_update: item.tanggal_update,
-                status: isComplete ? 'Siap Export' : 'Belum Lengkap',
-                type: item.type,
-                // Tambahkan flag untuk identifikasi nanti
-                _isExpandedLED: true,
-                _ledTabKey: tab.key
-              } as any);
-            }
-          }
-        } else {
-          // Item normal, cek kelengkapan data
-          const isComplete = await checkDataCompleteness(item.kode_bagian, item.nama_bagian);
           expandedData.push({
-            ...item,
-            status: isComplete ? 'Siap Export' : 'Belum Lengkap'
-          });
+            id: nextId++,
+            kode_bagian: `LED ${tab.code}`,
+            nama_bagian: tab.name,
+            deskripsi: `${tab.name} - Data dari LED Database`,
+            tanggal_update: new Date().toISOString(),
+            status: isComplete ? 'Siap Export' : 'Belum Lengkap',
+            type: 'led',
+            // Tambahkan flag untuk identifikasi nanti
+            _isExpandedLED: true,
+            _ledTabKey: tab.key
+          } as any);
+        } else {
+          console.log(`⏭️ Skipping LED item ${tab.code} ${tab.name} - no data`);
         }
       }
 
@@ -930,6 +1027,26 @@ export default function ExportAkreditasi() {
     const extendedTabs = ['budaya-mutu', 'relevansi-pendidikan', 'relevansi-penelitian', 'relevansi-pkm', 'akuntabilitas'];
     const isExtended = extendedTabs.includes(tabKey);
     
+    // Fungsi untuk menentukan tabel mana yang harus ditampilkan
+    const shouldShowTable = (tableKey: string): boolean => {
+      if (tabKey === 'diferensiasi-misi') {
+        return tableKey.endsWith('A');
+      }
+      if (tabKey === 'budaya-mutu') {
+        return tableKey.endsWith('A') || tableKey.endsWith('B');
+      }
+      if (tabKey === 'relevansi-pendidikan') {
+        return true; // Semua tabel A, B, C, D
+      }
+      if (tabKey === 'relevansi-penelitian' || tabKey === 'relevansi-pkm') {
+        return tableKey.endsWith('A') || tableKey.endsWith('B') || tableKey.endsWith('C');
+      }
+      if (tabKey === 'akuntabilitas') {
+        return tableKey.endsWith('A') || tableKey.endsWith('B');
+      }
+      return tableKey.endsWith('A') || tableKey.endsWith('B');
+    };
+    
     const renderTable2Col = (rows: any[], tableName: string, extended: boolean = false) => {
       if (!rows || rows.length === 0) return "";
       
@@ -1121,16 +1238,16 @@ export default function ExportAkreditasi() {
         </div>
         
         <div class="section-header">1. PENETAPAN</div>
-        ${renderTable2Col(data.penetapanA, "Penetapan - Tabel A", false)}
-        ${renderTable2Col(data.penetapanB, "Penetapan - Tabel B", false)}
-        ${data.penetapanC && data.penetapanC.length > 0 ? renderTable2Col(data.penetapanC, "Penetapan - Tabel C", false) : ''}
-        ${data.penetapanD && data.penetapanD.length > 0 ? renderTable2Col(data.penetapanD, "Penetapan - Tabel D", false) : ''}
+        ${shouldShowTable('penetapanA') ? renderTable2Col(data.penetapanA, "Penetapan - Tabel A", false) : ''}
+        ${shouldShowTable('penetapanB') ? renderTable2Col(data.penetapanB, "Penetapan - Tabel B", false) : ''}
+        ${shouldShowTable('penetapanC') && data.penetapanC && data.penetapanC.length > 0 ? renderTable2Col(data.penetapanC, "Penetapan - Tabel C", false) : ''}
+        ${shouldShowTable('penetapanD') && data.penetapanD && data.penetapanD.length > 0 ? renderTable2Col(data.penetapanD, "Penetapan - Tabel D", false) : ''}
         
         <div class="section-header page-break">2. PELAKSANAAN</div>
-        ${renderTable2Col(data.pelaksanaanA, "Pelaksanaan - Tabel A", isExtended)}
-        ${renderTable2Col(data.pelaksanaanB, "Pelaksanaan - Tabel B", isExtended)}
-        ${data.pelaksanaanC && data.pelaksanaanC.length > 0 ? renderTable2Col(data.pelaksanaanC, "Pelaksanaan - Tabel C", isExtended) : ''}
-        ${data.pelaksanaanD && data.pelaksanaanD.length > 0 ? renderTable2Col(data.pelaksanaanD, "Pelaksanaan - Tabel D", isExtended) : ''}
+        ${shouldShowTable('pelaksanaanA') ? renderTable2Col(data.pelaksanaanA, "Pelaksanaan - Tabel A", isExtended) : ''}
+        ${shouldShowTable('pelaksanaanB') ? renderTable2Col(data.pelaksanaanB, "Pelaksanaan - Tabel B", isExtended) : ''}
+        ${shouldShowTable('pelaksanaanC') && data.pelaksanaanC && data.pelaksanaanC.length > 0 ? renderTable2Col(data.pelaksanaanC, "Pelaksanaan - Tabel C", isExtended) : ''}
+        ${shouldShowTable('pelaksanaanD') && data.pelaksanaanD && data.pelaksanaanD.length > 0 ? renderTable2Col(data.pelaksanaanD, "Pelaksanaan - Tabel D", isExtended) : ''}
         
         <div class="section-header page-break">3. EVALUASI, PENGENDALIAN, DAN PENINGKATAN</div>
         ${data.evalRows ? renderTableEval(data.evalRows, "Evaluasi, Pengendalian, Peningkatan - Tabel Evaluasi") : ''}
@@ -1150,6 +1267,15 @@ export default function ExportAkreditasi() {
   const handleExport = async () => {
     if (selectedBagian.length === 0) {
       showNotification('warning', 'Belum Ada Pilihan', 'Pilih minimal satu bagian untuk export.');
+      return;
+    }
+
+    // Validasi: hanya boleh pilih 1 bagian
+    if (selectedBagian.length > 1) {
+      showNotification('error', 'Terlalu Banyak Pilihan', 
+        `Hanya dapat export 1 bagian dalam satu waktu!\n\n` +
+        `Anda memilih ${selectedBagian.length} bagian.\n` +
+        `Silakan pilih hanya 1 bagian saja.`);
       return;
     }
 
