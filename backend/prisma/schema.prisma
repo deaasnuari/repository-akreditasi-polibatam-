@@ -118,6 +118,7 @@ model reviews {
   item_id     Int
   reviewer_id Int
   note        String   @db.Text
+  status      String?  @db.VarChar(50) // 'Diterima' atau 'Perlu Revisi'
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
 

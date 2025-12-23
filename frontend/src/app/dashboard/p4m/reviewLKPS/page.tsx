@@ -163,13 +163,31 @@ export default function P4MReviewBudayaMutuPage() {
       const json = await res.json();
       
       if (json.success && Array.isArray(json.data)) {
-        setTabData(prev => ({
-          ...prev,
-          [activeSubTab]: json.data.map(item => ({
-            id: item.id,
-            data: item.data
-          }))
+        const dataWithIds = json.data.map(item => ({
+          id: item.id,
+          data: item.data
         }));
+
+        // Fetch reviews untuk filter data yang belum direview
+        try {
+          const reviews = await fetchReviews('budaya-mutu');
+          const reviewedIds = new Set(reviews.map((r: any) => r.item_id));
+          
+          // Filter: hanya tampilkan data yang belum direview
+          const unreviewed = dataWithIds.filter(item => !reviewedIds.has(item.id));
+          
+          setTabData(prev => ({
+            ...prev,
+            [activeSubTab]: unreviewed
+          }));
+        } catch (err) {
+          console.error('Failed to fetch reviews:', err);
+          // Jika gagal fetch review, tampilkan semua data
+          setTabData(prev => ({
+            ...prev,
+            [activeSubTab]: dataWithIds
+          }));
+        }
       } else {
         setTabData(prev => ({ ...prev, [activeSubTab]: [] }));
       }
@@ -197,6 +215,170 @@ export default function P4MReviewBudayaMutuPage() {
     } catch (err) {
       console.error('Fetch struktur error:', err);
     }
+  };
+
+  const handleExportPDF = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Popup diblokir. Mohon izinkan popup untuk export PDF.');
+      return;
+    }
+
+    const currentDate = new Date().toLocaleDateString('id-ID', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric'
+    });
+
+    const fields = subTabFields[activeSubTab];
+    const tableData = tabData[activeSubTab] || [];
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Review LKPS - Budaya Mutu</title>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            padding: 40px;
+            background: white;
+            color: #333;
+          }
+          .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #183A64;
+            padding-bottom: 20px;
+          }
+          .header h1 {
+            color: #183A64;
+            font-size: 24px;
+            margin-bottom: 8px;
+          }
+          .header p {
+            color: #666;
+            font-size: 14px;
+          }
+          .info-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #183A64;
+          }
+          .info-box p {
+            font-size: 13px;
+            color: #555;
+            line-height: 1.5;
+          }
+          .info-box strong {
+            color: #183A64;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            font-size: 11px;
+          }
+          th {
+            background-color: #183A64;
+            color: white;
+            padding: 10px 8px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+          }
+          td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 10px;
+            vertical-align: top;
+          }
+          tr:hover {
+            background-color: #f9fafb;
+          }
+          tr:last-child td {
+            border-bottom: none;
+          }
+          .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #e5e7eb;
+            text-align: right;
+            font-size: 12px;
+            color: #666;
+          }
+          .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            font-style: italic;
+          }
+          @media print {
+            body { padding: 20px; }
+            @page { size: landscape; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>Review LKPS - Budaya Mutu</h1>
+          <p>${tableTitles[activeSubTab]}</p>
+          <p style="margin-top: 5px; font-size: 12px;">Dicetak pada: ${currentDate}</p>
+        </div>
+
+        <div class="info-box">
+          <p><strong>Sub Tab:</strong> ${activeSubTab}</p>
+          <p><strong>Filter Prodi:</strong> ${selectedProdi || 'Semua Prodi'}</p>
+          <p><strong>Total Data:</strong> ${tableData.length} item</p>
+        </div>
+
+        ${tableData.length === 0 ? `
+          <div class="no-data">
+            <p>Tidak ada data yang perlu direview</p>
+          </div>
+        ` : `
+          <table>
+            <thead>
+              <tr>
+                ${fields.map(col => `<th>${col.label}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${tableData.map((item, index) => `
+                <tr>
+                  ${fields.map(col => {
+                    const value = col.key === 'no' ? index + 1 : (item.data?.[col.key] || '-');
+                    return `<td>${value}</td>`;
+                  }).join('')}
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `}
+
+        <div class="footer">
+          <p><strong>ReDDA POLIBATAM</strong></p>
+          <p>Repository Akreditasi - Dashboard P4M</p>
+        </div>
+
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+            }, 250);
+          }
+        </script>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
   };
 
   const handleViewDetail = async (item: any) => {
@@ -244,16 +426,15 @@ export default function P4MReviewBudayaMutuPage() {
     setSubmittingReview(true);
     try {
       // Simpan review dengan status
-      await postReview('budaya-mutu', selectedItem.id, reviewNotes);
-      
-      // TODO: Update status di backend jika diperlukan
-      // Untuk sekarang kita hanya simpan catatan dengan status di dalamnya
-      const statusNote = `[Status: ${reviewStatus}] ${reviewNotes}`;
+      await postReview('budaya-mutu', selectedItem.id, reviewNotes, reviewStatus);
       
       showPopup(`Review berhasil disimpan dengan status: ${reviewStatus}`, 'success');
       setShowReviewModal(false);
       setReviewNotes('');
       setReviewStatus('Diterima');
+      
+      // Refresh data untuk hapus item yang sudah direview dari daftar
+      await fetchData();
     } catch (err) {
       console.error('Submit review error:', err);
       showPopup('Gagal menyimpan review', 'error');
@@ -419,7 +600,10 @@ export default function P4MReviewBudayaMutuPage() {
               </div>
             </div>
             <div className="flex gap-2">
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+              <button 
+                onClick={handleExportPDF}
+                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
                 <Download size={16} /> Export PDF
               </button>
             </div>
@@ -471,7 +655,7 @@ export default function P4MReviewBudayaMutuPage() {
           </div>
 
           {/* Budaya Mutu Tab */}
-          <div className="bg-white rounded-lg shadow-md p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
+          <div className="bg-white rounded-lg shadow-md p-4 md:p-6 space-y-6">
             
             {/* Struktur Organisasi - View Only */}
             <div className="bg-white rounded-lg shadow p-4">

@@ -27,6 +27,7 @@ export default function RelevansiPkmPage() {
   const [reviewStatus, setReviewStatus] = useState<'Diterima' | 'Perlu Revisi'>('Diterima');
   const [reviewNotes, setReviewNotes] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewsMap, setReviewsMap] = useState<Record<number, any>>({});
 
   const API_BASE = 'http://localhost:5000/api/relevansi-pkm';
 
@@ -63,7 +64,29 @@ export default function RelevansiPkmPage() {
       }
       
       const json = await res.json();
-      setData(json.data ?? json ?? []);
+      const fetchedData = json.data ?? json ?? [];
+
+      // Fetch reviews untuk modul ini
+      try {
+        const reviews = await fetchReviews('relevansi-pkm');
+        const reviewMap: Record<number, any> = {};
+        const reviewedIds = new Set<number>();
+        
+        reviews.forEach((review: any) => {
+          reviewMap[review.item_id] = review;
+          reviewedIds.add(review.item_id);
+        });
+        
+        setReviewsMap(reviewMap);
+        
+        // Filter: hanya tampilkan data yang belum direview
+        const unreviewed = fetchedData.filter((item: any) => !reviewedIds.has(item.id));
+        setData(unreviewed);
+      } catch (err) {
+        console.error('Failed to fetch reviews:', err);
+        // Jika gagal fetch review, tampilkan semua data
+        setData(fetchedData);
+      }
     } catch (err: any) {
       console.error('fetchData error', err);
       setErrorMsg(err?.message || String(err));
@@ -83,6 +106,161 @@ export default function RelevansiPkmPage() {
   useEffect(() => {
     fetchProdi();
   }, []);
+
+  const handleExportPDF = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Popup diblokir. Mohon izinkan popup untuk export PDF.');
+      return;
+    }
+
+    const currentDate = new Date().toLocaleDateString('id-ID', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric'
+    });
+
+    const fields = subtabFields[activeSubTab] || [];
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Review LKPS - Relevansi PkM</title>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            padding: 40px;
+            background: white;
+            color: #333;
+          }
+          .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #183A64;
+            padding-bottom: 20px;
+          }
+          .header h1 {
+            color: #183A64;
+            font-size: 24px;
+            margin-bottom: 8px;
+          }
+          .header p {
+            color: #666;
+            font-size: 14px;
+          }
+          .info-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #183A64;
+          }
+          .info-box p {
+            font-size: 13px;
+            color: #555;
+            line-height: 1.5;
+          }
+          .info-box strong {
+            color: #183A64;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            font-size: 10px;
+          }
+          th {
+            background-color: #183A64;
+            color: white;
+            padding: 8px 6px;
+            text-align: left;
+            font-size: 10px;
+            font-weight: 600;
+          }
+          td {
+            padding: 8px 6px;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 9px;
+            vertical-align: top;
+          }
+          tr:hover {
+            background-color: #f9fafb;
+          }
+          .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #e5e7eb;
+            text-align: right;
+            font-size: 12px;
+            color: #666;
+          }
+          .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            font-style: italic;
+          }
+          @media print {
+            body { padding: 20px; }
+            @page { size: landscape; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>Review LKPS - Relevansi PkM</h1>
+          <p>Sub Tab: ${activeSubTab}</p>
+          <p style="margin-top: 5px; font-size: 12px;">Dicetak pada: ${currentDate}</p>
+        </div>
+
+        <div class="info-box">
+          <p><strong>Filter Prodi:</strong> ${selectedProdi || 'Semua Prodi'}</p>
+          <p><strong>Total Data:</strong> ${data.length} item</p>
+        </div>
+
+        ${data.length === 0 ? `
+          <div class="no-data">
+            <p>Tidak ada data yang perlu direview</p>
+          </div>
+        ` : `
+          <table>
+            <thead>
+              <tr>
+                ${fields.map(col => `<th>${col.label}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${data.map((item) => `
+                <tr>
+                  ${fields.map(col => `<td>${item[col.key] || '-'}</td>`).join('')}
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `}
+
+        <div class="footer">
+          <p><strong>ReDDA POLIBATAM</strong></p>
+          <p>Repository Akreditasi - Dashboard P4M</p>
+        </div>
+
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+            }, 250);
+          }
+        </script>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  };
 
   // =============== FORM ===============
   // openAdd (tambah data) dihilangkan — UI tombol tambah sudah dihapus
@@ -181,13 +359,7 @@ export default function RelevansiPkmPage() {
 
     setSubmittingReview(true);
     try {
-      const statusMap: Record<string, string> = {
-        'Diterima': 'Approved',
-        'Perlu Revisi': 'NeedsRevision'
-      };
-
-      const backendStatus = statusMap[reviewStatus] || 'Approved';
-      await postReview('relevansi-pkm', selectedItem.id, reviewNotes, backendStatus);
+      await postReview('relevansi-pkm', selectedItem.id, reviewNotes, reviewStatus);
       alert('Review berhasil disimpan');
       setShowReviewModal(false);
       setSelectedItem(null);
@@ -263,6 +435,7 @@ export default function RelevansiPkmPage() {
           {c.label}
         </th>
       ))}
+      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status Review</th>
       <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
     </tr>
   );
@@ -272,30 +445,48 @@ export default function RelevansiPkmPage() {
     if (data.length === 0) {
       return (
         <tr>
-          <td colSpan={cols.length + 1} className="text-center py-6 text-gray-500">Belum ada data</td>
+          <td colSpan={cols.length + 2} className="text-center py-6 text-gray-500">Belum ada data</td>
         </tr>
       );
     }
 
-    return data.map((item: any, index: number) => (
-      <tr key={item.id ?? index} className="bg-white hover:bg-gray-50 border-b">
-        {cols.map((c) => (
-          <td key={c.key} className="px-6 py-4 text-gray-800">{item[c.key] ?? ''}</td>
-        ))}
-        <td className="px-6 py-4 text-center">
-          <div className="flex gap-2 justify-center">
-            <button 
-              onClick={() => handleReview(item)} 
-              className="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 inline-flex items-center gap-1.5 text-sm" 
-              title="Review Data"
-            >
-              <Eye size={14} />
-              Review
-            </button>
-          </div>
-        </td>
-      </tr>
-    ));
+    return data.map((item: any, index: number) => {
+      const review = reviewsMap[item.id];
+      const reviewStatus = review?.status;
+      
+      return (
+        <tr key={item.id ?? index} className="bg-white hover:bg-gray-50 border-b">
+          {cols.map((c) => (
+            <td key={c.key} className="px-6 py-4 text-gray-800">{item[c.key] ?? ''}</td>
+          ))}
+          <td className="px-6 py-4 text-center">
+            {reviewStatus ? (
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                reviewStatus === 'Diterima' 
+                  ? 'bg-green-100 text-green-800' 
+                  : 'bg-yellow-100 text-yellow-800'
+              }`}>
+                {reviewStatus === 'Diterima' ? '✓ Diterima' : '⚠ Perlu Revisi'}
+              </span>
+            ) : (
+              <span className="text-gray-400 text-xs">Belum direview</span>
+            )}
+          </td>
+          <td className="px-6 py-4 text-center">
+            <div className="flex gap-2 justify-center">
+              <button 
+                onClick={() => handleReview(item)} 
+                className="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 inline-flex items-center gap-1.5 text-sm" 
+                title="Review Data"
+              >
+                <Eye size={14} />
+                Review
+              </button>
+            </div>
+          </td>
+        </tr>
+      );
+    });
   };
 
   return (
@@ -312,7 +503,10 @@ export default function RelevansiPkmPage() {
               </div>
             </div>
             <div className="flex gap-2">
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+              <button 
+                onClick={handleExportPDF}
+                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
                 <Download size={16} /> Export PDF
               </button>
             </div>

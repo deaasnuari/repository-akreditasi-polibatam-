@@ -32,6 +32,7 @@ export default function AkuntabilitasPage() {
   const [reviewStatus, setReviewStatus] = useState<'Diterima' | 'Perlu Revisi'>('Diterima');
   const [reviewNotes, setReviewNotes] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewsMap, setReviewsMap] = useState<Record<number, any>>({});
 
   // Handler import Excel dihilangkan. Data import tidak lagi tersedia via UI.
 
@@ -46,7 +47,28 @@ export default function AkuntabilitasPage() {
 
   const fetchData = async () => {
     const data = await fetchAkuntabilitasData(activeSubTab, selectedProdi);
-    setTabData(data);
+    
+    // Fetch reviews untuk modul ini
+    try {
+      const reviews = await fetchReviews('akuntabilitas');
+      const reviewMap: Record<number, any> = {};
+      const reviewedIds = new Set<number>();
+      
+      reviews.forEach((review: any) => {
+        reviewMap[review.item_id] = review;
+        reviewedIds.add(review.item_id);
+      });
+      
+      setReviewsMap(reviewMap);
+      
+      // Filter: hanya tampilkan data yang belum direview
+      const unreviewed = data.filter((item: any) => !reviewedIds.has(item.id));
+      setTabData(unreviewed);
+    } catch (err) {
+      console.error('Failed to fetch reviews:', err);
+      // Jika gagal fetch review, tampilkan semua data
+      setTabData(data);
+    }
   };
 
   const fetchProdi = async () => {
@@ -65,6 +87,162 @@ export default function AkuntabilitasPage() {
   useEffect(() => {
     fetchData();
   }, [activeSubTab, selectedProdi]);
+
+  const handleExportPDF = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Popup diblokir. Mohon izinkan popup untuk export PDF.');
+      return;
+    }
+
+    const currentDate = new Date().toLocaleDateString('id-ID', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric'
+    });
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Review LKPS - Akuntabilitas</title>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            padding: 40px;
+            background: white;
+            color: #333;
+          }
+          .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #183A64;
+            padding-bottom: 20px;
+          }
+          .header h1 {
+            color: #183A64;
+            font-size: 24px;
+            margin-bottom: 8px;
+          }
+          .header p {
+            color: #666;
+            font-size: 14px;
+          }
+          .info-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #183A64;
+          }
+          .info-box p {
+            font-size: 13px;
+            color: #555;
+            line-height: 1.5;
+          }
+          .info-box strong {
+            color: #183A64;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            font-size: 11px;
+          }
+          th {
+            background-color: #183A64;
+            color: white;
+            padding: 10px 8px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: 600;
+          }
+          td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 10px;
+            vertical-align: top;
+          }
+          tr:hover {
+            background-color: #f9fafb;
+          }
+          .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #e5e7eb;
+            text-align: right;
+            font-size: 12px;
+            color: #666;
+          }
+          .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            font-style: italic;
+          }
+          @media print {
+            body { padding: 20px; }
+            @page { size: landscape; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>Review LKPS - Akuntabilitas</h1>
+          <p>${activeSubTab === 'tataKelola' ? 'Sistem Tata Kelola' : 'Sarana & Prasarana'}</p>
+          <p style="margin-top: 5px; font-size: 12px;">Dicetak pada: ${currentDate}</p>
+        </div>
+
+        <div class="info-box">
+          <p><strong>Sub Tab:</strong> ${activeSubTab}</p>
+          <p><strong>Filter Prodi:</strong> ${selectedProdi || 'Semua Prodi'}</p>
+          <p><strong>Total Data:</strong> ${tabData.length} item</p>
+        </div>
+
+        ${tabData.length === 0 ? `
+          <div class="no-data">
+            <p>Tidak ada data yang perlu direview</p>
+          </div>
+        ` : `
+          <table>
+            <thead>
+              <tr>
+                ${fields.map(f => `<th>${f.label}</th>`).join('')}
+                <th>Prodi</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${tabData.map((item) => `
+                <tr>
+                  ${fields.map(f => `<td>${item.data?.[f.key] || '-'}</td>`).join('')}
+                  <td>${item.prodi || '-'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `}
+
+        <div class="footer">
+          <p><strong>ReDDA POLIBATAM</strong></p>
+          <p>Repository Akreditasi - Dashboard P4M</p>
+        </div>
+
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+            }, 250);
+          }
+        </script>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  };
 
   // openAdd (tambah data) dihilangkan — UI tombol tambah sudah dihapus
 
@@ -117,13 +295,7 @@ export default function AkuntabilitasPage() {
 
     setSubmittingReview(true);
     try {
-      const statusMap: Record<string, string> = {
-        'Diterima': 'Approved',
-        'Perlu Revisi': 'NeedsRevision'
-      };
-
-      const backendStatus = statusMap[reviewStatus] || 'Approved';
-      await postReview('akuntabilitas', selectedItem.id, reviewNotes, backendStatus);
+      await postReview('akuntabilitas', selectedItem.id, reviewNotes, reviewStatus);
       alert('Review berhasil disimpan');
       setShowReviewModal(false);
       setSelectedItem(null);
@@ -173,7 +345,12 @@ export default function AkuntabilitasPage() {
               </div>
             </div>
             <div className="flex gap-2">
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"><Download size={16} /> Export PDF</button>
+              <button 
+                onClick={handleExportPDF}
+                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <Download size={16} /> Export PDF
+              </button>
             </div>
           </div>
 

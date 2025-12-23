@@ -32,15 +32,18 @@ export type TabData = {
   pelaksanaanB: Row2Col[];
   pelaksanaanC?: Row2Col[];
   pelaksanaanD?: Row2Col[];
-  pengendalianA: Row2Col[];
-  pengendalianB: Row2Col[];
+  pengendalianA?: Row2Col[];
+  pengendalianB?: Row2Col[];
   pengendalianC?: Row2Col[];
   pengendalianD?: Row2Col[];
-  peningkatanA: Row2Col[];
-  peningkatanB: Row2Col[];
+  peningkatanA?: Row2Col[];
+  peningkatanB?: Row2Col[];
   peningkatanC?: Row2Col[];
   peningkatanD?: Row2Col[];
-  evalRows: RowEval[];
+  evalRows?: RowEval[];  // Array gabungan untuk backward compatibility
+  evalA?: RowEval[];      // Tabel A terpisah
+  evalB?: RowEval[];      // Tabel B terpisah
+  evalC?: RowEval[];      // Tabel C terpisah
 };
 
 /* ==================== GET ALL LED DATA ==================== */
@@ -216,6 +219,28 @@ export async function getReviewHistory(user_id: number): Promise<any[]> {
   } catch (err) {
     console.error('getReviewHistory error:', err);
     return [];
+  }
+}
+
+/* ==================== MARK LED AS COMPLETED (P4M) ==================== */
+export async function markLEDAsCompleted(buktiPendukungId: number): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_URL}/api/p4m/reviewLED/complete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ buktiPendukungId })
+    });
+    
+    if (!res.ok) {
+      console.error('Failed to mark as completed, status:', res.status);
+      return false;
+    }
+    
+    return true;
+  } catch (err) {
+    console.error('markLEDAsCompleted error:', err);
+    return false;
   }
 }
 
