@@ -32,6 +32,7 @@ export default function P4MReviewDiferensiasiMisiPage() {
   const [reviewStatus, setReviewStatus] = useState<'Diterima' | 'Perlu Revisi'>('Diterima');
   const [reviewNotes, setReviewNotes] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewsMap, setReviewsMap] = useState<Record<number, any>>({});
 
   const tabs = [
     { label: 'Budaya Mutu', href: '/dashboard/p4m/reviewLKPS' },
@@ -58,7 +59,29 @@ export default function P4MReviewDiferensiasiMisiPage() {
       if (!res.ok) throw new Error('Gagal fetch data');
       const json = await res.json();
       console.log('RESPON DARI BACKEND:', json);
-      setData(json.data || json || []);
+      const fetchedData = json.data || json || [];
+      
+      // Fetch reviews untuk modul ini
+      try {
+        const reviews = await fetchReviews('diferensiasi-misi');
+        const reviewMap: Record<number, any> = {};
+        const reviewedIds = new Set<number>();
+        
+        reviews.forEach((review: any) => {
+          reviewMap[review.item_id] = review;
+          reviewedIds.add(review.item_id);
+        });
+        
+        setReviewsMap(reviewMap);
+        
+        // Filter: hanya tampilkan data yang belum direview
+        const unreviewed = fetchedData.filter((item: any) => !reviewedIds.has(item.id));
+        setData(unreviewed);
+      } catch (err) {
+        console.error('Failed to fetch reviews:', err);
+        // Jika gagal fetch review, tampilkan semua data
+        setData(fetchedData);
+      }
     } catch (err) {
       console.error('Fetch error:', err);
       setData([]);
@@ -82,6 +105,171 @@ export default function P4MReviewDiferensiasiMisiPage() {
     fetchData();
   }, [selectedProdi]);
 
+  // --- Export PDF handler ---
+  const handleExportPDF = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Popup diblokir. Mohon izinkan popup untuk export PDF.');
+      return;
+    }
+
+    const currentDate = new Date().toLocaleDateString('id-ID', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric'
+    });
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Review LKPS - Diferensiasi Misi</title>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            padding: 40px;
+            background: white;
+            color: #333;
+          }
+          .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #183A64;
+            padding-bottom: 20px;
+          }
+          .header h1 {
+            color: #183A64;
+            font-size: 24px;
+            margin-bottom: 8px;
+          }
+          .header p {
+            color: #666;
+            font-size: 14px;
+          }
+          .info-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #183A64;
+          }
+          .info-box p {
+            font-size: 13px;
+            color: #555;
+            line-height: 1.5;
+          }
+          .info-box strong {
+            color: #183A64;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+          }
+          th {
+            background-color: #183A64;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+          td {
+            padding: 12px;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 13px;
+            vertical-align: top;
+          }
+          tr:hover {
+            background-color: #f9fafb;
+          }
+          tr:last-child td {
+            border-bottom: none;
+          }
+          .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #e5e7eb;
+            text-align: right;
+            font-size: 12px;
+            color: #666;
+          }
+          .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            font-style: italic;
+          }
+          @media print {
+            body { padding: 20px; }
+            .no-print { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>Review LKPS - Diferensiasi Misi</h1>
+          <p>Review Data Visi/Misi Program Studi</p>
+          <p style="margin-top: 5px; font-size: 12px;">Dicetak pada: ${currentDate}</p>
+        </div>
+
+        <div class="info-box">
+          <p><strong>Filter Prodi:</strong> ${selectedProdi || 'Semua Prodi'}</p>
+          <p><strong>Total Data:</strong> ${data.length} item</p>
+          <p><strong>Status:</strong> Data yang belum direview</p>
+        </div>
+
+        ${data.length === 0 ? `
+          <div class="no-data">
+            <p>Tidak ada data yang perlu direview</p>
+          </div>
+        ` : `
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 15%;">No</th>
+                <th style="width: 20%;">Tipe Data</th>
+                <th style="width: 25%;">Unit Kerja</th>
+                <th style="width: 40%;">Konten</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${data.map((item, index) => `
+                <tr>
+                  <td>${index + 1}</td>
+                  <td>${item.tipe_data || '-'}</td>
+                  <td>${item.unit_kerja || '-'}</td>
+                  <td>${item.konten || '-'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `}
+
+        <div class="footer">
+          <p><strong>ReDDA POLIBATAM</strong></p>
+          <p>Repository Akreditasi - Dashboard P4M</p>
+        </div>
+
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+            }, 250);
+          }
+        </script>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  };
+
   // --- Review handlers ---
   const handleReview = async (item: DataItem) => {
     setSelectedItem(item);
@@ -99,13 +287,7 @@ export default function P4MReviewDiferensiasiMisiPage() {
 
     setSubmittingReview(true);
     try {
-      const statusMap: Record<string, string> = {
-        'Diterima': 'Approved',
-        'Perlu Revisi': 'NeedsRevision'
-      };
-
-      const backendStatus = statusMap[reviewStatus] || 'Approved';
-      await postReview('diferensiasi-misi', selectedItem.id, reviewNotes, backendStatus);
+      await postReview('diferensiasi-misi', selectedItem.id, reviewNotes, reviewStatus);
       alert('Review berhasil disimpan');
       setShowReviewModal(false);
       setSelectedItem(null);
@@ -133,7 +315,10 @@ export default function P4MReviewDiferensiasiMisiPage() {
               </div>
             </div>
             <div className="flex gap-2">
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+              <button 
+                onClick={handleExportPDF}
+                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
                 <Download size={16} /> Export PDF
               </button>
             </div>

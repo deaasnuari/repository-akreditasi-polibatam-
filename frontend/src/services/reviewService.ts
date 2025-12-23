@@ -19,19 +19,34 @@ export async function getReviews(moduleName: string, itemId?: number) {
   }
 }
 
-export async function createReview(moduleName: string, itemId: number, note: string) {
+export async function createReview(moduleName: string, itemId: number, note: string, status?: string) {
   try {
     const res = await fetch(API_BASE, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ module: moduleName, itemId, note }),
+      body: JSON.stringify({ module: moduleName, itemId, note, status }),
     });
     const json = await res.json();
     if (!res.ok) throw new Error(json.message || `HTTP ${res.status}`);
     return json.data;
   } catch (err: any) {
     console.error('🔴 createReview error:', err);
+    throw err;
+  }
+}
+
+export async function deleteReview(reviewId: number) {
+  try {
+    const res = await fetch(`${API_BASE}/${reviewId}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || `HTTP ${res.status}`);
+    return json;
+  } catch (err: any) {
+    console.error('🔴 deleteReview error:', err);
     throw err;
   }
 }

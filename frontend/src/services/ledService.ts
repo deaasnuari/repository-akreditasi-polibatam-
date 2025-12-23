@@ -219,6 +219,28 @@ export async function getReviewHistory(user_id: number): Promise<any[]> {
   }
 }
 
+/* ==================== MARK LED AS COMPLETED (P4M) ==================== */
+export async function markLEDAsCompleted(buktiPendukungId: number): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_URL}/api/p4m/reviewLED/complete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ buktiPendukungId })
+    });
+    
+    if (!res.ok) {
+      console.error('Failed to mark as completed, status:', res.status);
+      return false;
+    }
+    
+    return true;
+  } catch (err) {
+    console.error('markLEDAsCompleted error:', err);
+    return false;
+  }
+}
+
 /* ==================== FETCH ALL LED (Alternative) ==================== */
 export const fetchBudayaMutuLED = async (): Promise<any[]> => {
   try {

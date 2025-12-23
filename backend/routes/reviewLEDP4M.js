@@ -2,7 +2,8 @@ import express from "express";
 import {
   getAllSubmittedLED,
   submitLEDReview,
-  getReviewHistory
+  getReviewHistory,
+  markAsCompleted
 } from "../controllers/reviewLEDP4MController.js";
 import { authenticateToken } from "../middleware/authMiddleware.js";
 
@@ -16,5 +17,8 @@ router.post("/submit", authenticateToken, submitLEDReview);
 
 // GET /api/p4m/reviewLED/history/:user_id - Ambil history review untuk user tertentu
 router.get("/history/:user_id", getReviewHistory);
+
+// POST /api/p4m/reviewLED/complete - Mark dokumen as completed
+router.post("/complete", markAsCompleted);
 
 export default router;

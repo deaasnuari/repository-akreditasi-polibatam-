@@ -2,15 +2,19 @@ import prisma from "../prismaClient.js";
 
 /**
  * GET - Ambil semua LED yang sudah disubmit untuk review
- * Status = "Submitted" di BuktiPendukung
+ * Status = "Submitted", "Approved", "NeedsRevision" di BuktiPendukung
  */
 export const getAllSubmittedLED = async (req, res) => {
   try {
     console.log('📥 [Review LED] Fetching all submitted LEDs');
     
-    // Ambil semua BuktiPendukung dengan status "Submitted"
+    // Ambil semua BuktiPendukung dengan status "Submitted", "Approved", atau "NeedsRevision"
     const submittedItems = await prisma.buktiPendukung.findMany({
-      where: { status: 'Submitted' },
+      where: { 
+        status: {
+          in: ['Submitted', 'Approved', 'NeedsRevision']
+        }
+      },
       include: {
         user: {
           select: {
@@ -24,7 +28,7 @@ export const getAllSubmittedLED = async (req, res) => {
       orderBy: { updatedAt: 'desc' }
     });
 
-    console.log(`✅ [Review LED] Found ${submittedItems.length} submitted items`);
+    console.log(`✅ [Review LED] Found ${submittedItems.length} items (Submitted/Approved/NeedsRevision)`);
     
     res.json(submittedItems);
   } catch (error) {
@@ -125,3 +129,37 @@ export const getReviewHistory = async (req, res) => {
     res.status(500).json({ message: "Gagal mengambil history review" });
   }
 };
+
+/**
+ * POST - Mark dokumen as completed (akan di-archive/status jadi Completed)
+ * Body: { buktiPendukungId }
+ */
+export const markAsCompleted = async (req, res) => {
+  try {
+    const { buktiPendukungId } = req.body;
+
+    if (!buktiPendukungId) {
+      return res.status(400).json({ message: "buktiPendukungId is required" });
+    }
+
+    console.log(`✅ [Review LED] Marking BuktiPendukung ${buktiPendukungId} as completed`);
+
+    // Update status menjadi "Completed" untuk menyembunyikan dari dashboard P4M
+    const updated = await prisma.buktiPendukung.update({
+      where: { id: Number(buktiPendukungId) },
+      data: { status: 'Completed' }
+    });
+
+    console.log(`✅ [Review LED] Successfully marked as completed`);
+
+    res.json({
+      success: true,
+      message: 'Dokumen berhasil ditandai sebagai selesai',
+      data: updated
+    });
+  } catch (error) {
+    console.error("❌ [Review LED] Error marking as completed:", error);
+    res.status(500).json({ message: "Gagal menandai dokumen sebagai selesai" });
+  }
+};
+

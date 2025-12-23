@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Eye, FileText, CheckCircle, AlertCircle, Clock, XCircle, Search, X } from 'lucide-react';
-import { getAllSubmittedLEDs } from '@/services/ledService';
+import { Eye, FileText, CheckCircle, AlertCircle, Clock, XCircle, Search, X, Check, Bell } from 'lucide-react';
+import { getAllSubmittedLEDs, markLEDAsCompleted } from '@/services/ledService';
+import { getReviews, deleteReview } from '@/services/reviewService';
 
 interface P4MItem {
   id: string | number;
@@ -17,6 +18,10 @@ interface P4MItem {
   nama?: string;
   userId?: number;
   tab?: string;
+  reviewId?: number;
+  itemId?: number;
+  module?: string;
+  buktiPendukungId?: number;
 }
 
 export default function P4MDashboardPage() {
@@ -26,6 +31,17 @@ export default function P4MDashboardPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('Semua Kategori');
   const [filterStatus, setFilterStatus] = useState('Semua Status');
+  const [showNotification, setShowNotification] = useState(false);
+
+  // Module names mapping
+  const moduleNames: Record<string, string> = {
+    'budaya-mutu': 'Budaya Mutu',
+    'relevansi-pendidikan': 'Relevansi Pendidikan',
+    'relevansi-pkm': 'Relevansi PkM',
+    'relevansi-penelitian': 'Relevansi Penelitian',
+    'akuntabilitas': 'Akuntabilitas',
+    'diferensiasi-misi': 'Diferensiasi Misi',
+  };
 
   // Fetch data dari semua endpoint
   useEffect(() => {
@@ -77,12 +93,41 @@ export default function P4MDashboardPage() {
             path: reviewPath,
             userId: item.userId,
             tab: item.path?.includes('/led') ? item.path.match(/tab=([^&]+)/)?.[1] : undefined,
+            buktiPendukungId: item.id,
           };
         });
 
         console.log('✅ [P4M Dashboard] Transformed documents data:', transformedDocs);
 
-        const allData = [...transformedDocs];
+        // Fetch reviewed items dari semua modul LKPS
+        const modules = ['budaya-mutu', 'relevansi-pendidikan', 'relevansi-pkm', 'relevansi-penelitian', 'akuntabilitas', 'diferensiasi-misi'];
+        const reviewedItems: P4MItem[] = [];
+        
+        for (const module of modules) {
+          try {
+            const reviews = await getReviews(module);
+            reviews.forEach((review: any) => {
+              reviewedItems.push({
+                id: `review-${review.id}`,
+                reviewId: review.id,
+                itemId: review.item_id,
+                module: module,
+                judul: `${moduleNames[module]} - Item #${review.item_id}`,
+                kategori: 'LKPS',
+                status: review.status === 'Diterima' ? 'Diterima' : 'Perlu Revisi',
+                progress: review.status === 'Diterima' ? 100 : 75,
+                tanggalUpdate: new Date(review.created_at).toISOString().split('T')[0],
+                path: `/dashboard/p4m/reviewLKPS/${module}`,
+              });
+            });
+          } catch (err) {
+            console.error(`Failed to fetch reviews for ${module}:`, err);
+          }
+        }
+        
+        console.log('✅ [P4M Dashboard] Fetched reviewed items:', reviewedItems);
+
+        const allData = [...transformedDocs, ...reviewedItems];
         setData(allData);
         setFilteredData(allData);
       } catch (error) {
@@ -96,6 +141,68 @@ export default function P4MDashboardPage() {
 
     loadData();
   }, []);
+
+  // Close notification dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (showNotification && !target.closest('.relative')) {
+        setShowNotification(false);
+      }
+    };
+
+    if (showNotification) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showNotification]);
+
+  // Handle complete (mark as done)
+  const handleComplete = async (item: P4MItem) => {
+    if (!confirm('Tandai dokumen ini sebagai selesai dan hapus dari dashboard?')) return;
+    
+    try {
+      let success = false;
+      
+      // Jika ada reviewId (untuk LKPS yang sudah direview), hapus review
+      if (item.reviewId) {
+        await deleteReview(item.reviewId);
+        success = true;
+      } 
+      // Jika ada buktiPendukungId (untuk LED/dokumen lain), mark as completed
+      else if (item.buktiPendukungId) {
+        success = await markLEDAsCompleted(item.buktiPendukungId);
+      }
+      
+      if (success) {
+        // Refresh data - hapus item dari state
+        const updatedData = data.filter(d => d.id !== item.id);
+        setData(updatedData);
+        setFilteredData(updatedData.filter(d => {
+          let match = true;
+          if (searchQuery.trim()) {
+            match = match && d.judul.toLowerCase().includes(searchQuery.toLowerCase());
+          }
+          if (filterCategory !== 'Semua Kategori') {
+            match = match && d.kategori === filterCategory;
+          }
+          if (filterStatus !== 'Semua Status') {
+            match = match && d.status === filterStatus;
+          }
+          return match;
+        }));
+        alert('Dokumen berhasil ditandai sebagai selesai');
+      } else {
+        throw new Error('Failed to complete');
+      }
+    } catch (err) {
+      console.error('Failed to complete:', err);
+      alert('Gagal menandai dokumen sebagai selesai');
+    }
+  };
 
   // Filter data berdasarkan search, category, dan status
   useEffect(() => {
@@ -162,6 +269,94 @@ export default function P4MDashboardPage() {
           <p className="text-gray-600">Review dan berikan feedback untuk LED, LKPS, dan dokumen lainnya yang sudah diajukan oleh Tim Akreditasi</p>
         </div>
         <div className="flex items-center gap-3">
+          {/* Notification Icon */}
+          <div className="relative">
+            <button 
+              onClick={() => setShowNotification(!showNotification)}
+              className="relative p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <Bell size={24} />
+              {data.filter(i => i.status === 'Menunggu').length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center animate-pulse">
+                  {data.filter(i => i.status === 'Menunggu').length}
+                </span>
+              )}
+            </button>
+            
+            {/* Notification Dropdown */}
+            {showNotification && (
+              <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-96 overflow-y-auto">
+                <div className="sticky top-0 bg-gray-50 px-4 py-3 border-b border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-gray-900">Notifikasi Review</h3>
+                    <button 
+                      onClick={() => setShowNotification(false)}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {data.filter(i => i.status === 'Menunggu').length} dokumen menunggu review
+                  </p>
+                </div>
+                
+                <div className="divide-y divide-gray-100">
+                  {data.filter(i => i.status === 'Menunggu').length === 0 ? (
+                    <div className="px-4 py-6 text-center text-gray-500">
+                      <Bell size={32} className="mx-auto mb-2 opacity-30" />
+                      <p className="text-sm">Tidak ada notifikasi baru</p>
+                    </div>
+                  ) : (
+                    data.filter(i => i.status === 'Menunggu').map((item) => (
+                      <Link
+                        key={item.id}
+                        href={item.path || '#'}
+                        onClick={() => setShowNotification(false)}
+                        className="block px-4 py-3 hover:bg-blue-50 transition-colors"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="flex-shrink-0 mt-1">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">
+                              {item.judul}
+                            </p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="inline-block px-2 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-800">
+                                {item.kategori}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                {item.tanggalUpdate}
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-600 mt-1">
+                              Klik untuk review →
+                            </p>
+                          </div>
+                        </div>
+                      </Link>
+                    ))
+                  )}
+                </div>
+                
+                {data.filter(i => i.status === 'Menunggu').length > 0 && (
+                  <div className="sticky bottom-0 bg-gray-50 px-4 py-2 border-t border-gray-200">
+                    <button
+                      onClick={() => {
+                        setShowNotification(false);
+                        setFilterStatus('Menunggu');
+                      }}
+                      className="w-full text-center text-sm text-blue-600 hover:text-blue-700 font-medium"
+                    >
+                      Lihat Semua
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
           {/* Search Bar */}
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -188,179 +383,189 @@ export default function P4MDashboardPage() {
 
       {/* Stats Cards - 4 cards (tanpa Draft) */}
       <div className="grid grid-cols-4 gap-4">
-        <StatCard 
-          title="Total Item" 
-          value={data.length}
-        />
-        <StatCard 
-          title="Diterima" 
-          value={data.filter((i) => i.status === 'Diterima').length}
-          icon={<CheckCircle className="text-green-600" />}
-        />
-        <StatCard 
-          title="Menunggu" 
-          value={data.filter((i) => i.status === 'Menunggu').length}
-          icon={<Clock className="text-yellow-500" />}
-        />
-        <StatCard 
-          title="Perlu Revisi" 
-          value={data.filter((i) => i.status === 'Perlu Revisi').length}
-          icon={<XCircle className="text-red-500" />}
-        />
-      </div>
+            <StatCard 
+              title="Total Item" 
+              value={data.length}
+            />
+            <StatCard 
+              title="Diterima" 
+              value={data.filter((i) => i.status === 'Diterima').length}
+              icon={<CheckCircle className="text-green-600" />}
+            />
+            <StatCard 
+              title="Menunggu" 
+              value={data.filter((i) => i.status === 'Menunggu').length}
+              icon={<Clock className="text-yellow-500" />}
+            />
+            <StatCard 
+              title="Perlu Revisi" 
+              value={data.filter((i) => i.status === 'Perlu Revisi').length}
+              icon={<XCircle className="text-red-500" />}
+            />
+          </div>
 
-      {/* Filter Section - 4 kolom grid seperti bukti pendukung */}
-      <div className="bg-gray-100 rounded-xl p-4 grid grid-cols-4 gap-4 items-end">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-          <select 
-            value={filterStatus} 
-            onChange={(e) => setFilterStatus(e.target.value)} 
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="Semua Status">Semua Status</option>
-            <option value="Menunggu">Menunggu</option>
-            <option value="Diterima">Diterima</option>
-            <option value="Perlu Revisi">Perlu Revisi</option>
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
-          <select 
-            value={filterCategory} 
-            onChange={(e) => setFilterCategory(e.target.value)} 
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="Semua Kategori">Semua Kategori</option>
-            <option value="LED">LED</option>
-            <option value="LKPS">LKPS</option>
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Prodi</label>
-          <select 
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="Semua">Pilih Program Studi</option>
-            <option value="Teknik Informatika">Teknik Informatika</option>
-            <option value="Teknologi Geomatika">Teknologi Geomatika</option>
-            <option value="Animasi">Animasi</option>
-            <option value="Teknologi Rekayasa Multimedia">Teknologi Rekayasa Multimedia</option>
-            <option value="Rekayasa Keamanan Siber">Rekayasa Keamanan Siber</option>
-            <option value="Rekayasa Perangkat Lunak">Rekayasa Perangkat Lunak</option>
-            <option value="Teknologi Permainan">Teknologi Permainan</option>
-            <option value="Teknik Komputer / Rekayasa Komputer">Teknik Komputer / Rekayasa Komputer</option>
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Tab</label>
-          <select 
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="Semua">Semua Tab</option>
-          </select>
-        </div>
-      </div>
+          {/* Filter Section - 4 kolom grid seperti bukti pendukung */}
+          <div className="bg-gray-100 rounded-xl p-4 grid grid-cols-4 gap-4 items-end">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+              <select 
+                value={filterStatus} 
+                onChange={(e) => setFilterStatus(e.target.value)} 
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="Semua Status">Semua Status</option>
+                <option value="Menunggu">Menunggu</option>
+                <option value="Diterima">Diterima</option>
+                <option value="Perlu Revisi">Perlu Revisi</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
+              <select 
+                value={filterCategory} 
+                onChange={(e) => setFilterCategory(e.target.value)} 
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="Semua Kategori">Semua Kategori</option>
+                <option value="LED">LED</option>
+                <option value="LKPS">LKPS</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Prodi</label>
+              <select 
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="Semua">Pilih Program Studi</option>
+                <option value="Teknik Informatika">Teknik Informatika</option>
+                <option value="Teknologi Geomatika">Teknologi Geomatika</option>
+                <option value="Animasi">Animasi</option>
+                <option value="Teknologi Rekayasa Multimedia">Teknologi Rekayasa Multimedia</option>
+                <option value="Rekayasa Keamanan Siber">Rekayasa Keamanan Siber</option>
+                <option value="Rekayasa Perangkat Lunak">Rekayasa Perangkat Lunak</option>
+                <option value="Teknologi Permainan">Teknologi Permainan</option>
+                <option value="Teknik Komputer / Rekayasa Komputer">Teknik Komputer / Rekayasa Komputer</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Tab</label>
+              <select 
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="Semua">Semua Tab</option>
+              </select>
+            </div>
+          </div>
 
-      {/* Data Table - desain mirip bukti pendukung */}
-      <div className="bg-white rounded-xl shadow overflow-x-auto">
-        <table className="w-full text-sm border-collapse">
-          <thead>
-            <tr className="bg-gray-100 text-left text-gray-700">
-              <th className="px-4 py-3 font-semibold">Judul Dokumen</th>
-              <th className="px-4 py-3 font-semibold">Jenis</th>
-              <th className="px-4 py-3 font-semibold">Kategori</th>
-              <th className="px-4 py-3 font-semibold">File / Path</th>
-              <th className="px-4 py-3 font-semibold">Tanggal</th>
-              <th className="px-4 py-3 font-semibold">Status</th>
-              <th className="px-4 py-3 font-semibold text-center">Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
-                  <div className="flex justify-center items-center gap-2">
-                    <div className="animate-spin">⏳</div>
-                    <p>Memuat data...</p>
-                  </div>
-                </td>
-              </tr>
-            ) : filteredData.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
-                  <FileText size={32} className="mx-auto mb-2 opacity-50" />
-                  <p>Tidak ada dokumen yang perlu direview</p>
-                  <p className="text-xs mt-1">Dokumen akan muncul di sini ketika Tim Akreditasi mengajukan untuk review</p>
-                </td>
-              </tr>
-            ) : (
-              filteredData.map((item) => (
-                <tr key={item.id} className="border-b hover:bg-gray-50 transition-colors">
-                  {/* Judul Dokumen */}
-                  <td className="px-4 py-3">
-                    <p className="font-medium text-gray-900">{item.judul}</p>
-                  </td>
-
-                  {/* Jenis */}
-                  <td className="px-4 py-3">
-                    <span className="text-gray-700">Isian Borang</span>
-                  </td>
-
-                  {/* Kategori */}
-                  <td className="px-4 py-3">
-                    <span className="inline-block px-2 py-1 text-xs font-medium rounded bg-blue-100 text-blue-800">
-                      {item.kategori}
-                    </span>
-                  </td>
-
-                  {/* File / Path */}
-                  <td className="px-4 py-3">
-                    <Link 
-                      href={item.path || '#'} 
-                      className="text-blue-600 hover:underline text-xs"
-                      target="_blank"
-                    >
-                      {item.path || '-'}
-                    </Link>
-                  </td>
-
-                  {/* Tanggal */}
-                  <td className="px-4 py-3 text-gray-600">
-                    {item.tanggalUpdate}
-                  </td>
-
-                  {/* Status */}
-                  <td className="px-4 py-3">
-                    <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
-                      {getStatusIcon(item.status)}
-                      {item.status}
-                    </div>
-                  </td>
-
-                  {/* Aksi */}
-                  <td className="px-4 py-3 text-center">
-                    <Link
-                      href={item.path || '#'}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium"
-                    >
-                      <Eye size={14} />
-                      Review
-                    </Link>
-                  </td>
+          {/* Data Table - desain mirip bukti pendukung */}
+          <div className="bg-white rounded-xl shadow overflow-x-auto">
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr className="bg-gray-100 text-left text-gray-700">
+                  <th className="px-4 py-3 font-semibold">Judul Dokumen</th>
+                  <th className="px-4 py-3 font-semibold">Jenis</th>
+                  <th className="px-4 py-3 font-semibold">Kategori</th>
+                  <th className="px-4 py-3 font-semibold">File / Path</th>
+                  <th className="px-4 py-3 font-semibold">Tanggal</th>
+                  <th className="px-4 py-3 font-semibold">Status</th>
+                  <th className="px-4 py-3 font-semibold text-center">Aksi</th>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
+                      <div className="flex justify-center items-center gap-2">
+                        <div className="animate-spin">⏳</div>
+                        <p>Memuat data...</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : filteredData.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
+                      <FileText size={32} className="mx-auto mb-2 opacity-50" />
+                      <p>Tidak ada dokumen yang perlu direview</p>
+                      <p className="text-xs mt-1">Dokumen akan muncul di sini ketika Tim Akreditasi mengajukan untuk review</p>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredData.map((item) => (
+                    <tr key={item.id} className="border-b hover:bg-gray-50 transition-colors">
+                      {/* Judul Dokumen */}
+                      <td className="px-4 py-3">
+                        <p className="font-medium text-gray-900">{item.judul}</p>
+                      </td>
 
-      {/* Footer Info */}
-      {!loading && filteredData.length > 0 && (
-        <div className="text-center text-sm text-gray-500">
-          Menampilkan {filteredData.length} dari {data.length} item
-        </div>
-      )}
+                      {/* Jenis */}
+                      <td className="px-4 py-3">
+                        <span className="text-gray-700">Isian Borang</span>
+                      </td>
+
+                      {/* Kategori */}
+                      <td className="px-4 py-3">
+                        <span className="inline-block px-2 py-1 text-xs font-medium rounded bg-blue-100 text-blue-800">
+                          {item.kategori}
+                        </span>
+                      </td>
+
+                      {/* File / Path */}
+                      <td className="px-4 py-3">
+                        <Link 
+                          href={item.path || '#'} 
+                          className="text-blue-600 hover:underline text-xs"
+                          target="_blank"
+                        >
+                          {item.path || '-'}
+                        </Link>
+                      </td>
+
+                      {/* Tanggal */}
+                      <td className="px-4 py-3 text-gray-600">
+                        {item.tanggalUpdate}
+                      </td>
+
+                      {/* Status */}
+                      <td className="px-4 py-3">
+                        <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
+                          {getStatusIcon(item.status)}
+                          {item.status}
+                        </div>
+                      </td>
+
+                      {/* Aksi */}
+                      <td className="px-4 py-3 text-center">
+                        {item.status === 'Menunggu' ? (
+                          <Link
+                            href={item.path || '#'}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium"
+                          >
+                            <Eye size={14} />
+                            Review
+                          </Link>
+                        ) : (item.status === 'Diterima' || item.status === 'Perlu Revisi') ? (
+                          <button
+                            onClick={() => handleComplete(item)}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-xs font-medium"
+                          >
+                            <Check size={14} />
+                            Selesai
+                          </button>
+                        ) : null}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Footer Info */}
+          {!loading && filteredData.length > 0 && (
+            <div className="text-center text-sm text-gray-500">
+              Menampilkan {filteredData.length} dari {data.length} item
+            </div>
+          )}
     </div>
   );
 }
