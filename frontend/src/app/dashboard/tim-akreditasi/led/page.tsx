@@ -153,8 +153,19 @@ export default function BudayaMutuLEDPage() {
         bukti_pendukung: String(r?.bukti_pendukung ?? ''),
       }));
     };
+    
     const normEval = (arr: any[], prefix: string) => {
       const a = Array.isArray(arr) ? arr : [];
+      if (a.length === 0) {
+        return [{
+          id: uid(`${prefix}-`),
+          pernyataan: '',
+          keterlaksanaan: '',
+          evaluasi: '',
+          tindak_lanjut: '',
+          hasil_optimalisasi: '',
+        }];
+      }
       return a.map((r) => ({
         id: r?.id || uid(`${prefix}-`),
         pernyataan: r?.pernyataan ?? '',
@@ -164,6 +175,34 @@ export default function BudayaMutuLEDPage() {
         hasil_optimalisasi: r?.hasil_optimalisasi ?? '',
       }));
     };
+
+    // Handle backward compatibility: jika evalA/B/C tidak ada tapi evalRows ada, split evalRows
+    let evalAData = svc.evalA;
+    let evalBData = svc.evalB;
+    let evalCData = svc.evalC;
+    
+    // Backward compatibility: jika evalA/B/C kosong/undefined tapi evalRows ada
+    if (Array.isArray(svc.evalRows) && svc.evalRows.length > 0) {
+      if (!Array.isArray(evalAData) || evalAData.length === 0) {
+        evalAData = svc.evalRows.filter((r: any) => r?.table === 'A' || r?.tabel === 'A');
+      }
+      if (!Array.isArray(evalBData) || evalBData.length === 0) {
+        evalBData = svc.evalRows.filter((r: any) => r?.table === 'B' || r?.tabel === 'B');
+      }
+      if (!Array.isArray(evalCData) || evalCData.length === 0) {
+        evalCData = svc.evalRows.filter((r: any) => r?.table === 'C' || r?.tabel === 'C');
+      }
+      
+      // Jika tidak ada marker table/tabel, split by index (bagi rata)
+      if ((!evalAData || evalAData.length === 0) && 
+          (!evalBData || evalBData.length === 0) && 
+          (!evalCData || evalCData.length === 0)) {
+        const third = Math.ceil(svc.evalRows.length / 3);
+        evalAData = svc.evalRows.slice(0, third);
+        evalBData = svc.evalRows.slice(third, third * 2);
+        evalCData = svc.evalRows.slice(third * 2);
+      }
+    }
 
     return {
       penetapanA: norm2(svc.penetapanA, 'pa'),
@@ -182,9 +221,9 @@ export default function BudayaMutuLEDPage() {
       peningkatanB: norm2(svc.peningkatanB, 'ib'),
       peningkatanC: norm2(svc.peningkatanC, 'ic'),
       peningkatanD: norm2(svc.peningkatanD, 'id'),
-      evalA: Array.isArray(svc.evalA) && svc.evalA.length > 0 ? normEval(svc.evalA, 'eva') : base.evalA,
-      evalB: Array.isArray(svc.evalB) && svc.evalB.length > 0 ? normEval(svc.evalB, 'evb') : base.evalB,
-      evalC: Array.isArray(svc.evalC) && svc.evalC.length > 0 ? normEval(svc.evalC, 'evc') : base.evalC,
+      evalA: normEval(evalAData, 'eva'),
+      evalB: normEval(evalBData, 'evb'),
+      evalC: normEval(evalCData, 'evc'),
     };
   }, []);
 
@@ -244,7 +283,9 @@ export default function BudayaMutuLEDPage() {
   }, [isClient, mapServiceToUI]);
 
   const transformUIToServiceTabData = useCallback((ui: TabData): ServiceTabData => {
-    const { evalA, evalB, evalC, ...rest } = ui as any;
+    const { evalA, evalB, evalC, pengendalianA, pengendalianB, pengendalianC, pengendalianD, 
+            peningkatanA, peningkatanB, peningkatanC, peningkatanD, ...rest } = ui as any;
+    
     const toSvcEval = (r: any): ServiceRowEval => ({
       id: r.id || uid('ev-'),
       pernyataan: r.pernyataan || '',
@@ -261,14 +302,26 @@ export default function BudayaMutuLEDPage() {
     if (Array.isArray(evalB)) combined.push(...evalB.map(toSvcEval));
     if (Array.isArray(evalC)) combined.push(...evalC.map(toSvcEval));
 
-    // Simpan evalRows (gabungan) DAN evalA, evalB, evalC terpisah agar bisa di-load kembali
-    return { 
+    const result = { 
       ...rest, 
       evalRows: combined,
       evalA: Array.isArray(evalA) ? evalA.map(toSvcEval) : [],
       evalB: Array.isArray(evalB) ? evalB.map(toSvcEval) : [],
       evalC: Array.isArray(evalC) ? evalC.map(toSvcEval) : [],
     } as ServiceTabData;
+
+    // Log untuk debugging
+    console.log('📤 Transform UI to Service - Data yang akan disimpan:');
+    console.log('   evalA rows:', result.evalA?.length || 0);
+    console.log('   evalB rows:', result.evalB?.length || 0);
+    console.log('   evalC rows:', result.evalC?.length || 0);
+    console.log('   evalRows (combined):', result.evalRows?.length || 0);
+    console.log('   penetapanA rows:', result.penetapanA?.length || 0);
+    console.log('   penetapanB rows:', result.penetapanB?.length || 0);
+    console.log('   pelaksanaanA rows:', result.pelaksanaanA?.length || 0);
+    console.log('   pelaksanaanB rows:', result.pelaksanaanB?.length || 0);
+
+    return result;
   }, []);
 
   const handleSave = useCallback(async (notify = true, auto = false) => {
@@ -484,6 +537,11 @@ export default function BudayaMutuLEDPage() {
       return tableKey.endsWith('A');
     }
     
+    // Budaya Mutu: Tabel A, B saja (Penetapan dan Pelaksanaan)
+    if (activeTab === 'budaya-mutu') {
+      return tableKey.endsWith('A') || tableKey.endsWith('B');
+    }
+    
     // Relevansi Pendidikan: Tabel A, B, C, D
     if (activeTab === 'relevansi-pendidikan') {
       return true; // Tampilkan semua tabel A, B, C, D
@@ -494,7 +552,12 @@ export default function BudayaMutuLEDPage() {
       return tableKey.endsWith('A') || tableKey.endsWith('B') || tableKey.endsWith('C');
     }
     
-    // Default (Budaya Mutu, Akuntabilitas): Tabel A, B
+    // Akuntabilitas: Tabel A, B
+    if (activeTab === 'akuntabilitas') {
+      return tableKey.endsWith('A') || tableKey.endsWith('B');
+    }
+    
+    // Default: Tabel A, B
     return tableKey.endsWith('A') || tableKey.endsWith('B');
   };
 

@@ -32,15 +32,18 @@ export type TabData = {
   pelaksanaanB: Row2Col[];
   pelaksanaanC?: Row2Col[];
   pelaksanaanD?: Row2Col[];
-  pengendalianA: Row2Col[];
-  pengendalianB: Row2Col[];
+  pengendalianA?: Row2Col[];
+  pengendalianB?: Row2Col[];
   pengendalianC?: Row2Col[];
   pengendalianD?: Row2Col[];
-  peningkatanA: Row2Col[];
-  peningkatanB: Row2Col[];
+  peningkatanA?: Row2Col[];
+  peningkatanB?: Row2Col[];
   peningkatanC?: Row2Col[];
   peningkatanD?: Row2Col[];
-  evalRows: RowEval[];
+  evalRows?: RowEval[];  // Array gabungan untuk backward compatibility
+  evalA?: RowEval[];      // Tabel A terpisah
+  evalB?: RowEval[];      // Tabel B terpisah
+  evalC?: RowEval[];      // Tabel C terpisah
 };
 
 /* ==================== GET ALL LED DATA ==================== */

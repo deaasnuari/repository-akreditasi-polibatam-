@@ -16,6 +16,254 @@ const templates = [
   { id: 2, nama_template: "Template Internal", jenis_template: "Excel" },
 ];
 
+// Helper function to generate HTML document for Docs export
+const generateHTMLDocument = (recordsByType, prodi) => {
+  const toTitleCase = (str) => {
+    return str
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/_/g, ' ')
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ')
+      .trim();
+  };
+
+  const isEmpty = (val) => {
+    if (val === null || val === undefined || val === '') return true;
+    if (typeof val === 'string' && val.trim() === '') return true;
+    if (Array.isArray(val) && val.length === 0) return true;
+    if (typeof val === 'object' && Object.keys(val).length === 0) return true;
+    return false;
+  };
+
+  const renderValue = (value) => {
+    if (isEmpty(value)) return '<em style="color: #999;">-</em>';
+    if (Array.isArray(value)) {
+      if (value.every(item => typeof item !== 'object')) {
+        return value.join(', ');
+      }
+      return value.map((item, idx) => {
+        if (typeof item === 'object') {
+          return `<div style="margin: 5px 0;"><strong>[${idx + 1}]</strong> ${Object.entries(item).map(([k, v]) => `${toTitleCase(k)}: ${v || '-'}`).join(', ')}</div>`;
+        }
+        return item;
+      }).join('');
+    }
+    if (typeof value === 'object') {
+      return Object.entries(value).map(([k, v]) => `<div style="margin: 3px 0;"><strong>${toTitleCase(k)}:</strong> ${renderValue(v)}</div>`).join('');
+    }
+    return String(value);
+  };
+
+  let htmlContent = `
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LKPS Export - ${prodi || 'Politeknik Negeri Batam'}</title>
+  <style>
+    body {
+      font-family: 'Times New Roman', Times, serif;
+      font-size: 12pt;
+      line-height: 1.6;
+      margin: 1in;
+      color: #000;
+    }
+    h1 {
+      text-align: center;
+      font-size: 18pt;
+      font-weight: bold;
+      margin-bottom: 0.5em;
+      border-bottom: 3px solid #000;
+      padding-bottom: 0.5em;
+    }
+    h2 {
+      font-size: 16pt;
+      font-weight: bold;
+      margin-top: 1.5em;
+      margin-bottom: 0.5em;
+      color: #2c3e50;
+      border-bottom: 2px solid #3498db;
+      padding-bottom: 0.3em;
+    }
+    h3 {
+      font-size: 14pt;
+      font-weight: bold;
+      margin-top: 1em;
+      margin-bottom: 0.5em;
+      color: #34495e;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1em 0;
+      page-break-inside: avoid;
+    }
+    th {
+      background-color: #3498db;
+      color: white;
+      padding: 10px;
+      text-align: left;
+      border: 1px solid #2c3e50;
+      font-weight: bold;
+    }
+    td {
+      padding: 8px;
+      border: 1px solid #bdc3c7;
+      vertical-align: top;
+    }
+    tr:nth-child(even) {
+      background-color: #ecf0f1;
+    }
+    .section {
+      margin-bottom: 2em;
+      page-break-inside: avoid;
+    }
+    .header-info {
+      text-align: center;
+      margin-bottom: 2em;
+      font-size: 11pt;
+      color: #7f8c8d;
+    }
+    .record-item {
+      margin-bottom: 1.5em;
+      padding: 1em;
+      border: 1px solid #bdc3c7;
+      border-radius: 5px;
+      background-color: #f8f9fa;
+      page-break-inside: avoid;
+    }
+    .field-name {
+      font-weight: bold;
+      color: #2c3e50;
+      min-width: 150px;
+      display: inline-block;
+    }
+    @media print {
+      body { margin: 0.5in; }
+      .record-item { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <h1>DATA LKPS - LAPORAN AKREDITASI</h1>
+  <div class="header-info">
+    <p><strong>Politeknik Negeri Batam</strong></p>
+    <p>Prodi: ${prodi || 'Semua Program Studi'}</p>
+    <p>Dicetak: ${new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+  </div>
+`;
+
+  // Process each type
+  Object.keys(recordsByType).forEach(type => {
+    const records = recordsByType[type];
+    const sheetNameMap = {
+      'tupoksi': 'Tupoksi',
+      'pendanaan': 'Pendanaan',
+      'penggunaan-dana': 'Penggunaan Dana',
+      'ewmp': 'EWMP',
+      'ktk': 'KTK',
+      'spmi': 'SPMI',
+      'mahasiswa': 'Mahasiswa',
+      'keragaman-asal': 'Keragaman Asal',
+      'kondisi-jumlah-mahasiswa': 'Kondisi Jumlah Mahasiswa',
+      'tabel-pembelajaran': 'Tabel Pembelajaran',
+      'pemetaan-cpl-pl': 'Pemetaan CPL-PL',
+      'peta-pemenuhan-cpl': 'Peta Pemenuhan CPL',
+      'rata-rata-masa-tunggu-lulusan': 'Rata-rata Masa Tunggu Lulusan',
+      'kesesuaian-bidang': 'Kesesuaian Bidang',
+      'kepuasan-pengguna': 'Kepuasan Pengguna',
+      'fleksibilitas': 'Fleksibilitas',
+      'rekognisi-apresiasi': 'Rekognisi dan Apresiasi',
+      'relevansi-pendidikan': 'Relevansi Pendidikan',
+      'relevansi-penelitian': 'Relevansi Penelitian',
+      'relevansi-pkm': 'Relevansi PkM',
+      'akuntabilitas': 'Akuntabilitas',
+      'diferensiasi-misi': 'Diferensiasi Misi'
+    };
+    
+    const sectionTitle = sheetNameMap[type.toLowerCase()] || toTitleCase(type);
+    
+    htmlContent += `\n  <div class="section">`;
+    htmlContent += `\n    <h2>${sectionTitle}</h2>`;
+    
+    records.forEach((record, idx) => {
+      const jsonData = record.data;
+      if (!jsonData) return;
+      
+      htmlContent += `\n    <div class="record-item">`;
+      htmlContent += `\n      <h3>Data ${idx + 1}</h3>`;
+      htmlContent += `\n      <p><span class="field-name">Prodi:</span> ${record.prodi || '-'}</p>`;
+      htmlContent += `\n      <p><span class="field-name">Tanggal Input:</span> ${record.created_at ? new Date(record.created_at).toLocaleDateString('id-ID') : '-'}</p>`;
+      htmlContent += `\n      <p><span class="field-name">Tanggal Update:</span> ${record.updated_at ? new Date(record.updated_at).toLocaleDateString('id-ID') : '-'}</p>`;
+      
+      // Handle SPMI special case
+      if (type === 'spmi' && Array.isArray(jsonData)) {
+        jsonData.forEach((item, spmiIdx) => {
+          const actualData = item.data || item;
+          htmlContent += `\n      <div style="margin-top: 1em; padding: 0.5em; border-left: 3px solid #3498db;">`;
+          htmlContent += `\n        <strong>Item ${spmiIdx + 1}</strong>`;
+          Object.entries(actualData).forEach(([key, value]) => {
+            if (!isEmpty(value)) {
+              htmlContent += `\n        <p><span class="field-name">${toTitleCase(key)}:</span> ${renderValue(value)}</p>`;
+            }
+          });
+          htmlContent += `\n      </div>`;
+        });
+      } 
+      // Handle array data
+      else if (Array.isArray(jsonData)) {
+        htmlContent += `\n      <table>`;
+        htmlContent += `\n        <thead><tr>`;
+        
+        // Get all unique keys from all items
+        const allKeys = new Set();
+        jsonData.forEach(item => {
+          if (item && typeof item === 'object') {
+            Object.keys(item).forEach(key => allKeys.add(key));
+          }
+        });
+        
+        Array.from(allKeys).forEach(key => {
+          htmlContent += `<th>${toTitleCase(key)}</th>`;
+        });
+        htmlContent += `</tr></thead>`;
+        htmlContent += `\n        <tbody>`;
+        
+        jsonData.forEach(item => {
+          if (item && typeof item === 'object') {
+            htmlContent += `\n          <tr>`;
+            Array.from(allKeys).forEach(key => {
+              htmlContent += `<td>${renderValue(item[key])}</td>`;
+            });
+            htmlContent += `</tr>`;
+          }
+        });
+        
+        htmlContent += `\n        </tbody>`;
+        htmlContent += `\n      </table>`;
+      }
+      // Handle single object
+      else if (typeof jsonData === 'object') {
+        Object.entries(jsonData).forEach(([key, value]) => {
+          if (!isEmpty(value)) {
+            htmlContent += `\n      <p><span class="field-name">${toTitleCase(key)}:</span> ${renderValue(value)}</p>`;
+          }
+        });
+      }
+      
+      htmlContent += `\n    </div>`;
+    });
+    
+    htmlContent += `\n  </div>`;
+  });
+
+  htmlContent += `\n</body>\n</html>`;
+  
+  return htmlContent;
+};
+
 // ---------- GET /api/akreditasi/stats ----------
 export const getStats = async (req, res) => {
   try {
@@ -763,8 +1011,31 @@ export const exportData = async (req, res) => {
       });
 
       doc.end();
+    } else if (format.toLowerCase() === 'docs' || format.toLowerCase() === 'docx') {
+      // Export ke Word Document format (.doc) yang langsung bisa dibuka di Microsoft Word
+      const htmlContent = generateHTMLDocument(recordsByType, userProdi);
+      
+      const filePath = path.join(exportDir, `${fileName}.doc`);
+      fs.writeFileSync(filePath, htmlContent, 'utf8');
+
+      // Set MIME type untuk Microsoft Word
+      res.setHeader('Content-Type', 'application/msword');
+      res.download(filePath, `${fileName}.doc`, (err) => {
+        if (err) {
+          console.error("Error sending file:", err);
+          if (!res.headersSent) {
+            res.status(500).json({ message: "Gagal mengirim file" });
+          }
+        }
+        // Hapus file setelah dikirim
+        try {
+          fs.unlinkSync(filePath);
+        } catch (e) {
+          console.error("Error deleting file:", e);
+        }
+      });
     } else {
-      res.status(400).json({ message: "Format tidak didukung. Gunakan Excel atau PDF." });
+      res.status(400).json({ message: "Format tidak didukung. Gunakan Excel, PDF, atau Docs." });
     }
   } catch (error) {
     console.error("Export error:", error);
