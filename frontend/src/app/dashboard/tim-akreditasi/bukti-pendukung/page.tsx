@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Upload, CheckCircle, Clock, XCircle, Eye, Edit2, FileText, Link2 } from "lucide-react";
+import { CheckCircle, Clock, XCircle, Eye, Edit2, FileText, Link2, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { fetchData } from "@/services/api";
 
@@ -31,33 +31,44 @@ interface TableItem {
   itemId?: string | number; // id item per modul
 }
 
-// Bagian per modul yang tersedia (per-bagian, bukan global)
-const BAGIAN_OPTIONS: { label: string; value: string; kategori: "LKPS" | "LED" | "Umum" }[] = [
-  { label: "Akuntabilitas", value: "akuntabilitas", kategori: "LKPS" },
-  { label: "Relevansi Pendidikan", value: "relevansiPendidikan", kategori: "LKPS" },
-  { label: "Relevansi Penelitian", value: "relevansiPenelitian", kategori: "LKPS" },
-  { label: "Relevansi PKM", value: "relevansiPkm", kategori: "LKPS" },
-  { label: "Budaya Mutu", value: "budayaMutu", kategori: "LED" },
-  { label: "Diferensiasi Misi", value: "diferensiasiMisi", kategori: "LED" },
-];
-
 export default function BuktiPendukungPage() {
   const [filterStatus, setFilterStatus] = useState("Semua Status");
   const [filterKategori, setFilterKategori] = useState("Semua Kategori");
-  const [filterBagian, setFilterBagian] = useState<string | "Semua">("Semua");
-  const [filterItemId, setFilterItemId] = useState<string | "Semua">("Semua");
   const [searchQuery, setSearchQuery] = useState("");
 
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [confirmModal, setConfirmModal] = useState<{ open: boolean; path: string; judul: string }>({ open: false, path: '', judul: '' });
+  const [deleteModal, setDeleteModal] = useState<{ open: boolean; item: TableItem | null }>({ open: false, item: null });
+  const [editMode, setEditMode] = useState(false);
+  const [editingItem, setEditingItem] = useState<TableItem | null>(null);
+
+  // LocalStorage key
+  const STORAGE_KEY = "bukti_pendukung_uploads";
+
+  // Save to localStorage
+  const saveToLocalStorage = (data: TableItem[]) => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch (e) {
+      console.error("Gagal menyimpan ke localStorage:", e);
+    }
+  };
+
+  // Load from localStorage
+  const loadFromLocalStorage = (): TableItem[] => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch (e) {
+      console.error("Gagal memuat dari localStorage:", e);
+      return [];
+    }
+  };
 
   // State upload/tautan bukti
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [linkUrl, setLinkUrl] = useState("");
   const [uploadData, setUploadData] = useState({ judul: "", jenis: "Dokumen", kategori: "Umum" as "Umum" | "LKPS" | "LED" });
-  const [selectedBagian, setSelectedBagian] = useState<string>("");
-  const [availableItems, setAvailableItems] = useState<{ id: string | number; nama: string }[]>([]);
-  const [selectedItemId, setSelectedItemId] = useState<string | number | "">("");
 
   // Data file upload lokal (placeholder) dan data borang dari API
   const [fileData, setFileData] = useState<TableItem[]>([]);
@@ -152,31 +163,13 @@ export default function BuktiPendukungPage() {
       }
     };
     loadBorangData();
+    
+    // Load uploaded files from localStorage
+    const storedUploads = loadFromLocalStorage();
+    if (storedUploads.length > 0) {
+      setFileData(storedUploads);
+    }
   }, []);
-
-  // Fetch daftar item untuk bagian terpilih (per-bagian, bukan global)
-  useEffect(() => {
-    const fetchItemsForBagian = async () => {
-      if (!selectedBagian) {
-        setAvailableItems([]);
-        setSelectedItemId("");
-        return;
-      }
-      try {
-        // Panggil endpoint spesifik berdasarkan bagian.
-        // Kita gunakan fetchData(serviceName) yang sudah ada sebagai proxy ke backend.
-        // Harap backend sudah sedia: GET /api/{bagian}/items atau yang sepadan.
-        // Jika struktur berbeda, sesuaikan mapping di sini.
-        const items: any[] = await fetchData(`${selectedBagian}/items`);
-        const mapped = items.map((it: any) => ({ id: it.id ?? it.itemId ?? it.uuid ?? String(it.id), nama: it.nama ?? it.title ?? it.name ?? `Item ${it.id}` }));
-        setAvailableItems(mapped);
-      } catch (e) {
-        console.error("Gagal memuat item bagian:", selectedBagian, e);
-        setAvailableItems([]);
-      }
-    };
-    fetchItemsForBagian();
-  }, [selectedBagian]);
 
   // Gabungkan data borang dari API dan data file lokal (bukti)
   const combinedData = [...borangData, ...fileData];
@@ -184,31 +177,113 @@ export default function BuktiPendukungPage() {
   // Fungsi untuk export LED ke PDF
   // Handler upload bukti + tautkan ke item per-bagian (tanpa menyentuh data draft)
   const handleUpload = async () => {
-    if (!selectedFile) return;
     try {
-      // Upload file ke backend (gunakan endpoint uploadRoutes yang sudah ada bila tersedia)
-      // Di sini, sebagai placeholder, kita hanya menyimpan ke state lokal agar UI dapat diuji tanpa mengubah backend.
+      if (!linkUrl.trim()) {
+        alert("Masukkan URL link terlebih dahulu");
+        return;
+      }
+      if (!uploadData.judul.trim()) {
+        alert("Judul tidak boleh kosong");
+        return;
+      }
+
       const now = new Date();
+      const fileOrLink = linkUrl;
+      
       const newItem: TableItem = {
         id: `local-${now.getTime()}`,
-        judul: uploadData.judul || selectedFile.name,
+        judul: uploadData.judul,
         jenis: uploadData.jenis || "Dokumen",
         kategori: uploadData.kategori,
-        file: selectedFile.name,
+        file: fileOrLink,
+        size: "-",
         tanggal: now.toISOString().split("T")[0],
         status: "Draft",
         uploadBy: "Anda",
-        bagian: selectedBagian || undefined,
-        itemId: selectedItemId || undefined,
       };
-      setFileData((prev) => [newItem, ...prev]);
+      const updatedData = [newItem, ...fileData];
+      setFileData(updatedData);
+      saveToLocalStorage(updatedData);
       setIsUploadOpen(false);
-      setSelectedFile(null);
-      setSelectedBagian("");
-      setSelectedItemId("");
+      setLinkUrl("");
       setUploadData({ judul: "", jenis: "Dokumen", kategori: "Umum" });
+      setEditMode(false);
+      setEditingItem(null);
     } catch (e) {
       console.error("Gagal upload bukti:", e);
+    }
+  };
+
+  // Handler Edit
+  const handleEdit = (item: TableItem) => {
+    if (item.isBorang) {
+      alert("Draft borang tidak dapat diedit di sini. Silakan lanjutkan isian untuk mengeditnya.");
+      return;
+    }
+    
+    setEditMode(true);
+    setEditingItem(item);
+    setUploadData({
+      judul: item.judul,
+      jenis: item.jenis,
+      kategori: item.kategori as "Umum" | "LKPS" | "LED"
+    });
+    
+    setLinkUrl(item.file);
+    setIsUploadOpen(true);
+  };
+
+  // Handler Update (Save Edit)
+  const handleUpdate = async () => {
+    if (!editingItem) return;
+    
+    try {
+      if (!linkUrl.trim()) {
+        alert("Masukkan URL link terlebih dahulu");
+        return;
+      }
+      if (!uploadData.judul.trim()) {
+        alert("Judul tidak boleh kosong");
+        return;
+      }
+
+      const updatedItem: TableItem = {
+        ...editingItem,
+        judul: uploadData.judul,
+        jenis: uploadData.jenis || "Dokumen",
+        kategori: uploadData.kategori,
+        file: linkUrl,
+        size: "-",
+      };
+
+      const updatedData = fileData.map(item => item.id === editingItem.id ? updatedItem : item);
+      setFileData(updatedData);
+      saveToLocalStorage(updatedData);
+      setIsUploadOpen(false);
+      setLinkUrl("");
+      setUploadData({ judul: "", jenis: "Dokumen", kategori: "Umum" });
+      setEditMode(false);
+      setEditingItem(null);
+    } catch (e) {
+      console.error("Gagal update bukti:", e);
+    }
+  };
+
+  // Handler Delete
+  const handleDelete = (item: TableItem) => {
+    if (item.isBorang) {
+      alert("Draft borang tidak dapat dihapus di sini.");
+      return;
+    }
+    setDeleteModal({ open: true, item });
+  };
+
+  const confirmDelete = () => {
+    if (deleteModal.item) {
+      const updatedData = fileData.filter(item => item.id !== deleteModal.item!.id);
+      setFileData(updatedData);
+      saveToLocalStorage(updatedData);
+      setDeleteModal({ open: false, item: null });
     }
   };
 
@@ -216,8 +291,6 @@ export default function BuktiPendukungPage() {
   const filteredData = combinedData.filter((item) => {
     const statusOk = filterStatus === "Semua Status" || item.status === filterStatus;
     const kategoriOk = filterKategori === "Semua Kategori" || item.kategori === filterKategori;
-    const bagianOk = filterBagian === "Semua" || item.bagian === filterBagian;
-    const itemOk = filterItemId === "Semua" || `${item.itemId ?? ""}` === `${filterItemId}`;
     
     // Search filter
     const searchOk = !searchQuery.trim() || 
@@ -226,8 +299,8 @@ export default function BuktiPendukungPage() {
       item.kategori.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.status.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (item.file && item.file.toLowerCase().includes(searchQuery.toLowerCase()));
-    
-    return statusOk && kategoriOk && bagianOk && itemOk && searchOk;
+
+    return statusOk && kategoriOk && searchOk;
   });
 
   return (
@@ -267,19 +340,19 @@ export default function BuktiPendukungPage() {
           <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
           <DialogTrigger asChild>
             <button className="flex items-center gap-2 bg-[#183A64] hover:bg-[#2A4F85] text-white px-4 py-2 rounded-lg shadow transition">
-              <Upload size={18} />
-              Upload / Tautkan Bukti
+              <Link2 size={18} />
+              Tautkan Bukti
             </button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Upload / Tautkan Bukti</DialogTitle>
+              <DialogTitle>Tautkan Bukti Pendukung</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               {/* Metadata dasar */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Judul</label>
+                  <label className="block text-sm font-medium text-gray-700">Judul <span className="text-red-500">*</span></label>
                   <input
                     value={uploadData.judul}
                     onChange={(e) => setUploadData((p) => ({ ...p, judul: e.target.value }))}
@@ -310,65 +383,67 @@ export default function BuktiPendukungPage() {
                     <option value="LED">LED</option>
                   </select>
                 </div>
+                
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">File</label>
+                  <label className="block text-sm font-medium text-gray-700">URL Link <span className="text-red-500">*</span></label>
                   <input
-                    type="file"
-                    accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
-                    onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
+                    type="url"
+                    value={linkUrl}
+                    onChange={(e) => setLinkUrl(e.target.value)}
+                    placeholder="https://drive.google.com/..."
                     className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full"
                   />
                 </div>
               </div>
 
-              {/* Pilih Bagian (per modul) dan Item */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Bagian</label>
-                  <select
-                    value={selectedBagian}
-                    onChange={(e) => setSelectedBagian(e.target.value)}
-                    className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full"
-                  >
-                    <option value="">Pilih Bagian</option>
-                    {BAGIAN_OPTIONS.map((b) => (
-                      <option key={b.value} value={b.value}>
-                        {b.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Item pada Bagian</label>
-                  <select
-                    value={selectedItemId as any}
-                    onChange={(e) => setSelectedItemId(e.target.value)}
-                    className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full"
-                    disabled={!selectedBagian}
-                  >
-                    <option value="">Pilih Item</option>
-                    {availableItems.map((it) => (
-                      <option key={it.id} value={it.id as any}>
-                        {it.nama}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
               <div className="flex justify-end gap-2">
                 <button
-                  onClick={() => setIsUploadOpen(false)}
-                  className="px-4 py-2 text-sm border rounded-md"
+                  onClick={() => {
+                    setIsUploadOpen(false);
+                    setLinkUrl("");
+                    setUploadData({ judul: "", jenis: "Dokumen", kategori: "Umum" });
+                    setEditMode(false);
+                    setEditingItem(null);
+                  }}
+                  className="px-4 py-2 text-sm border rounded-md hover:bg-gray-50"
                 >
                   Batal
                 </button>
                 <button
-                  onClick={handleUpload}
-                  disabled={!selectedFile}
-                  className="px-4 py-2 text-sm bg-[#183A64] text-white rounded-md disabled:opacity-50 flex items-center gap-2"
+                  onClick={editMode ? handleUpdate : handleUpload}
+                  disabled={!linkUrl.trim() || !uploadData.judul.trim()}
+                  className="px-4 py-2 text-sm bg-[#183A64] text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 hover:bg-[#2A4F85]"
                 >
-                  <Link2 size={16} /> Simpan & Tautkan
+                  <Link2 size={16} /> 
+                  {editMode ? "Update Link" : "Simpan Link"}
+                </button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={deleteModal.open} onOpenChange={(open) => setDeleteModal({ open, item: null })}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Konfirmasi Hapus</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600">
+                Apakah Anda yakin ingin menghapus bukti pendukung <strong>{deleteModal.item?.judul}</strong>?
+              </p>
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => setDeleteModal({ open: false, item: null })}
+                  className="px-4 py-2 text-sm border rounded-md hover:bg-gray-50"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="px-4 py-2 text-sm bg-red-600 text-white rounded-md hover:bg-red-700"
+                >
+                  Hapus
                 </button>
               </div>
             </div>
@@ -407,26 +482,6 @@ export default function BuktiPendukungPage() {
             <option value="LED">LED</option>
           </select>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Bagian</label>
-          <select value={filterBagian} onChange={(e) => setFilterBagian(e.target.value as any)} className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full">
-            <option value="Semua">Semua</option>
-            {BAGIAN_OPTIONS.map((b) => (
-              <option key={b.value} value={b.value}>
-                {b.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Item</label>
-          <input
-            placeholder="Filter Item Id (opsional)"
-            value={filterItemId as any}
-            onChange={(e) => setFilterItemId((e.target.value || "Semua") as any)}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full"
-          />
-        </div>
       </div>
 
       {/* Tabel Dokumen */}
@@ -458,8 +513,24 @@ export default function BuktiPendukungPage() {
                 <td className="px-4 py-2">
                   <span className="bg-gray-200 text-gray-700 px-2 py-1 rounded text-xs font-semibold">{item.kategori}</span>
                 </td>
-                <td className="px-4 py-2 text-blue-600 underline cursor-pointer">
-                  {item.isBorang ? item.path : item.file} {item.size && <span className="text-xs text-gray-400">({item.size})</span>}
+                <td className="px-4 py-2">
+                  {item.isBorang ? (
+                    <span className="text-gray-700">{item.path}</span>
+                  ) : item.file?.startsWith('http://') || item.file?.startsWith('https://') ? (
+                    <a 
+                      href={item.file} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-800 underline flex items-center gap-1"
+                    >
+                      <Link2 size={14} />
+                      {item.file.length > 50 ? item.file.substring(0, 50) + '...' : item.file}
+                    </a>
+                  ) : (
+                    <span className="text-gray-700">
+                      {item.file} {item.size && <span className="text-xs text-gray-400">({item.size})</span>}
+                    </span>
+                  )}
                 </td>
                 <td className="px-4 py-2">{item.tanggal}</td>
                 <td className="px-4 py-2">
@@ -491,8 +562,19 @@ export default function BuktiPendukungPage() {
                       <button title="Lihat" className="text-blue-600 hover:text-blue-800">
                         <Eye size={18} />
                       </button>
-                      <button title="Edit" className="text-gray-600 hover:text-gray-800">
+                      <button 
+                        title="Edit" 
+                        onClick={() => handleEdit(item)}
+                        className="text-yellow-600 hover:text-yellow-800"
+                      >
                         <Edit2 size={18} />
+                      </button>
+                      <button 
+                        title="Hapus" 
+                        onClick={() => handleDelete(item)}
+                        className="text-red-600 hover:text-red-800"
+                      >
+                        <Trash2 size={18} />
                       </button>
                     </>
                   )}
