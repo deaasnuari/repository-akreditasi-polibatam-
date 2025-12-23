@@ -21,15 +21,6 @@ export interface Criterion {
   urutan?: number;
 }
 
-export interface Scenario {
-  id?: number;
-  nama_skenario: string;
-  created_at: string;
-  jumlah_kriteria: number;
-  total_skor: number;
-  data?: Criterion[];
-}
-
 export interface ApiResponse<T = any> {
   success: boolean;
   message?: string;
@@ -59,111 +50,6 @@ class MatriksPenilaianService {
       return result.data || [];
     } catch (error) {
       console.error('Error fetching kriteria:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Fetch skenario yang tersimpan
-   */
-  async fetchSkenario(): Promise<Scenario[]> {
-    try {
-      const response = await fetch(`${API_BASE}/skenario`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result: ApiResponse<Scenario[]> = await response.json();
-      return result.data || [];
-    } catch (error) {
-      console.error('Error fetching skenario:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Simpan skenario baru
-   */
-  async saveSkenario(scenario: Omit<Scenario, 'id' | 'created_at'>): Promise<ApiResponse> {
-    try {
-      const response = await fetch(`${API_BASE}/skenario`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(scenario),
-        credentials: 'include',
-      });
-
-      const result: ApiResponse = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.message || 'Gagal menyimpan skenario');
-      }
-
-      return result;
-    } catch (error) {
-      console.error('Error saving skenario:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Update skenario yang sudah ada
-   */
-  async updateSkenario(id: number, scenario: Partial<Scenario>): Promise<ApiResponse> {
-    try {
-      const response = await fetch(`${API_BASE}/skenario/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(scenario),
-        credentials: 'include',
-      });
-
-      const result: ApiResponse = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.message || 'Gagal mengupdate skenario');
-      }
-
-      return result;
-    } catch (error) {
-      console.error('Error updating skenario:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Hapus skenario
-   */
-  async deleteSkenario(id: number): Promise<ApiResponse> {
-    try {
-      const response = await fetch(`${API_BASE}/skenario/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-      });
-
-      const result: ApiResponse = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.message || 'Gagal menghapus skenario');
-      }
-
-      return result;
-    } catch (error) {
-      console.error('Error deleting skenario:', error);
       throw error;
     }
   }
@@ -271,34 +157,16 @@ class MatriksPenilaianService {
   }
 
   /**
-   * Export hasil penilaian ke PDF
-   */
-  async exportPDF(scenario?: Scenario): Promise<Blob> {
-    try {
-      const params = scenario ? `?scenario_id=${scenario.id}` : '';
-      const response = await fetch(`${API_BASE}/export-pdf${params}`, {
-        method: 'GET',
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return await response.blob();
-    } catch (error) {
-      console.error('Error exporting PDF:', error);
-      throw error;
-    }
-  }
-
-  /**
    * Export hasil penilaian ke Excel
    */
-  async exportExcel(scenario?: Scenario): Promise<Blob> {
+  async exportExcel(): Promise<Blob> {
     try {
-      const params = scenario ? `?scenario_id=${scenario.id}` : '';
-      const response = await fetch(`${API_BASE}/export-excel${params}`, {
+      const response = await fetch(`${API_BASE}/export-excel`, {
         method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
       });
 
       if (!response.ok) {

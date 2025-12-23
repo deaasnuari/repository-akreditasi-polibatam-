@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Calculator, Download, Save, RotateCcw, Trophy, Loader2, Eye, X, Trash2 } from 'lucide-react';
-import { matriksPenilaianService, type Criterion, type Scenario } from '@/services/matriksPenilaianService';
+import { matriksPenilaianService, type Criterion } from '@/services/matriksPenilaianService';
 
 type AccreditationGrade = 'A' | 'B' | 'C' | 'Tidak Terakreditasi';
 
@@ -19,10 +19,22 @@ export default function MatriksPenilaianPage() {
   const [criteria, setCriteria] = useState<Criterion[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [showSaveDialog, setShowSaveDialog] = useState(false);
-  const [scenarioName, setScenarioName] = useState('');
   const [user, setUser] = useState<User | null>(null);
   const [userLoaded, setUserLoaded] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const blob = await matriksPenilaianService.exportExcel();
+      matriksPenilaianService.downloadFile(blob, `hasil-penilaian-${user?.prodi}.xlsx`);
+    } catch (error) {
+      console.error('Failed to export:', error);
+      alert('Gagal mengunduh file. Silakan coba lagi.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const canEdit = user?.role === 'tim-akreditasi';
 
@@ -171,17 +183,7 @@ export default function MatriksPenilaianPage() {
           </div>
 
           <div className="flex gap-2">
-            <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm text-gray-700">
-              <Download size={16} /> Export PDF
-            </button>
-            {canEdit && (
-              <button
-                onClick={() => setShowSaveDialog(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-700 text-white rounded-lg text-sm"
-              >
-                <Save size={14} /> Simpan Skenario
-              </button>
-            )}
+
           </div>
         </div>
 
@@ -221,10 +223,40 @@ export default function MatriksPenilaianPage() {
                   <RotateCcw size={14} /> Reset Semua
                 </button>
               )}
-              <button className="w-full px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm text-gray-700">
-                <Download size={14} /> Export Hasil
+              <button
+                onClick={handleExport}
+                disabled={isExporting}
+                className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm text-gray-700 disabled:opacity-50"
+              >
+                {isExporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                <span className="ml-2">{isExporting ? 'Mengekspor...' : 'Export Hasil'}</span>
               </button>
             </div>
+          </div>
+        </div>
+
+        {/* Prioritas perbaikan */}
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <h3 className="font-semibold text-gray-800 mb-4">Prioritas Perbaikan</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {criteria
+              .filter(c => (c.skorInput / (c.skor_maksimal || 4)) < 0.75)
+              .sort((a, b) => (a.skorInput / (a.skor_maksimal || 4)) - (b.skorInput / (b.skor_maksimal || 4)))
+              .slice(0, 6)
+              .map(c => (
+                <div key={c.id} className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-sm font-medium text-gray-800"><strong>{c.no_butir || c.kode}:</strong> {c.kriteria}</p>
+                  <p className="text-xs text-gray-600 mt-1">
+                    Skor: {c.skorInput || 0}/{c.skor_maksimal || 4} ({(((c.skorInput || 0) / (c.skor_maksimal || 4)) * 100).toFixed(0)}%)
+                  </p>
+                </div>
+              ))
+            }
+            {criteria.filter(c => (c.skorInput / (c.skor_maksimal || 4)) < 0.75).length === 0 && (
+              <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-center md:col-span-3">
+                <p className="text-sm text-green-800">✅ Semua kriteria sudah mencapai standar baik!</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -379,55 +411,6 @@ export default function MatriksPenilaianPage() {
             </table>
           </div>
         </div>
-
-        {/* Prioritas perbaikan (sama seperti sebelumnya) */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="font-semibold text-gray-800 mb-4">Prioritas Perbaikan</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {criteria
-              .filter(c => (c.skorInput / (c.skor_maksimal || 4)) < 0.75)
-              .sort((a, b) => (a.skorInput / (a.skor_maksimal || 4)) - (b.skorInput / (b.skor_maksimal || 4)))
-              .slice(0, 6)
-              .map(c => (
-                <div key={c.id} className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <p className="text-sm font-medium text-gray-800"><strong>{c.no_butir || c.kode}:</strong> {c.kriteria}</p>
-                  <p className="text-xs text-gray-600 mt-1">
-                    Skor: {c.skorInput || 0}/{c.skor_maksimal || 4} ({(((c.skorInput || 0) / (c.skor_maksimal || 4)) * 100).toFixed(0)}%)
-                  </p>
-                </div>
-              ))
-            }
-            {criteria.filter(c => (c.skorInput / (c.skor_maksimal || 4)) < 0.75).length === 0 && (
-              <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-center md:col-span-3">
-                <p className="text-sm text-green-800">✅ Semua kriteria sudah mencapai standar baik!</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Save dialog (opsional, seperti sebelumnya) */}
-        {showSaveDialog && (
-          <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-gray-800">Simpan Skenario</h3>
-                <button onClick={() => setShowSaveDialog(false)} className="text-gray-500 hover:text-gray-700"><X size={20} /></button>
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Nama Skenario</label>
-                <input type="text" value={scenarioName} onChange={(e) => setScenarioName(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded" />
-              </div>
-              <div className="flex gap-2 justify-end">
-                <button onClick={() => setShowSaveDialog(false)} className="px-4 py-2 border border-gray-300 rounded">Batal</button>
-                <button disabled={saving || !scenarioName.trim()} onClick={() => {
-                  // implement save call to backend if needed
-                  alert('Implementasi save ke backend (frontend sudah siap).');
-                }} className="px-4 py-2 bg-blue-700 text-white rounded disabled:opacity-50">Simpan</button>
-              </div>
-            </div>
-          </div>
-        )}
-
       </main>
     </div>
   );

@@ -5,6 +5,7 @@ import {
   getScoresByProdi,
   getSummaryByProdi,
   getProdiList,
+  exportToExcel,
 } from "../controllers/matriksPenilaianController.js";
 import { authenticateToken } from "../middleware/authMiddleware.js";
 
@@ -25,16 +26,6 @@ router.get("/summary/:prodiId", authenticateToken, getSummaryByProdi);
 // GET /api/matriks-penilaian/prodi
 router.get("/prodi", getProdiList);
 
-// GET /api/matriks-penilaian/skenario
-router.get("/skenario", (req, res) => {
-  res.json([
-    {
-      nama_skenario: "Skenario 1",
-      created_at: "2025-10-31",
-      jumlah_kriteria: 3,
-      total_skor: 350,
-    },
-  ]);
-});
+router.get("/export-excel", authenticateToken, exportToExcel);
 
 export default router;

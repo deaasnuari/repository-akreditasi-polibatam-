@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import xlsx from 'xlsx';
 
 const prisma = new PrismaClient();
 
@@ -238,5 +239,60 @@ export const getProdiList = async (req, res) => {
   } catch (error) {
     console.error('Error fetching prodi list:', error);
     res.status(500).json({ success: false, message: 'Failed to fetch prodi list' });
+  }
+};
+
+export const exportToExcel = async (req, res) => {
+  try {
+    const prodiName = req.user?.prodi;
+    if (!prodiName) {
+      // If user has no prodi, maybe they are admin. Check for query param.
+      // For now, let's stick to the user's prodi.
+      return res.status(400).json({ success: false, message: 'Prodi not found for user.' });
+    }
+
+    const criteria = await prisma.criteria_items.findMany({
+      orderBy: [
+        { jenis: 'asc' },
+        { no_urut: 'asc' }
+      ]
+    });
+    
+    const scores = await prisma.criteria_scores.findMany({
+      where: {
+        prodi: prodiName,
+      },
+    });
+
+    const data = criteria.map(c => {
+      const score = scores.find(s => s.criteria_item_id === c.id);
+      return {
+        'Jenis': c.jenis,
+        'No. Butir': c.no_butir,
+        'Elemen Penilaian': c.elemen_penilaian,
+        'Bobot': c.bobot_raw,
+        'Skor Prodi': score ? score.skor_prodi : 'N/A',
+        'Skor Terbobot': score ? score.skor_terbobot : 'N/A'
+      };
+    });
+
+    const totalSkor = scores.reduce((sum, score) => sum + parseFloat(score.skor_terbobot), 0);
+    data.push({}); // empty row
+    data.push({ 'Elemen Penilaian': 'Total Skor', 'Skor Terbobot': totalSkor.toFixed(2) });
+
+
+    const worksheet = xlsx.utils.json_to_sheet(data);
+    const workbook = xlsx.utils.book_new();
+    xlsx.utils.book_append_sheet(workbook, worksheet, 'Hasil Penilaian');
+
+    const buffer = xlsx.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+
+    res.setHeader('Content-Disposition', `attachment; filename="hasil-penilaian-${prodiName}.xlsx"`);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.send(buffer);
+
+  } catch (error) {
+    console.error('Error exporting to Excel:', error);
+    res.status(500).json({ success: false, message: 'Failed to export to Excel' });
   }
 };
