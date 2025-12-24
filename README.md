@@ -61,7 +61,7 @@ Sistem ini menyediakan:
   👉 https://drive.google.com/drive/folders/1DzdmLFSlFUndvDDpB1r7DeZf_JJmQjIF?usp=sharing
 
 - 🎥 **Video Presentasi YouTube**  
-  👉
+  👉 https://youtu.be/5SereDbnFAc
 
 - 🎥 **Video DEMO Aplikasi YouTube**  
   👉 
