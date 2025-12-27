@@ -22,6 +22,96 @@ export const createReview = async (req, res) => {
     });
 
     console.log(`✅ createReview created review id=${newReview.id} with status=${newReview.status}`);
+
+    // ===== Propagate review status to Bukti Pendukung (aggregate per LKPS module) =====
+    try {
+      // Map module -> prisma table + bukti pendukung path
+      const MODULE_CFG = {
+        'budaya-mutu': { table: 'budaya_mutu', path: '/dashboard/tim-akreditasi/lkps', label: 'Budaya Mutu' },
+        'relevansi-pendidikan': { table: 'relevansi_pendidikan', path: '/dashboard/tim-akreditasi/lkps/relevansi-pendidikan', label: 'Relevansi Pendidikan' },
+        'relevansi-penelitian': { table: 'relevansi_penelitian', path: '/dashboard/tim-akreditasi/lkps/relevansi-penelitian', label: 'Relevansi Penelitian' },
+        'relevansi-pkm': { table: 'relevansi_pkm', path: '/dashboard/tim-akreditasi/lkps/relevansi-pkm', label: 'Relevansi PkM' },
+        'akuntabilitas': { table: 'akuntabilitas', path: '/dashboard/tim-akreditasi/lkps/akuntabilitas', label: 'Akuntabilitas' },
+        'diferensiasi-misi': { table: 'diferensiasi_misi', path: '/dashboard/tim-akreditasi/lkps/diferensiasi-misi', label: 'Diferensiasi Misi' },
+      };
+
+      const cfg = MODULE_CFG[module];
+      if (cfg && prisma[cfg.table]) {
+        // 1) Get owner (user_id) of the reviewed item
+        const ownerRow = await prisma[cfg.table].findUnique({
+          where: { id: Number(itemId) },
+          select: { user_id: true }
+        });
+
+        if (ownerRow?.user_id) {
+          const ownerId = ownerRow.user_id;
+
+          // 2) Get all item ids for this user within the same module/table
+          const allItems = await prisma[cfg.table].findMany({
+            where: { user_id: ownerId },
+            select: { id: true },
+            orderBy: { id: 'asc' }
+          });
+          const itemIds = allItems.map(r => r.id);
+
+          // 3) Fetch all reviews for these items in this module
+          const allReviews = await prisma.reviews.findMany({
+            where: { module, item_id: { in: itemIds } },
+            orderBy: { created_at: 'desc' }
+          });
+
+          // 4) Build latest status per item
+          const latestStatusByItem = new Map();
+          for (const r of allReviews) {
+            if (!latestStatusByItem.has(r.item_id)) {
+              latestStatusByItem.set(r.item_id, (r.status || '').trim());
+            }
+          }
+
+          // 5) Decide aggregate status for Bukti Pendukung
+          let aggregate = 'Submitted'; // default remains waiting
+          const statuses = Array.from(latestStatusByItem.values());
+          const hasPerluRevisi = statuses.some(s => (s || '').toLowerCase() === 'perlu revisi');
+          const allDiterima = statuses.length > 0 && statuses.every(s => (s || '').toLowerCase() === 'diterima');
+
+          if (hasPerluRevisi) aggregate = 'NeedsRevision';
+          else if (allDiterima && latestStatusByItem.size === itemIds.length) aggregate = 'Approved';
+
+          // 6) Upsert Bukti Pendukung entry for this module path
+          const existingBP = await prisma.buktiPendukung.findFirst({
+            where: { userId: ownerId, path: cfg.path },
+            orderBy: { updatedAt: 'desc' }
+          });
+
+          let bpEntry;
+          if (existingBP) {
+            bpEntry = await prisma.buktiPendukung.update({
+              where: { id: existingBP.id },
+              data: { status: aggregate }
+            });
+          } else {
+            bpEntry = await prisma.buktiPendukung.create({
+              data: {
+                nama: `LKPS - ${cfg.label}`,
+                path: cfg.path,
+                status: aggregate,
+                userId: ownerId,
+              }
+            });
+          }
+
+          console.log(`🔁 Aggregated status for user=${ownerId}, module=${module} -> ${aggregate} (BuktiPendukung id=${bpEntry.id})`);
+        } else {
+          console.warn(`⚠️ Unable to resolve owner for module=${module}, itemId=${itemId}`);
+        }
+      } else {
+        console.warn(`⚠️ No module config or table for module=${module}`);
+      }
+    } catch (aggErr) {
+      console.error('❌ Error while aggregating LKPS status:', aggErr);
+      // do not fail request due to aggregation error
+    }
+
     res.json({ success: true, data: newReview });
   } catch (err) {
     console.error('❌ createReview error:', err);

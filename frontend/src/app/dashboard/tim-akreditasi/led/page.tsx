@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Plus, Trash, Save, Info, Send } from 'lucide-react';
+import { Plus, Trash, Save, Info, Send, MessageSquare, X, AlertCircle } from 'lucide-react';
 import { saveLEDDraft } from '../../../../services/ledService';
 import type { TabData as ServiceTabData, RowEval as ServiceRowEval } from '../../../../services/ledService';
 import { Toaster, toast } from 'sonner';
 import { getAllLEDData, saveLEDTab } from '../../../../services/ledService';
+import { getReviews as fetchReviews } from '@/services/reviewService';
 
 type Row2Col = { id: string; pernyataan: string; keterlaksanaan: string; pelaksanaan: string; bukti_pendukung: string };
 type RowEval = {
@@ -128,6 +129,11 @@ export default function BudayaMutuLEDPage() {
   const [loading, setLoading] = useState(true);
   const [tabData, setTabData] = useState<Record<string, TabData>>({});
   const [loadedTabs, setLoadedTabs] = useState<Set<string>>(new Set());
+  
+  // State untuk P4M Notes Modal
+  const [showP4MNotes, setShowP4MNotes] = useState(false);
+  const [p4mNotes, setP4mNotes] = useState<any[]>([]);
+  const [loadingP4mNotes, setLoadingP4mNotes] = useState(false);
 
   // Deklarasi mapServiceToUI dulu sebelum useEffect (untuk menghindari "before initialization" error)
   const mapServiceToUI = useCallback((svc: any): TabData => {
@@ -409,6 +415,25 @@ export default function BudayaMutuLEDPage() {
     }
   }, [tabData, activeTab, router, transformUIToServiceTabData]);
 
+  // Fungsi untuk melihat catatan P4M
+  const handleViewP4mNotes = useCallback(async () => {
+    setShowP4MNotes(true);
+    setLoadingP4mNotes(true);
+    
+    try {
+      // Fetch reviews for LED module dengan tab yang aktif
+      const notes = await fetchReviews(`led-${activeTab}`);
+      setP4mNotes(notes || []);
+      console.log('📝 Catatan P4M untuk LED tab', activeTab, ':', notes);
+    } catch (err) {
+      console.error('Error fetching P4M notes:', err);
+      setP4mNotes([]);
+      toast.error('Gagal memuat catatan P4M');
+    } finally {
+      setLoadingP4mNotes(false);
+    }
+  }, [activeTab]);
+
   // Auto-save ke localStorage/DB dinonaktifkan agar data hilang jika tidak disimpan manual
   // Tidak ada interval auto-save.
 
@@ -589,9 +614,19 @@ export default function BudayaMutuLEDPage() {
         </div>
 
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-3 sm:p-4 md:p-6">
-          <h2 className="text-lg sm:text-xl md:text-2xl text-[#183A64] font-semibold border-b-4 border-[#183A64] pb-2 mb-3 sm:mb-4">
-            {tabs.find(([key]) => key === activeTab)?.[1]}
-          </h2>
+          <div className="flex justify-between items-center border-b-4 border-[#183A64] pb-2 mb-3 sm:mb-4">
+            <h2 className="text-lg sm:text-xl md:text-2xl text-[#183A64] font-semibold">
+              {tabs.find(([key]) => key === activeTab)?.[1]}
+            </h2>
+            <button
+              onClick={handleViewP4mNotes}
+              className="flex items-center gap-2 px-3 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors text-sm"
+              title="Lihat Catatan P4M"
+            >
+              <MessageSquare size={16} />
+              <span className="hidden sm:inline">Catatan P4M</span>
+            </button>
+          </div>
 
           <div className="flex items-start gap-2 sm:gap-3 bg-[#ADE7F7]/40 border-l-4 border-[#183A64] p-2 sm:p-3 md:p-4 rounded-lg mb-4 sm:mb-6">
             <Info className="h-4 w-4 sm:h-5 sm:w-5 text-[#183A64] mt-1 flex-shrink-0" />
@@ -796,6 +831,96 @@ export default function BudayaMutuLEDPage() {
             </button>
           </div>
         </div>
+
+        {/* Modal Catatan P4M */}
+        {showP4MNotes && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+              <div className="flex justify-between items-center p-6 border-b bg-purple-50">
+                <div className="flex items-center gap-3">
+                  <MessageSquare className="text-purple-600" size={24} />
+                  <h2 className="text-xl font-semibold text-gray-800">
+                    Catatan P4M - {tabs.find(([k]) => k === activeTab)?.[1]}
+                  </h2>
+                </div>
+                <button 
+                  onClick={() => setShowP4MNotes(false)}
+                  className="text-gray-500 hover:text-gray-700 transition"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6">
+                {loadingP4mNotes ? (
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+                    <p className="mt-4 text-gray-600">Memuat catatan P4M...</p>
+                  </div>
+                ) : p4mNotes.length === 0 ? (
+                  <div className="text-center py-12">
+                    <AlertCircle className="mx-auto text-gray-400 mb-4" size={48} />
+                    <p className="text-gray-500 text-lg">Belum ada catatan dari P4M</p>
+                    <p className="text-gray-400 text-sm mt-2">
+                      Catatan akan muncul setelah P4M melakukan review
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {p4mNotes.map((note: any) => (
+                      <div 
+                        key={note.id} 
+                        className={`border-l-4 rounded-lg p-4 ${
+                          note.status === 'Diterima' 
+                            ? 'bg-green-50 border-green-500' 
+                            : 'bg-orange-50 border-orange-500'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                              note.status === 'Diterima' 
+                                ? 'bg-green-100 text-green-700' 
+                                : 'bg-orange-100 text-orange-700'
+                            }`}>
+                              {note.status || 'Diterima'}
+                            </span>
+                            <span className="text-sm text-gray-600">
+                              {new Date(note.created_at).toLocaleDateString('id-ID', {
+                                day: 'numeric',
+                                month: 'long',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="text-sm text-gray-500 mb-2">
+                          Reviewer: <span className="font-medium text-gray-700">
+                            {note.user?.nama_lengkap || note.user?.username || 'P4M'}
+                          </span>
+                        </div>
+                        <div className="text-gray-800 whitespace-pre-wrap bg-white p-3 rounded border">
+                          {note.note}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="p-4 border-t bg-gray-50 flex justify-end">
+                <button
+                  onClick={() => setShowP4MNotes(false)}
+                  className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+                >
+                  Tutup
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

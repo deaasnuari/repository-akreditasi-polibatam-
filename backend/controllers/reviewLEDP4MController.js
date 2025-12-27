@@ -70,17 +70,19 @@ export const submitLEDReview = async (req, res) => {
       }
     });
 
-    // Simpan catatan review di table reviews
+    // Simpan catatan review di table reviews dengan module name spesifik per tab
+    // Format: led-{tab_name} agar bisa difilter per tab
     const review = await prisma.reviews.create({
       data: {
-        module: 'LED',
+        module: `led-${tab}`, // e.g., 'led-budaya-mutu', 'led-relevansi-pendidikan'
         item_id: Number(reviewed_user_id),
         reviewer_id: reviewer_id,
-        note: `[${tab}] Status: ${status}\n${notes || 'Tidak ada catatan'}`
+        note: notes || 'Tidak ada catatan',
+        status: status // 'Diterima' atau 'Perlu Revisi'
       }
     });
 
-    console.log(`✅ [Review LED] Review saved (id: ${review.id}), updated ${updatedBukti.count} BuktiPendukung records`);
+    console.log(`✅ [Review LED] Review saved (id: ${review.id}), module: led-${tab}, updated ${updatedBukti.count} BuktiPendukung records`);
 
     res.json({
       success: true,

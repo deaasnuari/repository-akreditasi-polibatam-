@@ -138,6 +138,9 @@ export default function BuktiPendukungPage() {
             displayStatus = 'Diterima';
           } else if (item.status === 'NeedsRevision') {
             displayStatus = 'Perlu Revisi';
+          } else if (item.status === 'Completed') {
+            // Completed seharusnya dianggap sebagai Diterima untuk Tim Akreditasi
+            displayStatus = 'Diterima';
           }
 
           return {
