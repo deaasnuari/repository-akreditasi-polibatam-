@@ -38,7 +38,7 @@ export default function BuktiPendukungPage() {
 
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [confirmModal, setConfirmModal] = useState<{ open: boolean; path: string; judul: string }>({ open: false, path: '', judul: '' });
+  const [confirmModal, setConfirmModal] = useState<{ open: boolean; path: string; judul: string; isViewMode: boolean }>({ open: false, path: '', judul: '', isViewMode: false });
   const [deleteModal, setDeleteModal] = useState<{ open: boolean; item: TableItem | null }>({ open: false, item: null });
   const [editMode, setEditMode] = useState(false);
   const [editingItem, setEditingItem] = useState<TableItem | null>(null);
@@ -80,7 +80,18 @@ export default function BuktiPendukungPage() {
     setConfirmModal({
       open: true,
       path: item.path || '',
-      judul: item.judul
+      judul: item.judul,
+      isViewMode: false
+    });
+  };
+
+  // Fungsi untuk handle lihat (view-only mode)
+  const handleLihat = (item: TableItem) => {
+    setConfirmModal({
+      open: true,
+      path: item.path || '',
+      judul: item.judul,
+      isViewMode: true
     });
   };
 
@@ -88,7 +99,7 @@ export default function BuktiPendukungPage() {
     if (confirmModal.path) {
       window.location.href = confirmModal.path;
     }
-    setConfirmModal({ open: false, path: '', judul: '' });
+    setConfirmModal({ open: false, path: '', judul: '', isViewMode: false });
   };
 
   // Ambil data draft borang (tidak diubah, hanya tampilkan dan lanjutkan)
@@ -554,12 +565,24 @@ export default function BuktiPendukungPage() {
                 </td>
                 <td className="px-4 py-2 flex gap-2 justify-center items-center">
                   {item.isBorang ? (
-                    <button 
-                      onClick={() => handleLanjutkan(item)}
-                      className="bg-blue-600 text-white px-3 py-1 rounded-md text-xs hover:bg-blue-700"
-                    >
-                      Lanjutkan
-                    </button>
+                    // Logic untuk borang berdasarkan status
+                    (item.status === "Diterima" || item.status === "Menunggu") ? (
+                      <button 
+                        onClick={() => handleLihat(item)}
+                        className="bg-blue-100 text-blue-700 px-3 py-1 rounded-md text-xs hover:bg-blue-200 flex items-center gap-1.5"
+                      >
+                        <Eye size={14} />
+                        Lihat
+                      </button>
+                    ) : (
+                      <button 
+                        onClick={() => handleLanjutkan(item)}
+                        className="bg-blue-600 text-white px-3 py-1 rounded-md text-xs hover:bg-blue-700 flex items-center gap-1.5"
+                      >
+                        <Edit2 size={14} />
+                        Lanjutkan
+                      </button>
+                    )
                   ) : (
                     <>
                       <button title="Lihat" className="text-blue-600 hover:text-blue-800">
@@ -598,30 +621,59 @@ export default function BuktiPendukungPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Modal Konfirmasi Lanjutkan */}
+      {/* Modal Konfirmasi Lanjutkan/Lihat */}
       {confirmModal.open && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white w-full max-w-md rounded-lg shadow-xl">
             <div className="p-4 border-b flex items-center gap-2">
-              <FileText className="text-blue-600" size={20} />
-              <h3 className="font-semibold text-gray-800">Konfirmasi Lanjutkan</h3>
+              {confirmModal.isViewMode ? (
+                <Eye className="text-blue-600" size={20} />
+              ) : (
+                <FileText className="text-blue-600" size={20} />
+              )}
+              <h3 className="font-semibold text-gray-800">
+                {confirmModal.isViewMode ? 'Lihat Borang' : 'Konfirmasi Lanjutkan'}
+              </h3>
             </div>
             <div className="p-4 text-sm text-gray-700">
-              <p className="mb-2">Apakah Anda yakin ingin melanjutkan pengisian borang:</p>
-              <p className="font-semibold text-gray-900">{confirmModal.judul}</p>
+              {confirmModal.isViewMode ? (
+                <>
+                  <p className="mb-2">Anda akan melihat borang dalam mode <span className="font-semibold text-blue-600">view-only</span>:</p>
+                  <p className="font-semibold text-gray-900">{confirmModal.judul}</p>
+                  <p className="mt-3 text-xs text-gray-500 bg-blue-50 p-2 rounded border border-blue-200">
+                    💡 Dokumen ini {confirmModal.judul.includes('Diterima') ? 'sudah diterima' : 'sedang dalam review'}. Anda tidak dapat melakukan perubahan.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="mb-2">Apakah Anda yakin ingin melanjutkan pengisian borang:</p>
+                  <p className="font-semibold text-gray-900">{confirmModal.judul}</p>
+                </>
+              )}
             </div>
             <div className="p-4 border-t flex justify-end gap-2">
               <button
-                onClick={() => setConfirmModal({ open: false, path: '', judul: '' })}
+                onClick={() => setConfirmModal({ open: false, path: '', judul: '', isViewMode: false })}
                 className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
               >
                 Batal
               </button>
               <button
                 onClick={confirmLanjutkan}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                className={`px-4 py-2 rounded-lg flex items-center gap-1.5 ${
+                  confirmModal.isViewMode 
+                    ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' 
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                }`}
               >
-                Ya, Lanjutkan
+                {confirmModal.isViewMode ? (
+                  <>
+                    <Eye size={16} />
+                    Lihat Borang
+                  </>
+                ) : (
+                  'Ya, Lanjutkan'
+                )}
               </button>
             </div>
           </div>

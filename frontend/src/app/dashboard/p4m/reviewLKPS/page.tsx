@@ -728,107 +728,129 @@ export default function P4MReviewBudayaMutuPage() {
             {/* Modal Review - Seperti LED */}
             {showReviewModal && selectedItem && (
               <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
-                <div className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-                  <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-xl font-semibold text-gray-800">
-                      Review Data {activeSubTab.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase())}
-                    </h2>
-                    <button 
+                <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+                  {/* Header */}
+                  <div className="flex justify-between items-center p-6 border-b">
+                    <div>
+                      <h2 className="text-xl font-bold text-gray-800">Review Data</h2>
+                      <p className="text-sm text-gray-600 mt-1">Berikan penilaian dan catatan untuk data ini</p>
+                    </div>
+                    <button
                       onClick={() => setShowReviewModal(false)}
-                      className="text-gray-500 hover:text-gray-700"
+                      className="text-gray-400 hover:text-gray-600 transition-colors"
                     >
                       <X size={24} />
                     </button>
                   </div>
 
-                  {/* Data Preview - Read Only */}
-                  <div className="space-y-3 mb-6 max-h-96 overflow-y-auto border rounded-lg p-4 bg-gray-50">
-                    <h3 className="font-semibold text-gray-700 mb-3">Data yang Direview:</h3>
-                    {subTabFields[activeSubTab]
-                      .filter(field => field.key !== 'no')
-                      .map(field => (
-                        <div key={field.key} className="grid grid-cols-3 gap-2 py-2 border-b">
-                          <label className="text-sm font-medium text-gray-600">
-                            {field.label}:
-                          </label>
-                          <p className="col-span-2 text-sm text-gray-900">
-                            {field.key === 'linkBukti' || 
-                             field.key === 'dokumenSPMI' || 
-                             field.key === 'buktiCertifiedAuditor' || 
-                             field.key === 'laporanAudit' ? (
-                              selectedItem.data?.[field.key] ? (
-                                <a 
-                                  href={selectedItem.data[field.key]} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer" 
-                                  className="text-blue-600 hover:underline"
-                                >
-                                  Buka Link
-                                </a>
-                              ) : (
-                                '-'
-                              )
-                            ) : (
-                              selectedItem.data?.[field.key] || '-'
-                            )}
-                          </p>
-                        </div>
-                      ))}
-                  </div>
+                  {/* Content */}
+                  <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                    {/* Data Preview */}
+                    <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Info size={18} className="text-blue-600" />
+                        <h3 className="font-semibold text-gray-800">Data yang Direview</h3>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {subTabFields[activeSubTab]
+                          .filter(field => field.key !== 'no')
+                          .map(field => (
+                            <div key={field.key} className="bg-white p-3 rounded border">
+                              <label className="text-xs font-medium text-gray-600 uppercase tracking-wide">
+                                {field.label}
+                              </label>
+                              <p className="text-sm text-gray-900 mt-1 break-words">
+                                {field.key === 'linkBukti' || 
+                                 field.key === 'dokumenSPMI' || 
+                                 field.key === 'buktiCertifiedAuditor' || 
+                                 field.key === 'laporanAudit' ? (
+                                  selectedItem.data?.[field.key] ? (
+                                    <a 
+                                      href={selectedItem.data[field.key]} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer" 
+                                      className="text-blue-600 hover:underline"
+                                    >
+                                      Buka Link
+                                    </a>
+                                  ) : (
+                                    '-'
+                                  )
+                                ) : (
+                                  selectedItem.data?.[field.key] || '-'
+                                )}
+                              </p>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
 
-                  {/* Form Review */}
-                  <div className="space-y-4">
+                    {/* Status Review */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
                         Status Review <span className="text-red-500">*</span>
                       </label>
                       <select
                         value={reviewStatus}
                         onChange={(e) => setReviewStatus(e.target.value as 'Diterima' | 'Perlu Revisi')}
-                        className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       >
-                        <option value="Diterima">Diterima</option>
-                        <option value="Perlu Revisi">Perlu Revisi</option>
+                        <option value="Diterima">✓ Diterima</option>
+                        <option value="Perlu Revisi">⚠ Perlu Revisi</option>
                       </select>
                     </div>
 
+                    {/* Catatan Review */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
                         Catatan Review <span className="text-red-500">*</span>
                       </label>
                       <textarea
                         value={reviewNotes}
                         onChange={(e) => setReviewNotes(e.target.value)}
-                        placeholder="Berikan catatan atau feedback untuk item ini..."
-                        rows={6}
-                        className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Berikan catatan, komentar, atau saran perbaikan..."
+                        rows={5}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
                       />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Catatan ini akan dikirimkan ke Tim Akreditasi
+                      </p>
                     </div>
+
+                    {/* Info Alert */}
+                    {reviewStatus === 'Perlu Revisi' && (
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex gap-3">
+                        <AlertCircle size={20} className="text-yellow-600 flex-shrink-0 mt-0.5" />
+                        <div className="text-sm text-yellow-800">
+                          <p className="font-medium">Data akan dikembalikan untuk revisi</p>
+                          <p className="mt-1">Tim Akreditasi akan menerima notifikasi dan dapat memperbaiki data sesuai catatan Anda.</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Action Buttons */}
-                  <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
+                  {/* Footer Actions */}
+                  <div className="border-t p-6 bg-gray-50 flex justify-end gap-3">
                     <button
                       onClick={() => setShowReviewModal(false)}
-                      className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
-                      disabled={submittingReview}
+                      className="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 font-medium transition-colors"
                     >
                       Batal
                     </button>
                     <button
                       onClick={handleSubmitReview}
                       disabled={submittingReview || !reviewNotes.trim()}
-                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors flex items-center gap-2"
                     >
                       {submittingReview ? (
                         <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          <span className="animate-spin">⏳</span>
                           Menyimpan...
                         </>
                       ) : (
                         <>
-                          <CheckCircle size={16} />
-                          Submit Review
+                          <CheckCircle size={18} />
+                          Simpan Review
                         </>
                       )}
                     </button>
