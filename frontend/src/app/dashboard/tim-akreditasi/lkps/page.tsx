@@ -44,39 +44,20 @@ export default function LKPSPage() {
   const [formData, setFormData] = useState<any>({});
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
-  // User state
+  // ============================================================
+  // STATE: User Management
+  // ============================================================
   const [user, setUser] = useState<User | null>(null);
   const [userLoaded, setUserLoaded] = useState(false);
 
-  // Initialize user from sessionStorage
-  useEffect(() => {
-    const storedUser = sessionStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    setUserLoaded(true);
-  }, []);
-
-  // State untuk modal catatan P4M
+  // ============================================================
+  // STATE: Modal & Popup
+  // ============================================================
   const [showP4MNotes, setShowP4MNotes] = useState(false);
   const [selectedItemForNotes, setSelectedItemForNotes] = useState<any>(null);
   const [p4mNotes, setP4mNotes] = useState<any[]>([]);
   const [loadingP4mNotes, setLoadingP4mNotes] = useState(false);
 
-  // Search state
-  const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-
-  // State untuk import Excel dengan preview
-  const [importing, setImporting] = useState(false);
-  const [previewFile, setPreviewFile] = useState<File | null>(null);
-  const [previewHeaders, setPreviewHeaders] = useState<string[]>([]);
-  const [previewRows, setPreviewRows] = useState<any[]>([]);
-  const [suggestions, setSuggestions] = useState<Record<string, string>>({});
-  const [showPreviewModal, setShowPreviewModal] = useState(false);
-  const [mapping, setMapping] = useState<Record<string, string>>({});
-
-  // State untuk popup notifikasi
   const [popup, setPopup] = useState<{ 
     show: boolean; 
     message: string; 
@@ -87,7 +68,6 @@ export default function LKPSPage() {
     type: 'success',
   });
 
-  // State untuk modal konfirmasi
   const [modal, setModal] = useState<{
     show: boolean;
     title: string;
@@ -100,7 +80,26 @@ export default function LKPSPage() {
     onConfirm: () => {},
   });
 
-  // State untuk struktur organisasi
+  // ============================================================
+  // STATE: Search & Filter
+  // ============================================================
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  // ============================================================
+  // STATE: Import Excel
+  // ============================================================
+  const [importing, setImporting] = useState(false);
+  const [previewFile, setPreviewFile] = useState<File | null>(null);
+  const [previewHeaders, setPreviewHeaders] = useState<string[]>([]);
+  const [previewRows, setPreviewRows] = useState<any[]>([]);
+  const [suggestions, setSuggestions] = useState<Record<string, string>>({});
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [mapping, setMapping] = useState<Record<string, string>>({});
+
+  // ============================================================
+  // STATE: Struktur Organisasi
+  // ============================================================
   const [strukturFileName, setStrukturFileName] = useState('');
   const [strukturFileId, setStrukturFileId] = useState<string | null>(null);
   const [strukturFileUrl, setStrukturFileUrl] = useState('');
@@ -116,13 +115,27 @@ export default function LKPSPage() {
     { label: 'Diferensiasi Misi', href: '/dashboard/tim-akreditasi/lkps/diferensiasi-misi' },
   ];
 
-  // Fungsi untuk menampilkan popup
+  // ============================================================
+  // EFFECT: Initialize User
+  // ============================================================
+  useEffect(() => {
+    const storedUser = sessionStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+    setUserLoaded(true);
+  }, []);
+
+  // ============================================================
+  // FUNCTIONS: Popup & Modal
+  // ============================================================
+  // Menampilkan popup notifikasi
   const showPopup = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     setPopup({ show: true, message, type });
     setTimeout(() => setPopup({ show: false, message: '', type: 'success' }), 3000);
   };
 
-  // Fungsi untuk menampilkan modal konfirmasi
+  // Menampilkan modal konfirmasi
   const showModal = (title: string, message: string, onConfirm: () => void) => {
     setModal({ show: true, title, message, onConfirm });
   };
@@ -136,6 +149,9 @@ export default function LKPSPage() {
     closeModal();
   };
 
+  // ============================================================
+  // FUNCTIONS: Draft & Submit
+  // ============================================================
   const handleSaveDraft = async () => {
     showPopup('Menyimpan draft...', 'info');
     try {
@@ -147,8 +163,8 @@ export default function LKPSPage() {
         sample: dataToSave[0]
       });
 
-      // Save draft creates a reference in bukti_pendukung only
-      // The actual data is already in budaya_mutu table (created via CREATE DATA)
+      // NOTE: Save draft hanya membuat referensi di bukti_pendukung
+      // Data aktual sudah tersimpan di tabel budaya_mutu (via CREATE DATA endpoint)
       await fetch(`${API_BASE}/draft`, {
         method: 'POST',
         headers: {
@@ -159,7 +175,7 @@ export default function LKPSPage() {
           path: `/dashboard/tim-akreditasi/lkps`,
           status: 'Draft',
           type: activeSubTab,
-          currentData: dataToSave, // This will be stored but getData returns individual rows
+          currentData: dataToSave,
         }),
         credentials: 'include',
       });
@@ -187,7 +203,7 @@ export default function LKPSPage() {
         sample: dataToSave[0]
       });
 
-      // Submit for review with status "Submitted"
+      // Submit untuk review dengan status "Submitted"
       await fetch(`${API_BASE}/draft`, {
         method: 'POST',
         headers: {
@@ -215,8 +231,10 @@ export default function LKPSPage() {
     }
   };
 
-
-  // Komponen Popup
+  // ============================================================
+  // COMPONENTS: Notification & Modal
+  // ============================================================
+  // Komponen Popup Notifikasi
   const PopupNotification = () => {
     if (!popup.show) return null;
 
@@ -425,7 +443,36 @@ export default function LKPSPage() {
     );
   };
 
-  // Fungsi validasi form
+  // ============================================================
+  // EFFECT: Data Fetching & Search
+  // ============================================================
+  // Fetch data saat tab berubah atau user terload
+  useEffect(() => {
+    if (!userLoaded || !user) return;
+    fetchData();
+  }, [activeSubTab, user, userLoaded]);
+
+  // Fetch struktur organisasi saat pertama kali load
+  useEffect(() => {
+    if (!userLoaded || !user) return;
+    fetchStrukturOrganisasi();
+  }, [user, userLoaded]);
+
+  // Debounce search input untuk performa lebih baik
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 300);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
+
+  // Clear search saat pindah sub-tab
+  useEffect(() => {
+    setSearchQuery('');
+    setDebouncedSearch('');
+  }, [activeSubTab]);
+
+  // ============================================================
+  // FUNCTIONS: Validation
+  // ============================================================
   const validateForm = () => {
     const errors: Record<string, string> = {};
     const fields = getFormFields(activeSubTab);
@@ -441,34 +488,12 @@ export default function LKPSPage() {
     return Object.keys(errors).length === 0;
   };
 
-  useEffect(() => {
-    if (!userLoaded || !user) return; // Ensure user is loaded and not null
-    fetchData();
-  }, [activeSubTab, user, userLoaded]); // Added user and userLoaded to dependencies
-
-  // Fetch struktur organisasi saat pertama kali load
-  useEffect(() => {
-    if (!userLoaded || !user) return;
-    fetchStrukturOrganisasi();
-  }, [user, userLoaded]);
-
-  // Debounce search input for better UX
-  useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 300);
-    return () => clearTimeout(t);
-  }, [searchQuery]);
-
-  // Clear search when switching sub-tabs to avoid confusion
-  useEffect(() => {
-    setSearchQuery('');
-    setDebouncedSearch('');
-  }, [activeSubTab]);
-
-  // ...
-
+  // ============================================================
+  // FUNCTIONS: Data Fetching
+  // ============================================================
   const fetchData = async () => {
     try {
-      const prodiFilter = user.prodi ? `&prodi=${user.prodi}` : ''; // Get prodi from user
+      const prodiFilter = user.prodi ? `&prodi=${user.prodi}` : '';
       const res = await fetch(`${API_BASE}?type=${activeSubTab}${prodiFilter}`, {
         credentials: 'include',
       });
@@ -495,10 +520,9 @@ export default function LKPSPage() {
       });
 
       if (json.success && Array.isArray(json.data)) {
-        // Backend returns array of { id, type, prodi, data, ... }
-        // Each entry represents one row of data
-        // Convert to format: [{ id, data }, ...]
-        
+        // Backend mengembalikan array: { id, type, prodi, data, ... }
+        // Setiap entry = satu baris data
+        // Konversi ke format: [{ id, data }, ...]
         const reconstructedData = json.data.map(item => ({
           id: item.id,
           data: item.data
@@ -540,7 +564,10 @@ export default function LKPSPage() {
     }
   };
 
-  // Fungsi untuk handle file change dan preview
+  // ============================================================
+  // FUNCTIONS: Import Excel
+  // ============================================================
+  // Handle file change dan preview sebelum import
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -612,7 +639,6 @@ export default function LKPSPage() {
         }
       };
       fd.append('mapping', JSON.stringify(mappingImport[activeSubTab] || {}));
-      // fd.append('mapping', JSON.stringify(getFormFields(activeSubTab)));
       console.log(activeSubTab)
       const res = await fetch(`${API_BASE}/import/${activeSubTab}`, { method: 'POST', body: fd, credentials: 'include' });
 
@@ -652,7 +678,7 @@ export default function LKPSPage() {
     e.target.value = '';
   };
 
-  // Fungsi untuk commit import setelah mapping
+  // Commit import setelah mapping konfirmasi
   const handleCommitImport = async () => {
     if (!previewFile) return;
 
@@ -693,6 +719,9 @@ export default function LKPSPage() {
     }
   };
 
+  // ============================================================
+  // FUNCTIONS: Struktur Organisasi
+  // ============================================================
   const handleUploadStruktur = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -783,6 +812,9 @@ export default function LKPSPage() {
     );
   };
 
+  // ============================================================
+  // FUNCTIONS: CRUD Operations
+  // ============================================================
   const openAdd = () => {
     setFormData(getEmptyFormData(activeSubTab));
     setEditIndex(null);
@@ -907,7 +939,6 @@ export default function LKPSPage() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
-    
     // Clear error untuk field yang sedang diisi
     if (formErrors[name]) {
       setFormErrors(prev => {
@@ -1000,7 +1031,10 @@ export default function LKPSPage() {
     return subTabFields[subTab].filter(field => field.key !== 'no');
   };
 
-  // Fungsi untuk melihat catatan P4M
+  // ============================================================
+  // FUNCTIONS: P4M Notes
+  // ============================================================
+  // Melihat catatan dari reviewer P4M
   const handleViewP4mNotes = async (item: any) => {
     setSelectedItemForNotes(item);
     setShowP4MNotes(true);
@@ -1018,6 +1052,9 @@ export default function LKPSPage() {
     }
   };
 
+  // ============================================================
+  // MEMO: Filtered Data
+  // ============================================================
   const data = useMemo(() => {
     const base = tabData[activeSubTab] || [];
     if (!debouncedSearch) return base;
@@ -1030,6 +1067,9 @@ export default function LKPSPage() {
     });
   }, [tabData, activeSubTab, debouncedSearch]);
 
+  // ============================================================
+  // RENDER FUNCTIONS: Table
+  // ============================================================
   const renderColumns = () => (
     <tr>
       {subTabFields[activeSubTab].map(col => (
@@ -1112,6 +1152,10 @@ export default function LKPSPage() {
   };
 
   const pathname = usePathname();
+
+  // ============================================================
+  // MAIN RENDER
+  // ============================================================
   return (
     <div className="flex w-full bg-gray-100">
       <PopupNotification />

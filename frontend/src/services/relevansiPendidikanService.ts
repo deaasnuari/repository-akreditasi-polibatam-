@@ -1,7 +1,12 @@
-// services/relevansiPendidikanService.ts
+// ============================================================
+// SERVICE: Relevansi Pendidikan
+// ============================================================
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/relevansi-pendidikan';
 
+// ============================================================
+// TYPE DEFINITIONS
+// ============================================================
 export type SubTab = 
   | 'mahasiswa' 
   | 'keragaman-asal' 
@@ -17,7 +22,7 @@ export type SubTab =
 
 export interface DataItem {
   id?: number;
-  prodi?: string; // Added for explicit type safety
+  prodi?: string;
   tahun?: string;
   daya_tampung?: number;
   asalMahasiswa?: string;
@@ -36,7 +41,7 @@ export interface DataItem {
   profil_lulusan?: string;
   alasan?: string;
   jumlah_lulusan?: number;
-  [key: string]: any; // untuk field dinamis seperti pl1, pl2, semester1-8, dll
+  [key: string]: any;
 }
 
 export interface ApiResponse<T = any> {
@@ -46,22 +51,21 @@ export interface ApiResponse<T = any> {
   error?: string;
 }
 
-/**
- * Ambil user_id dari localStorage. Hanya bisa di client-side.
- */
+// ============================================================
+// HELPER FUNCTIONS
+// ============================================================
+// Mengambil user_id dari localStorage atau sessionStorage
 function getUserId() {
   if (typeof window === "undefined") {
     throw new Error("Harus di client-side. Tunggu sampai browser mount.");
   }
 
-  // Coba ambil dari localStorage dulu
   const idStr = localStorage.getItem("user_id");
   if (idStr) {
     const id = Number(idStr);
     if (!Number.isNaN(id)) return id;
   }
 
-  // Jika tidak ada, coba ambil dari sessionStorage (mengambil key user yang berisi JSON user)
   const userJson = sessionStorage.getItem("user");
   if (userJson) {
     try {
@@ -69,16 +73,13 @@ function getUserId() {
       if (userObj && typeof userObj.id === 'number') {
         return userObj.id;
       }
-      // Also try if id is string number
       if (userObj && typeof userObj.id === 'string' && !isNaN(Number(userObj.id))) {
         return Number(userObj.id);
       }
     } catch {
-      // JSON parsing error - ignore and fallback
     }
   }
 
-  // Jika tidak ada, coba ambil dari sessionStorage "user_id" secara khusus masih fallback lama
   const sessionIdStr = sessionStorage.getItem("user_id");
   if (sessionIdStr) {
     const id = Number(sessionIdStr);
@@ -88,11 +89,12 @@ function getUserId() {
   throw new Error("User ID tidak ditemukan. Pastikan sudah login.");
 }
 
+// ============================================================
+// SERVICE CLASS
+// ============================================================
 class RelevansiPendidikanService {
-     /**
-     * Fetch data berdasarkan tipe subtab
-     */
-    async fetchData(subtab: SubTab, prodi?: string): Promise<DataItem[]> {
+  // Mengambil data berdasarkan tipe subtab
+  async fetchData(subtab: SubTab, prodi?: string): Promise<DataItem[]> {
       try {
         let url = `${API_BASE}?subtab=${subtab}`;
         if (prodi) {
@@ -117,9 +119,7 @@ class RelevansiPendidikanService {
     }
   }
 
-  /**
-   * Tambah data baru
-   */
+  // Menambah data baru
   async createData(data: DataItem, type: SubTab): Promise<ApiResponse> {
     try {
       const response = await fetch(API_BASE, {
@@ -144,9 +144,7 @@ class RelevansiPendidikanService {
     }
   }
 
-  /**
-   * Update data yang sudah ada
-   */
+  // Mengupdate data yang sudah ada
   async updateData(id: number, data: DataItem, subtab: SubTab): Promise<ApiResponse> {
     try {
       const response = await fetch(`${API_BASE}/${id}`, {

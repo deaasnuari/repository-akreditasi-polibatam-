@@ -8,7 +8,9 @@ import { relevansiPendidikanService, SubTab, DataItem, API_BASE } from '@/servic
 import { getReviews as fetchReviews } from '@/services/reviewService';
 import * as XLSX from 'xlsx';
 
-// --- Table titles ---
+// ============================================================
+// CONFIGURATION: Table Titles
+// ============================================================
 const tableTitles: Record<SubTab, string> = {
   mahasiswa: 'Tabel 2.A.1 Data Mahasiswa',
   'keragaman-asal': 'Tabel 2.A.2 Keragaman Asal Mahasiswa',
@@ -26,6 +28,10 @@ const tableTitles: Record<SubTab, string> = {
 export default function RelevansiPendidikanPage() {
   const pathname = usePathname();
   const router = useRouter();
+
+  // ============================================================
+  // STATE: Data & Form Management
+  // ============================================================
   const [activeSubTab, setActiveSubTab] = useState<SubTab>('mahasiswa');
   const [data, setData] = useState<DataItem[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -33,6 +39,10 @@ export default function RelevansiPendidikanPage() {
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [formData, setFormData] = useState<any>({});
   const [saving, setSaving] = useState(false);
+
+  // ============================================================
+  // STATE: Excel Import
+  // ============================================================
   const [importing, setImporting] = useState(false);
   const [previewFile, setPreviewFile] = useState<File | null>(null);
   const [previewHeaders, setPreviewHeaders] = useState<string[]>([]);
@@ -40,6 +50,10 @@ export default function RelevansiPendidikanPage() {
   const [suggestions, setSuggestions] = useState<Record<string, string>>({});
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [mapping, setMapping] = useState<Record<string, string>>({});
+
+  // ============================================================
+  // STATE: Modal & Notifications
+  // ============================================================
   const [popup, setPopup] = useState<{ show: boolean; message: string; type: 'success' | 'error' | 'info' }>({
     show: false,
     message: '',
@@ -52,17 +66,21 @@ export default function RelevansiPendidikanPage() {
   const [p4mNotes, setP4mNotes] = useState<any[]>([]);
   const [loadingP4mNotes, setLoadingP4mNotes] = useState(false);
 
-  // Search state
+  // ============================================================
+  // STATE: Search
+  // ============================================================
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
-  // --- Fungsi Popup ---
+  // ============================================================
+  // FUNCTIONS: Popup & Notifications
+  // ============================================================
   const showPopup = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     setPopup({ show: true, message, type });
     setTimeout(() => setPopup({ show: false, message: '', type: 'success' }), 3000);
   };
 
-  // --- Fungsi untuk melihat catatan P4M ---
+  // Melihat catatan dari reviewer P4M
   const handleViewP4mNotes = async (item: any) => {
     setSelectedItemForNotes(item);
     setShowP4MNotes(true);
@@ -79,6 +97,9 @@ export default function RelevansiPendidikanPage() {
     }
   };
 
+  // ============================================================
+  // COMPONENTS: Popup Notification
+  // ============================================================
   const PopupNotification = () => {
     if (!popup.show) return null;
     const bgColor = popup.type === 'success' ? 'bg-green-50 border-green-500' :
@@ -112,6 +133,9 @@ export default function RelevansiPendidikanPage() {
     );
   };
 
+  // ============================================================
+  // FUNCTIONS: Draft & Submit
+  // ============================================================
   const handleSaveDraft = async () => {
     showPopup('Menyimpan draft...', 'info');
     try {
@@ -186,6 +210,9 @@ export default function RelevansiPendidikanPage() {
     }
   };
 
+  // ============================================================
+  // CONFIGURATION: Navigation Tabs
+  // ============================================================
   const tabs = [
     { label: 'Budaya Mutu', href: '/dashboard/tim-akreditasi/lkps' },
     { label: 'Relevansi Pendidikan', href: '/dashboard/tim-akreditasi/lkps/relevansi-pendidikan' },
@@ -195,7 +222,9 @@ export default function RelevansiPendidikanPage() {
     { label: 'Diferensiasi Misi', href: '/dashboard/tim-akreditasi/lkps/diferensiasi-misi' },
   ];
 
-  // --- Fetch Data ---
+  // ============================================================
+  // FUNCTIONS: Data Fetching
+  // ============================================================
   const fetchData = async () => {
     try {
       const result = await relevansiPendidikanService.fetchData(activeSubTab);
@@ -212,11 +241,14 @@ export default function RelevansiPendidikanPage() {
     }
   };
 
+  // ============================================================
+  // EFFECT: Data Loading & Search
+  // ============================================================
   useEffect(() => {
     fetchData();
   }, [activeSubTab]);
 
-  // debounce search
+  // Debounce search input
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 300);
     return () => clearTimeout(t);

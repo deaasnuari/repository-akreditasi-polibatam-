@@ -32,6 +32,7 @@ export default function Navbar() {
 
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [changePassword, setChangePassword] = useState(false);
   const [profileForm, setProfileForm] = useState({
     username: '',
     currentPassword: '',
@@ -209,6 +210,7 @@ export default function Navbar() {
                     onClick={() => {
                       setProfileDropdownOpen(false);
                       setProfileModalOpen(true);
+                      setChangePassword(false);
                       setProfileForm({
                         username: user.username,
                         currentPassword: '',
@@ -262,48 +264,79 @@ export default function Navbar() {
                 placeholder="Enter new username"
               />
             </div>
+            
+            {/* Checkbox untuk mengaktifkan ubah password */}
             <div className="grid grid-cols-4 items-center gap-4">
-              <label htmlFor="currentPassword" className="text-right">
-                Current Password
-              </label>
-              <input
-                id="currentPassword"
-                type="password"
-                value={profileForm.currentPassword}
-                onChange={(e) => setProfileForm({ ...profileForm, currentPassword: e.target.value })}
-                 autoComplete="current-password"
-                className="col-span-3 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#183A64]"
-                placeholder="Enter current password"
-              />
+              <div className="col-start-2 col-span-3">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={changePassword}
+                    onChange={(e) => {
+                      setChangePassword(e.target.checked);
+                      if (!e.target.checked) {
+                        setProfileForm({
+                          ...profileForm,
+                          currentPassword: '',
+                          newPassword: '',
+                          confirmPassword: ''
+                        });
+                      }
+                    }}
+                    className="w-4 h-4 text-[#183A64] border-gray-300 rounded focus:ring-[#183A64]"
+                  />
+                  <span className="text-sm text-gray-700">Ubah Password</span>
+                </label>
+              </div>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <label htmlFor="newPassword" className="text-right">
-                New Password
-              </label>
-              <input
-                id="newPassword"
-                type="password"
-                value={profileForm.newPassword}
-                onChange={(e) => setProfileForm({ ...profileForm, newPassword: e.target.value })}
-                 autoComplete="new-password"
-                className="col-span-3 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#183A64]"
-                placeholder="Enter new password"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <label htmlFor="confirmPassword" className="text-right">
-                Confirm Password
-              </label>
-              <input
-                id="confirmPassword"
-                type="password"
-                value={profileForm.confirmPassword}
-                onChange={(e) => setProfileForm({ ...profileForm, confirmPassword: e.target.value })}
-                 autoComplete="new-password"
-                className="col-span-3 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#183A64]"
-                placeholder="Confirm new password"
-              />
-            </div>
+
+            {/* Field password hanya aktif jika checkbox dicentang */}
+            {changePassword && (
+              <>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <label htmlFor="currentPassword" className="text-right">
+                    Current Password
+                  </label>
+                  <input
+                    id="currentPassword"
+                    type="password"
+                    value={profileForm.currentPassword}
+                    onChange={(e) => setProfileForm({ ...profileForm, currentPassword: e.target.value })}
+                    autoComplete="current-password"
+                    className="col-span-3 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#183A64]"
+                    placeholder="Enter current password"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <label htmlFor="newPassword" className="text-right">
+                    New Password
+                  </label>
+                  <input
+                    id="newPassword"
+                    type="password"
+                    value={profileForm.newPassword}
+                    onChange={(e) => setProfileForm({ ...profileForm, newPassword: e.target.value })}
+                    autoComplete="new-password"
+                    className="col-span-3 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#183A64]"
+                    placeholder="Enter new password"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <label htmlFor="confirmPassword" className="text-right">
+                    Confirm Password
+                  </label>
+                  <input
+                    id="confirmPassword"
+                    type="password"
+                    value={profileForm.confirmPassword}
+                    onChange={(e) => setProfileForm({ ...profileForm, confirmPassword: e.target.value })}
+                    autoComplete="new-password"
+                    className="col-span-3 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#183A64]"
+                    placeholder="Confirm new password"
+                  />
+                </div>
+              </>
+            )}
           </div>
           <DialogFooter>
             <Button
@@ -311,10 +344,10 @@ export default function Navbar() {
               variant="outline"
               onClick={() => {
                 setProfileModalOpen(false);
+                setChangePassword(false);
                 setProfileForm({
                   username: '',
                   currentPassword: '',
-  
                   newPassword: '',
                   confirmPassword: ''
                 });

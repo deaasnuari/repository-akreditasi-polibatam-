@@ -7,33 +7,34 @@ import { createOrUpdateBuktiPendukung } from '../controllers/buktiPendukungContr
 
 const upload = multer({ storage: multer.memoryStorage() });
 
-// ======================
-// 🟦 GET DATA BY TYPE
-// ======================
+// ============================================================
+// CRUD OPERATIONS: Budaya Mutu Data
+// ============================================================
+// Mengambil data budaya mutu berdasarkan type dan role
 export const getData = async (req, res) => {
-  const { type, prodi } = req.query; // Changed prodiFilter to prodi
+  const { type, prodi } = req.query;
   try {
       const user_id = req.user.id;
-      const user_prodi = req.user.prodi; // Get prodi from authenticated user
-      const user_role = req.user.role; // Get user role
+      const user_prodi = req.user.prodi;
+      const user_role = req.user.role;
 
-      let whereClause = { type }; // Start with type filter
+      let whereClause = { type };
 
       const normalizedRole = user_role ? user_role.trim().toLowerCase() : '';
       
       if (normalizedRole === 'tim akreditasi') {
-        // Tim Akreditasi can ONLY view data for their own prodi
+        // Tim Akreditasi hanya bisa melihat data prodi mereka sendiri
         if (!user_prodi) {
           return res.status(403).json({ success: false, message: "Prodi pengguna tidak ditemukan." });
         }
         whereClause.prodi = user_prodi;
       } else if (normalizedRole === 'p4m') {
-        // P4M can view all data, but can also filter by prodi if 'prodi' query param is provided
-        if (prodi) { // Use 'prodi' from query
+        // P4M bisa melihat semua data, bisa difilter dengan parameter prodi
+        if (prodi) {
           whereClause.prodi = prodi;
         }
       } else {
-        // Other roles always filter by their user_id AND their prodi
+        // Role lain filter berdasarkan user_id dan prodi mereka
         whereClause.user_id = user_id;
         if (!user_prodi) {
           return res.status(403).json({ success: false, message: "Prodi pengguna tidak ditemukan." });
@@ -47,7 +48,7 @@ export const getData = async (req, res) => {
         select: {
           id: true,
           type: true,
-          prodi: true, // Select the prodi field
+          prodi: true,
           data: true,
           created_at: true,
           updated_at: true,
@@ -60,10 +61,7 @@ export const getData = async (req, res) => {
   }
 };
 
-
-/* =============================================
-   GET DISTINCT PRODI
-============================================= */
+// Mengambil daftar prodi yang berbeda
 export const getDistinctProdi = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -74,11 +72,9 @@ export const getDistinctProdi = async (req, res) => {
     const normalizedUserRole = userRole ? userRole.trim().toLowerCase() : '';
 
     if (normalizedUserRole !== 'tim akreditasi') {
-      // For non-admin roles, filter by user's prodi
       if (userProdi) {
         whereClause = { prodi: userProdi };
       } else {
-        // If not admin and no user prodi, return empty
         return res.json({ success: true, data: [] });
       }
     }
@@ -100,15 +96,13 @@ export const getDistinctProdi = async (req, res) => {
   }
 };
 
-// ======================
-// 🟩 CREATE DATA
-// ======================
+// Membuat data budaya mutu baru
 export const createData = async (req, res) => {
-  const { type, data, prodi } = req.body; // Destructure prodi from req.body
+  const { type, data, prodi } = req.body;
   const user_id = req.user.id;
-  const user_prodi = req.user.prodi; // Get prodi from authenticated user
+  const user_prodi = req.user.prodi;
 
-  const final_prodi = prodi || user_prodi; // Use prodi from body or user's prodi as fallback
+  const final_prodi = prodi || user_prodi;
 
   if (!final_prodi) {
     return res.status(400).json({ success: false, message: "Prodi tidak ditemukan" });
@@ -137,12 +131,10 @@ export const createData = async (req, res) => {
   }
 };
 
-// ======================
-// 🟧 UPDATE DATA
-// ======================
+// Mengupdate data budaya mutu yang ada
 export const updateData = async (req, res) => {
   const { id } = req.params;
-  const { type, data, prodi } = req.body; // Destructure prodi from req.body
+  const { type, data, prodi } = req.body;
 
   try {
     const cleanData = normalizeRow(data);
@@ -151,7 +143,7 @@ export const updateData = async (req, res) => {
       where: { id: Number(id) },
       data: {
         type,
-        prodi: prodi, // Update prodi field
+        prodi: prodi,
         data: cleanData,
         updated_at: new Date(),
       },
@@ -164,9 +156,7 @@ export const updateData = async (req, res) => {
   }
 };
 
-// ======================
-// 🟥 DELETE DATA
-// ======================
+// Menghapus data budaya mutu
 export const deleteData = async (req, res) => {
   const { id } = req.params;
 
@@ -182,9 +172,9 @@ export const deleteData = async (req, res) => {
   }
 };
 
-/* =============================================
-   SUBTAB FIELDS DEFINITION
-============================================= */
+// ============================================================
+// CONFIGURATION: Subtab Fields Definition
+// ============================================================
 const subtabFields = {
   'tupoksi': [
     { key: 'unitKerja', label: 'Unit Kerja' },
@@ -244,9 +234,10 @@ const subtabFields = {
   ],
 };
 
-/* =============================================
-   PREVIEW EXCEL - NEW ENDPOINT
-============================================= */
+// ============================================================
+// EXCEL IMPORT: Preview & Import Functions
+// ============================================================
+// Preview Excel sebelum import
 export const previewExcel = [
   upload.single("file"),
   async (req, res) => {
@@ -300,9 +291,7 @@ export const previewExcel = [
   }
 ];
 
-/* =============================================
-   IMPORT EXCEL - UPDATED
-============================================= */
+// Import data dari Excel ke database
 export const importExcel = [
   upload.single("file"),
   async (req, res) => {
@@ -356,7 +345,7 @@ export const importExcel = [
           const rawRow = rows[i];
           const mappedData = {};
 
-          // Get prodi for this record. Prioritize mapped 'prodi' from Excel, then fallback to user's prodi.
+          // Tentukan prodi untuk record ini
           let record_prodi = req.user.prodi; 
           if (mapping.prodi && rawRow.hasOwnProperty(mapping.prodi)) {
             record_prodi = rawRow[mapping.prodi];
@@ -370,9 +359,9 @@ export const importExcel = [
             continue;
           }
 
-          // Map Excel columns to database fields, excluding 'prodi' from the data JSON
+          // Mapping kolom Excel ke field database
           Object.entries(mapping).forEach(([dbField, excelColumn]) => {
-            if (dbField !== 'prodi' && excelColumn && rawRow.hasOwnProperty(excelColumn)) { // Exclude 'prodi' from data JSON
+            if (dbField !== 'prodi' && excelColumn && rawRow.hasOwnProperty(excelColumn)) {
               mappedData[dbField] = rawRow[excelColumn];
             }
           });
@@ -397,12 +386,11 @@ export const importExcel = [
 
           const cleanData = normalizeRow(mappedData);
 
-          // Save to database
           await prisma.budaya_mutu.create({
             data: {
               user_id,
               type,
-              prodi: record_prodi, // Include the determined prodi
+              prodi: record_prodi,
               data: cleanData,
             },
           });
@@ -424,7 +412,7 @@ export const importExcel = [
         message: `Import selesai: ${added} berhasil, ${errors.length} gagal`,
         added,
         failed: errors.length,
-        errors: errors.slice(0, 10) // Return max 10 errors
+        errors: errors.slice(0, 10)
       });
 
     } catch (err) {
@@ -438,9 +426,10 @@ export const importExcel = [
   },
 ];
 
-/* =============================================
-   HELPER: GENERATE SUGGESTIONS
-============================================= */
+// ============================================================
+// HELPER FUNCTIONS
+// ============================================================
+// Generate suggestions untuk mapping kolom Excel
 function generateSuggestions(headers, type) {
   const suggestions = {};
   const fields = subtabFields[type] || [];
@@ -458,16 +447,14 @@ function generateSuggestions(headers, type) {
         .replace(/[()]/g, '')
         .replace(/-/g, '');
 
-      // Exact match
       if (normalizedHeader === normalizedKey || normalizedHeader === normalizedLabel) {
         suggestions[field.key] = header;
         break;
       }
 
-      // Partial match
       if (normalizedHeader.includes(normalizedKey) || 
           normalizedLabel.includes(normalizedHeader)) {
-        if (!suggestions[field.key]) { // Don't override exact matches
+        if (!suggestions[field.key]) {
           suggestions[field.key] = header;
         }
       }
@@ -477,9 +464,7 @@ function generateSuggestions(headers, type) {
   return suggestions;
 }
 
-/* =============================================
-   NORMALIZATION & FILTER
-============================================= */
+// Normalisasi value untuk consistency
 function normalizeValue(value) {
   if (value === undefined || value === null || value === "") return null;
   if (typeof value === 'string') return value.trim();
@@ -494,11 +479,10 @@ function normalizeRow(row = {}) {
   return result;
 }
 
-// ======================================================
-// 🏗 STRUKTUR ORGANISASI (CRUD FILE)
-// ======================================================
-
-// UPLOAD FILE STRUKTUR
+// ============================================================
+// STRUKTUR ORGANISASI: File Management
+// ============================================================
+// Upload file struktur organisasi
 export const uploadStruktur = async (req, res) => {
   const file = req.file;
 
@@ -526,7 +510,7 @@ export const uploadStruktur = async (req, res) => {
   }
 };
 
-// GET TERBARU
+// Mengambil file struktur organisasi terbaru
 export const getStruktur = async (req, res) => {
   try {
     const file = await prisma.struktur_files.findFirst({
@@ -552,7 +536,7 @@ export const getStruktur = async (req, res) => {
   }
 };
 
-// UPDATE FILE STRUKTUR
+// Update file struktur organisasi
 export const updateStruktur = async (req, res) => {
   const { id } = req.params;
   const file = req.file;
@@ -590,7 +574,7 @@ export const updateStruktur = async (req, res) => {
   }
 };
 
-// DELETE FILE
+// Hapus file struktur organisasi
 export const deleteStruktur = async (req, res) => {
   const { id } = req.params;
 
@@ -617,15 +601,14 @@ export const deleteStruktur = async (req, res) => {
   }
 };
 
-// ======================
-// 📝 SAVE DRAFT (Budaya Mutu Specific with Bukti Pendukung Reference)
-// ======================
+// ============================================================
+// DRAFT MANAGEMENT
+// ============================================================
+// Menyimpan draft dengan referensi ke bukti pendukung
 export const saveDraft = async (req, res) => {
   const { nama, path, status, type, currentData } = req.body;
   const user_id = req.user.id;
   const user_prodi = req.user.prodi;
-
-  // Basic validation
   if (!nama || !path || !status || !type || !currentData) {
     return res.status(400).json({ success: false, message: "Nama, path, status, type, dan data tidak boleh kosong" });
   }
@@ -642,9 +625,8 @@ export const saveDraft = async (req, res) => {
       currentDataSample: currentData?.[0]
     });
 
-    // PENTING: Data sudah tersimpan di budaya_mutu melalui CREATE/UPDATE endpoint
-    // Save draft hanya perlu membuat referensi di bukti_pendukung
-    // JANGAN update budaya_mutu di sini karena akan menghapus data yang sudah ada!
+    // NOTE: Data sudah tersimpan di budaya_mutu via CREATE/UPDATE endpoint
+    // Save draft hanya membuat referensi di bukti_pendukung
 
     // Verifikasi data exists di budaya_mutu
     const existingDataCount = await prisma.budaya_mutu.count({
@@ -657,20 +639,7 @@ export const saveDraft = async (req, res) => {
 
     console.log(`✅ [SAVE DRAFT] Data exists di budaya_mutu: ${existingDataCount} rows`);
 
-    // Create/Update a reference in Bukti Pendukung
-    // We need to simulate req, res objects for createOrUpdateBuktiPendukung
-    const buktiPendukungReq = {
-      body: { nama, path, status },
-      user: req.user,
-    };
-    const buktiPendukungRes = {
-      status: (code) => ({ json: (data) => ({ code, data }) }), // Mock response
-      json: (data) => ({ code: 200, data }), // Mock response
-    };
-
-    // Call the original createOrUpdateBuktiPendukung logic directly
-    // This requires a slight refactor in createOrUpdateBuktiPendukung to not use res directly for success paths
-    // For now, I'll directly replicate the create/update logic here.
+    // Buat/Update referensi di Bukti Pendukung
     const existingBukti = await prisma.buktiPendukung.findFirst({
       where: {
         userId: user_id,
