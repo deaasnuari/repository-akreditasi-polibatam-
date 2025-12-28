@@ -446,6 +446,12 @@ export default function LKPSPage() {
     fetchData();
   }, [activeSubTab, user, userLoaded]); // Added user and userLoaded to dependencies
 
+  // Fetch struktur organisasi saat pertama kali load
+  useEffect(() => {
+    if (!userLoaded || !user) return;
+    fetchStrukturOrganisasi();
+  }, [user, userLoaded]);
+
   // Debounce search input for better UX
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 300);
