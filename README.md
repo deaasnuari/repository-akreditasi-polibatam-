@@ -64,10 +64,10 @@ Sistem ini menyediakan:
   👉 https://youtu.be/zYjUWDvrqzM
 
 - 🎥 **Video DEMO Aplikasi YouTube**  
-  👉 
+  👉 https://youtu.be/DtCmV2fpFAs
 
 - 📊 **Poster Proyek**  
-  👉
+  👉 https://drive.google.com/drive/u/0/folders/1DzdmLFSlFUndvDDpB1r7DeZf_JJmQjIF
   
 - 📘 **LINK GITHUB PBL**  
   👉 https://github.com/deaasnuari/repository-akreditasi-polibatam-
