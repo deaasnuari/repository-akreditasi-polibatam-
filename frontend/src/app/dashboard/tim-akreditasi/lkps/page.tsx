@@ -793,6 +793,7 @@ export default function LKPSPage() {
         try {
           const res = await fetch(`${API_BASE}/struktur/${strukturFileId}`, {
             method: "DELETE",
+            credentials: 'include',
           });
           const json = await res.json();
 
