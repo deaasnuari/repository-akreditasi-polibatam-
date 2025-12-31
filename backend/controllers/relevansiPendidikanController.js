@@ -5,9 +5,10 @@ import { createOrUpdateBuktiPendukung } from '../controllers/buktiPendukungContr
 
 const upload = multer({ storage: multer.memoryStorage() });
 
-/* =============================================
-   NORMALIZATION & FILTER
-============================================= */
+// ============================================================
+// HELPER FUNCTIONS
+// ============================================================
+// Normalisasi value untuk consistency
 function normalizeValue(value) {
   if (value === undefined || value === null || value === "") return null;
   return value;
@@ -21,49 +22,48 @@ function normalizeRow(row = {}) {
   return result;
 }
 
-/* =============================================
-   GET DATA
-============================================= */
+// ============================================================
+// CRUD OPERATIONS: Relevansi Pendidikan Data
+// ============================================================
+// Mengambil data berdasarkan subtab dan role
 export const getData = async (req, res) => {
   try {
     const subtab = req.query.subtab;
-    const prodi = req.query.prodi; // Changed prodiFilter to prodi
+    const prodi = req.query.prodi;
     const userId = req.user.id;
     const userRole = req.user.role;
-    const userProdi = req.user.prodi; // Get prodi from authenticated user
+    const userProdi = req.user.prodi;
 
     console.log("getData: user_id:", userId, "user_role:", userRole, "user_prodi:", userProdi, "prodi_query:", prodi);
 
-    // Build the WHERE clause
-    let whereClause = { subtab }; // Use any for now to allow dynamic properties
-    // Normalize userRole for robust comparison
+    let whereClause = { subtab };
     const normalizedUserRole = userRole ? userRole.trim().toLowerCase() : '';
 
     if (normalizedUserRole === 'tim akreditasi') {
       console.log("getData: Tim Akreditasi role.");
-      // Tim Akreditasi can ONLY view data for their own prodi
+      // Tim Akreditasi hanya bisa melihat data prodi mereka sendiri
       if (!userProdi) {
         return res.status(403).json({ success: false, message: "Prodi pengguna tidak ditemukan." });
       }
       whereClause.prodi = userProdi;
     } else if (normalizedUserRole === 'p4m') {
       console.log("getData: P4M role.");
-      // P4M can view all data, but can also filter by prodi if 'prodi' query param is provided
-      if (prodi) { // Use 'prodi' from query
+      // P4M bisa melihat semua data, bisa difilter dengan parameter prodi
+      if (prodi) {
         whereClause.prodi = prodi;
         console.log("getData: P4M filtering by prodi:", prodi);
       } else {
-        console.log("getData: P4M, no prodi filter applied."); // P4M sees all data for the subtab
+        console.log("getData: P4M, no prodi filter applied.");
       }
     } else {
       console.log("getData: Non-admin role.");
-      whereClause.user_id = userId; // Non-admin always filtered by their user_id
+      whereClause.user_id = userId;
 
       if (!userProdi) {
         console.log("getData: Non-admin role, no user prodi found.");
-        return res.json({ success: true, data: [] }); // If no prodi context, return empty
+        return res.json({ success: true, data: [] });
       }
-      whereClause.prodi = userProdi; // Non-admin, always filter by user's prodi
+      whereClause.prodi = userProdi;
       console.log("getData: Non-admin, filtering by user's prodi:", userProdi);
     }
 
@@ -74,14 +74,13 @@ export const getData = async (req, res) => {
       orderBy: { id: "asc" },
       select: {
         id: true,
-        prodi: true, // Select prodi as a top-level field
+        prodi: true,
         data: true,
       },
     });
 
-    // kembalikan field `data` saja plus id dan prodi
     const data = rows.map(r => ({ id: r.id, prodi: r.prodi, ...r.data }));
-    console.log("getData: Data sent to frontend:", data); // Added log
+    console.log("getData: Data sent to frontend:", data);
 
     res.json({ success: true, data });
   } catch (err) {
@@ -90,9 +89,7 @@ export const getData = async (req, res) => {
   }
 };
 
-/* =============================================
-   GET DISTINCT PRODI
-============================================= */
+// Mengambil daftar prodi yang berbeda
 export const getDistinctProdi = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -107,7 +104,7 @@ export const getDistinctProdi = async (req, res) => {
       if (userProdi) {
         whereClause.prodi = userProdi;
       } else {
-        return res.json({ success: true, data: [] }); // If not admin and no user prodi, return empty
+        return res.json({ success: true, data: [] });
       }
     }
 
@@ -128,16 +125,14 @@ export const getDistinctProdi = async (req, res) => {
   }
 };
 
-/* =============================================
-   CREATE DATA
-============================================= */
+// Membuat data baru
 export const createData = async (req, res) => {
   try {
-    const { subtab, prodi, ...body } = req.body; // Extract prodi
+    const { subtab, prodi, ...body } = req.body;
     const userId = req.user.id;
     const userProdi = req.user.prodi;
 
-    const finalProdi = prodi || userProdi; // Use provided prodi or user's prodi
+    const finalProdi = prodi || userProdi;
 
     if (!finalProdi) {
       return res.status(400).json({ success: false, message: "Prodi tidak ditemukan" });

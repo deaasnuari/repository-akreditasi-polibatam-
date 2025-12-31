@@ -1,7 +1,9 @@
 const API_BASE_LKPS = 'http://localhost:5000/api/budaya-mutu';
 const API_BASE_LED = 'http://localhost:5000/api/led';
 
-// ==================== 🔹 TYPE ====================
+// ============================================================
+// TYPE DEFINITIONS
+// ============================================================
 export type SubTab =
   | 'tupoksi'
   | 'pendanaan'
@@ -9,12 +11,12 @@ export type SubTab =
   | 'ewmp'
   | 'ktk'
   | 'spmi'
-  | 'budaya-mutu'; // tambahan untuk LED
+  | 'budaya-mutu';
 
-// ===================================================
-// ============== 🟦 LKPS SECTION (TIDAK DIUBAH) =====
-// ===================================================
-
+// ============================================================
+// LKPS API FUNCTIONS
+// ============================================================
+// Mengambil data budaya mutu berdasarkan tipe
 export const fetchBudayaMutuData = async (type: SubTab) => {
   try {
     const res = await fetch(`${API_BASE_LKPS}?type=${type}`, {
@@ -28,6 +30,7 @@ export const fetchBudayaMutuData = async (type: SubTab) => {
   }
 };
 
+// Membuat data budaya mutu baru
 export const createBudayaMutuData = async (type: SubTab, data: any) => {
   try {
     const res = await fetch(API_BASE_LKPS, {
@@ -43,6 +46,7 @@ export const createBudayaMutuData = async (type: SubTab, data: any) => {
   }
 };
 
+// Mengupdate data budaya mutu yang ada
 export const updateBudayaMutuData = async (id: string, type: SubTab, data: any) => {
   try {
     const res = await fetch(`${API_BASE_LKPS}/${id}`, {
@@ -57,6 +61,7 @@ export const updateBudayaMutuData = async (id: string, type: SubTab, data: any) 
     return { success: false, message: 'Gagal update data' };
   }
 };
+// Menghapus data budaya mutu
 
 export const deleteBudayaMutuData = async (id: string) => {
   try {
@@ -70,6 +75,7 @@ export const deleteBudayaMutuData = async (id: string) => {
     return { success: false, message: 'Gagal menghapus data' };
   }
 };
+// Import data dari file Excel
 
 export const importExcelBudayaMutu = async (file: File, type: SubTab) => {
   const formData = new FormData();
@@ -87,7 +93,10 @@ export const importExcelBudayaMutu = async (file: File, type: SubTab) => {
   }
 };
 
-// ==================== Draft / LocalStorage ====================
+// ============================================================
+// LOCAL STORAGE FUNCTIONS
+// ============================================================
+// Menyimpan draft ke localStorage
 export function saveDraftBudayaMutu(subTab: SubTab, data: any[]) {
   try {
     localStorage.setItem(`lkps_${subTab}`, JSON.stringify(data));
@@ -96,6 +105,7 @@ export function saveDraftBudayaMutu(subTab: SubTab, data: any[]) {
   }
 }
 
+// Memuat draft dari localStorage
 export function loadDraftBudayaMutu(subTab: SubTab) {
   try {
     const saved = localStorage.getItem(`lkps_${subTab}`);
