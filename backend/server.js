@@ -5,6 +5,8 @@ import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
 
+dotenv.config();
+
 // Routes
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
@@ -22,8 +24,6 @@ import relevansiPkmRoutes from "./routes/relevansiPkm.js";
 import akreditasiRoutes from "./routes/akreditasiRoutes.js";
 import manajemenAkunRoutes from "./routes/manajemenAkunRoutes.js";
 import buktiPendukungRoutes from './routes/buktiPendukungRoutes.js';
-
-dotenv.config();
 
 // Untuk mendapatkan __dirname di ES Module
 const __filename = fileURLToPath(import.meta.url);
