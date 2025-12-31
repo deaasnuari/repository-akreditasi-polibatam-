@@ -169,11 +169,16 @@ export const updateData = async (req, res) => {
 // ======================
 export const deleteData = async (req, res) => {
   const { id } = req.params;
+  const userId = req.user.id; // Get user ID from authenticated token
 
   try {
-    await prisma.budaya_mutu.delete({
-      where: { id: Number(id) },
+    const deleted = await prisma.budaya_mutu.deleteMany({
+      where: { id: Number(id), user_id: userId }, // Add user_id to where clause
     });
+
+    if (!deleted.count) {
+      return res.status(404).json({ success: false, message: "Data tidak ditemukan atau Anda tidak memiliki izin untuk menghapus data ini" });
+    }
 
     res.json({ success: true, message: "Data berhasil dihapus" });
   } catch (err) {
