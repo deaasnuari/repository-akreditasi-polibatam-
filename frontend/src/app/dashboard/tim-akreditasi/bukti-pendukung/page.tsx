@@ -353,7 +353,7 @@ export default function BuktiPendukungPage() {
           </div>
           <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
           <DialogTrigger asChild>
-            <button className="flex items-center gap-2 bg-[#183A64] hover:bg-[#2A4F85] text-white px-4 py-2 rounded-lg shadow transition">
+            <button className="flex items-center gap-2 bg-[#183A64] text-white px-4 py-2 rounded-lg shadow transition-colors duration-200 hover:bg-[#ADE7F7] hover:text-[#183A64]">
               <Link2 size={18} />
               Tautkan Bukti
             </button>
@@ -419,14 +419,14 @@ export default function BuktiPendukungPage() {
                     setEditMode(false);
                     setEditingItem(null);
                   }}
-                  className="px-4 py-2 text-sm border rounded-md hover:bg-gray-50"
+                  className="px-4 py-2 text-sm border rounded-md transition-colors duration-200 hover:bg-gray-100"
                 >
                   Batal
                 </button>
                 <button
                   onClick={editMode ? handleUpdate : handleUpload}
                   disabled={!linkUrl.trim() || !uploadData.judul.trim()}
-                  className="px-4 py-2 text-sm bg-[#183A64] text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 hover:bg-[#2A4F85]"
+                  className="px-4 py-2 text-sm bg-[#183A64] text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors duration-200 hover:bg-[#ADE7F7] hover:text-[#183A64]"
                 >
                   <Link2 size={16} /> 
                   {editMode ? "Update Link" : "Simpan Link"}
@@ -455,7 +455,7 @@ export default function BuktiPendukungPage() {
                 </button>
                 <button
                   onClick={confirmDelete}
-                  className="px-4 py-2 text-sm bg-red-600 text-white rounded-md hover:bg-red-700"
+                  className="px-4 py-2 text-sm bg-red-600 text-white rounded-md transition-colors duration-200 hover:bg-red-700"
                 >
                   Hapus
                 </button>
@@ -569,7 +569,7 @@ export default function BuktiPendukungPage() {
                     (item.status === "Diterima" || item.status === "Menunggu") ? (
                       <button 
                         onClick={() => handleLihat(item)}
-                        className="bg-blue-100 text-blue-700 px-3 py-1 rounded-md text-xs hover:bg-blue-200 flex items-center gap-1.5"
+                        className="bg-white border border-[#183A64] text-[#183A64] px-3 py-1 rounded-md text-xs transition-colors duration-200 hover:bg-[#ADE7F7] flex items-center gap-1.5"
                       >
                         <Eye size={14} />
                         Lihat
@@ -577,7 +577,7 @@ export default function BuktiPendukungPage() {
                     ) : (
                       <button 
                         onClick={() => handleLanjutkan(item)}
-                        className="bg-blue-600 text-white px-3 py-1 rounded-md text-xs hover:bg-blue-700 flex items-center gap-1.5"
+                        className="bg-[#183A64] text-white px-3 py-1 rounded-md text-xs transition-colors duration-200 hover:bg-[#ADE7F7] hover:text-[#183A64] flex items-center gap-1.5"
                       >
                         <Edit2 size={14} />
                         Lanjutkan
@@ -654,16 +654,16 @@ export default function BuktiPendukungPage() {
             <div className="p-4 border-t flex justify-end gap-2">
               <button
                 onClick={() => setConfirmModal({ open: false, path: '', judul: '', isViewMode: false })}
-                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                className="px-4 py-2 bg-gray-500 text-white rounded-lg transition-colors duration-200 hover:bg-gray-600"
               >
                 Batal
               </button>
               <button
                 onClick={confirmLanjutkan}
-                className={`px-4 py-2 rounded-lg flex items-center gap-1.5 ${
+                className={`px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors duration-200 ${
                   confirmModal.isViewMode 
-                    ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' 
-                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                    ? 'bg-white border border-[#183A64] text-[#183A64] hover:bg-[#ADE7F7]' 
+                    : 'bg-[#183A64] text-white hover:bg-[#ADE7F7] hover:text-[#183A64]'
                 }`}
               >
                 {confirmModal.isViewMode ? (

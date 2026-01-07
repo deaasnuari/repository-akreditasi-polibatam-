@@ -502,8 +502,8 @@ export default function AkuntabilitasPage() {
               </div>
             </div>
             <div className="flex gap-2">
-              <button onClick={handleSaveDraft} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"><Save size={16} /> Draft</button>
-              <button onClick={handleSubmitForReview} className="flex items-center gap-2 px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800"><Send size={16} /> Ajukan untuk Review</button>
+              <button onClick={handleSaveDraft} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg transition-colors duration-200 hover:bg-[#ADE7F7]"><Save size={16} /> Draft</button>
+              <button onClick={handleSubmitForReview} className="flex items-center gap-2 px-4 py-2 bg-[#183A64] text-white rounded-lg transition-colors duration-200 hover:bg-[#ADE7F7] hover:text-[#183A64]"><Send size={16} /> Ajukan untuk Review</button>
             </div>
           </div>
 
@@ -566,12 +566,12 @@ export default function AkuntabilitasPage() {
                   )}
                 </div>
 
-                <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2 text-sm text-white bg-blue-700 rounded-lg hover:bg-blue-800">
+                <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2 text-sm text-white bg-[#183A64] rounded-lg transition-colors duration-200 hover:bg-[#ADE7F7] hover:text-[#183A64]">
                   <Plus size={16} /> Tambah Data
                 </button>
                 <form onSubmit={(e) => e.preventDefault()} className="relative">
                   <input type="file" accept=".xlsx, .xls, .csv" id="importExcel" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleImportExcel} />
-                  <label htmlFor="importExcel" className="flex items-center gap-2 px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-100 cursor-pointer">
+                  <label htmlFor="importExcel" className="flex items-center gap-2 px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg transition-colors duration-200 hover:bg-[#ADE7F7] cursor-pointer">
                     <Upload size={16} /> Import Excel
                   </label>
                 </form>

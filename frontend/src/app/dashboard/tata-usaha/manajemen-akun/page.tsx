@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { UserPlus, Shield, Edit2, Trash2, X } from "lucide-react";
+import { UserPlus, Shield, Edit2, Trash2, X, CheckCircle } from "lucide-react";
 import { fetchAllUsers, createUser, deleteUser as apiDeleteUser, updateUser as apiUpdateUser } from '@/services/manajemenAkunService';
 
 export default function ManajemenAkun() {
@@ -12,6 +12,8 @@ export default function ManajemenAkun() {
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [users, setUsers] = useState<any[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
+  const [successModal, setSuccessModal] = useState<{show: boolean, message: string}>({show: false, message: ''});
+  const [deleteModal, setDeleteModal] = useState<{show: boolean, user: any | null}>({show: false, user: null});
 
   useEffect(() => {
     let mounted = true;
@@ -73,7 +75,7 @@ export default function ManajemenAkun() {
             setEditingRoleSelected('Tim Akreditasi');
             setShowModal(true);
           }}
-          className="bg-[#001B79] text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-800"
+          className="bg-[#183A64] text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors duration-200 hover:bg-[#ADE7F7] hover:text-[#183A64]"
         >
           <UserPlus size={18} /> Tambah User
         </button>
@@ -192,20 +194,8 @@ export default function ManajemenAkun() {
                     >
                       <Edit2 size={16} />
                     </button>
-                    {/* only Edit and Delete remain per design */}
                     <button 
-                      onClick={() => {
-                        if (confirm('Apakah Anda yakin ingin menghapus user ini?')) {
-                          // call backend
-                          apiDeleteUser(u.id).then((res:any) => {
-                            if (res.success) {
-                              setUsers(users.filter(user => user.id !== u.id));
-                            } else {
-                              alert(res.message || 'Gagal menghapus user');
-                            }
-                          }).catch(() => alert('Gagal menghapus user'));
-                        }
-                      }}
+                      onClick={() => setDeleteModal({show: true, user: u})}
                       className="text-red-600 hover:text-red-800"
                       title="Hapus User"
                     >
@@ -312,6 +302,7 @@ export default function ManajemenAkun() {
                     };
                     setUsers(users.map(u => u.id === editingUser.id ? mappedUpdated : u));
                     setShowModal(false);
+                    setSuccessModal({show: true, message: `Akun ${updated.nama_lengkap} berhasil diperbarui!`});
                   } else {
                     alert(res.message || 'Gagal update user');
                   }
@@ -342,6 +333,7 @@ export default function ManajemenAkun() {
                     };
                     setUsers([...users, mappedCreated]);
                     setShowModal(false);
+                    setSuccessModal({show: true, message: `Akun ${created.nama_lengkap} berhasil dibuat!`});
                   } else {
                     alert(res.message || 'Gagal membuat user');
                   }
@@ -502,12 +494,81 @@ export default function ManajemenAkun() {
                 </button>
                 <button
                   type="submit"
-                  className="px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="px-3 py-1 text-sm bg-[#183A64] text-white rounded-lg transition-colors duration-200 hover:bg-[#ADE7F7] hover:text-[#183A64]"
                 >
                   {editingUser ? 'Simpan Perubahan' : 'Tambah User'}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteModal.show && deleteModal.user && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full mx-4">
+            <div className="flex flex-col items-center text-center">
+              <div className="bg-red-100 rounded-full p-3 mb-4">
+                <Trash2 className="text-red-600" size={32} />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Hapus User
+              </h3>
+              <p className="text-gray-600 mb-6">
+                Apakah Anda yakin ingin menghapus akun <span className="font-semibold">{deleteModal.user.nama_lengkap}</span>?
+              </p>
+              <div className="flex gap-3 w-full">
+                <button
+                  onClick={() => setDeleteModal({show: false, user: null})}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={() => {
+                    const userId = deleteModal.user.id;
+                    const userName = deleteModal.user.nama_lengkap;
+                    apiDeleteUser(userId).then((res: any) => {
+                      if (res.success) {
+                        setUsers(users.filter(user => user.id !== userId));
+                        setDeleteModal({show: false, user: null});
+                        setSuccessModal({show: true, message: `Akun ${userName} berhasil dihapus!`});
+                      } else {
+                        setDeleteModal({show: false, user: null});
+                        alert(res.message || 'Gagal menghapus user');
+                      }
+                    }).catch(() => {
+                      setDeleteModal({show: false, user: null});
+                      alert('Gagal menghapus user');
+                    });
+                  }}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200"
+                >
+                  Hapus
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Modal */}
+      {successModal.show && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 max-w-xs w-full mx-4">
+            <div className="flex flex-col items-center text-center">
+              <CheckCircle className="text-green-500 mb-3" size={48} />
+              <p className="text-gray-800 font-medium mb-4">
+                ✅ {successModal.message}
+              </p>
+              <button
+                onClick={() => setSuccessModal({show: false, message: ''})}
+                className="w-full bg-[#183A64] text-white px-4 py-2 rounded-lg transition-colors duration-200 hover:bg-[#ADE7F7] hover:text-[#183A64]"
+              >
+                OK
+              </button>
+            </div>
           </div>
         </div>
       )}

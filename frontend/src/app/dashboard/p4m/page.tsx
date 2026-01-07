@@ -32,6 +32,9 @@ export default function P4MDashboardPage() {
   const [filterCategory, setFilterCategory] = useState('Semua Kategori');
   const [filterStatus, setFilterStatus] = useState('Semua Status');
   const [showNotification, setShowNotification] = useState(false);
+  const [reviewModal, setReviewModal] = useState<{show: boolean, item: P4MItem | null}>({show: false, item: null});
+  const [completeModal, setCompleteModal] = useState<{show: boolean, item: P4MItem | null}>({show: false, item: null});
+  const [successModal, setSuccessModal] = useState<{show: boolean, message: string}>({show: false, message: ''});
 
   // Module names mapping
   const moduleNames: Record<string, string> = {
@@ -161,9 +164,7 @@ export default function P4MDashboardPage() {
   }, [showNotification]);
 
   // Handle complete (mark as done)
-  const handleComplete = async (item: P4MItem) => {
-    if (!confirm('Tandai dokumen ini sebagai selesai dan hapus dari dashboard?')) return;
-    
+  const handleComplete = async (item: P4MItem) => {    
     try {
       let success = false;
       
@@ -194,13 +195,13 @@ export default function P4MDashboardPage() {
           }
           return match;
         }));
-        alert('Dokumen berhasil ditandai sebagai selesai');
+        setSuccessModal({show: true, message: 'Dokumen berhasil ditandai sebagai selesai'});
       } else {
         throw new Error('Failed to complete');
       }
     } catch (err) {
       console.error('Failed to complete:', err);
-      alert('Gagal menandai dokumen sebagai selesai');
+      setSuccessModal({show: true, message: 'Gagal menandai dokumen sebagai selesai'});
     }
   };
 
@@ -536,17 +537,17 @@ export default function P4MDashboardPage() {
                       {/* Aksi */}
                       <td className="px-4 py-3 text-center">
                         {item.status === 'Menunggu' ? (
-                          <Link
-                            href={item.path || '#'}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium"
+                          <button
+                            onClick={() => setReviewModal({show: true, item: item})}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#183A64] text-white rounded-lg transition-colors duration-200 hover:bg-[#ADE7F7] hover:text-[#183A64] text-xs font-medium"
                           >
                             <Eye size={14} />
                             Review
-                          </Link>
+                          </button>
                         ) : (item.status === 'Diterima' || item.status === 'Perlu Revisi') ? (
                           <button
-                            onClick={() => handleComplete(item)}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-xs font-medium"
+                            onClick={() => setCompleteModal({show: true, item: item})}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#183A64] text-white rounded-lg transition-colors duration-200 hover:bg-[#ADE7F7] hover:text-[#183A64] text-xs font-medium"
                           >
                             <Check size={14} />
                             Selesai
@@ -566,6 +567,92 @@ export default function P4MDashboardPage() {
               Menampilkan {filteredData.length} dari {data.length} item
             </div>
           )}
+      
+      {/* Review Confirmation Modal */}
+      {reviewModal.show && reviewModal.item && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full mx-4">
+            <div className="flex flex-col items-center text-center">
+              <div className="bg-blue-100 rounded-full p-3 mb-4">
+                <Eye className="text-blue-600" size={32} />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Mulai Review
+              </h3>
+              <p className="text-gray-600 mb-2">
+                Apakah Anda ingin melakukan review untuk:
+              </p>
+              <p className="font-semibold text-gray-900 mb-1">{reviewModal.item.judul}</p>
+              <p className="text-sm text-gray-500 mb-6">Kategori: {reviewModal.item.kategori}</p>
+              <div className="flex gap-3 w-full">
+                <button
+                  onClick={() => setReviewModal({show: false, item: null})}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200"
+                >
+                  Batal
+                </button>
+                <Link
+                  href={reviewModal.item.path || '#'}
+                  onClick={() => setReviewModal({show: false, item: null})}
+                  className="flex-1 px-4 py-2 bg-[#183A64] text-white rounded-lg transition-colors duration-200 hover:bg-[#ADE7F7] hover:text-[#183A64] text-center"
+                >
+                  Lanjutkan
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Complete Confirmation Modal */}
+      {completeModal.show && completeModal.item && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full mx-4">
+            <div className="flex flex-col text-left">
+              <h3 className="text-base font-normal text-gray-900 mb-4">
+                Tandai dokumen ini sebagai selesai dan hapus dari dashboard?
+              </h3>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setCompleteModal({show: false, item: null})}
+                  className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors duration-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    handleComplete(completeModal.item!);
+                    setCompleteModal({show: false, item: null});
+                  }}
+                  className="px-6 py-2 bg-[#183A64] text-white rounded-lg transition-colors duration-200 hover:bg-[#ADE7F7] hover:text-[#183A64]"
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Modal */}
+      {successModal.show && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 max-w-xs w-full mx-4">
+            <div className="flex flex-col items-center text-center">
+              <CheckCircle className="text-green-500 mb-3" size={48} />
+              <p className="text-gray-800 font-medium mb-4">
+                ✅ {successModal.message}
+              </p>
+              <button
+                onClick={() => setSuccessModal({show: false, message: ''})}
+                className="w-full bg-[#183A64] text-white px-4 py-2 rounded-lg transition-colors duration-200 hover:bg-[#ADE7F7] hover:text-[#183A64]"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -96,6 +96,8 @@ export default function LKPSPage() {
   const [suggestions, setSuggestions] = useState<Record<string, string>>({});
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [mapping, setMapping] = useState<Record<string, string>>({});
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [importedCount, setImportedCount] = useState(0);
 
   // ============================================================
   // STATE: Struktur Organisasi
@@ -335,31 +337,31 @@ export default function LKPSPage() {
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[80] animate-fadeIn p-4">
-        <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden animate-scaleIn">
-          <div className="flex justify-between items-center p-6 border-b">
-            <h3 className="text-xl font-semibold text-gray-900">Preview Import Excel</h3>
+        <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden animate-scaleIn">
+          <div className="flex justify-between items-center p-4 border-b">
+            <h3 className="text-lg font-semibold text-gray-900">Preview Import Excel</h3>
             <button
               onClick={() => setShowPreviewModal(false)}
               className="text-gray-500 hover:text-gray-700"
             >
-              <X size={24} />
+              <X size={20} />
             </button>
           </div>
 
-          <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+          <div className="p-4 overflow-y-auto max-h-[calc(85vh-120px)]">
             {/* Mapping Section */}
-            <div className="mb-6">
-              <h4 className="text-lg font-medium text-gray-800 mb-4">Mapping Kolom</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="mb-4">
+              <h4 className="text-base font-medium text-gray-800 mb-3">Mapping Kolom</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {getFormFields(activeSubTab).map(field => (
-                  <div key={field.key} className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
+                  <div key={field.key} className="space-y-1">
+                    <label className="block text-xs font-medium text-gray-700">
                       {field.label}
                     </label>
                     <select
                       value={mapping[field.key] || ''}
                       onChange={(e) => handleMappingChange(field.key, e.target.value)}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-300 focus:border-blue-300"
+                      className="w-full border border-gray-300 rounded px-2 py-1.5 text-xs focus:ring-2 focus:ring-blue-300 focus:border-blue-300"
                     >
                       <option value="">Pilih Kolom Excel</option>
                       {previewHeaders.map((header, index) => (
@@ -369,7 +371,7 @@ export default function LKPSPage() {
                       ))}
                     </select>
                     {suggestions[field.key] && (
-                      <p className="text-xs text-blue-600">
+                      <p className="text-[10px] text-blue-600">
                         Saran: {suggestions[field.key]}
                       </p>
                     )}
@@ -379,14 +381,14 @@ export default function LKPSPage() {
             </div>
 
             {/* Preview Table */}
-            <div className="mb-6">
-              <h4 className="text-lg font-medium text-gray-800 mb-4">Preview Data (5 baris pertama)</h4>
-              <div className="overflow-x-auto border rounded-lg">
+            <div className="mb-4">
+              <h4 className="text-base font-medium text-gray-800 mb-3">Preview Data (5 baris pertama)</h4>
+              <div className="overflow-x-auto border rounded">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
                       {previewHeaders.map((header, index) => (
-                        <th key={index} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th key={index} className="px-3 py-2 text-left text-[10px] font-medium text-gray-500 uppercase tracking-wider">
                           {header}
                         </th>
                       ))}
@@ -396,7 +398,7 @@ export default function LKPSPage() {
                     {previewRows.slice(0, 5).map((row, rowIndex) => (
                       <tr key={rowIndex}>
                         {previewHeaders.map((header, colIndex) => (
-                          <td key={colIndex} className="px-4 py-2 text-sm text-gray-900">
+                          <td key={colIndex} className="px-3 py-1.5 text-xs text-gray-900">
                             {row[header] || '-'}
                           </td>
                         ))}
@@ -406,36 +408,67 @@ export default function LKPSPage() {
                 </table>
               </div>
               {previewRows.length > 5 && (
-                <p className="text-sm text-gray-600 mt-2">
+                <p className="text-xs text-gray-600 mt-1">
                   ... dan {previewRows.length - 5} baris lainnya
                 </p>
               )}
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 p-6 border-t bg-gray-50">
+          <div className="flex justify-end gap-2 p-4 border-t bg-gray-50">
             <button
               onClick={() => setShowPreviewModal(false)}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
+              className="px-3 py-1.5 text-sm border border-gray-300 rounded text-gray-700 hover:bg-gray-50 transition"
             >
               Batal
             </button>
             <button
               onClick={handleCommitImport}
               disabled={importing}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-4 py-1.5 text-sm bg-[#183A64] text-white rounded transition-colors duration-200 hover:bg-[#ADE7F7] hover:text-[#183A64] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {importing ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
                   Mengimport...
                 </>
               ) : (
                 <>
-                  <Upload size={16} />
+                  <Upload size={14} />
                   Import Data
                 </>
               )}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Success Modal
+  const SuccessModal = () => {
+    if (!showSuccessModal) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[90] animate-fadeIn">
+        <div className="bg-white rounded-lg shadow-2xl w-full max-w-xs animate-scaleIn">
+          <div className="p-3">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mb-2">
+                <CheckCircle size={20} className="text-green-600" />
+              </div>
+              <h3 className="text-base font-semibold text-gray-900 mb-1">Import Berhasil!</h3>
+              <p className="text-xs text-gray-600 mb-2">
+                {importedCount} data berhasil diimport
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-center p-3 border-t bg-gray-50">
+            <button
+              onClick={() => setShowSuccessModal(false)}
+              className="px-4 py-1 text-xs bg-[#183A64] text-white rounded transition-colors duration-200 hover:bg-[#ADE7F7] hover:text-[#183A64]"
+            >
+              OK
             </button>
           </div>
         </div>
@@ -701,9 +734,10 @@ export default function LKPSPage() {
       const json = await res.json();
 
       if (res.ok && json.success) {
-        showPopup(`Import ${activeSubTab} berhasil`, 'success');
+        setImportedCount(json.imported || previewRows.length);
         fetchData();
         setShowPreviewModal(false);
+        setShowSuccessModal(true);
         setPreviewFile(null);
         setPreviewHeaders([]);
         setPreviewRows([]);
@@ -1216,10 +1250,10 @@ export default function LKPSPage() {
             </div>
             <div className="flex gap-2 items-center">
               <NotificationBell />
-              <button onClick={handleSaveDraft} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+              <button onClick={handleSaveDraft} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg transition-colors duration-200 hover:bg-[#ADE7F7]">
                 <Save size={16} /> Draft
               </button>
-              <button onClick={handleSubmitForReview} className="flex items-center gap-2 px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800">
+              <button onClick={handleSubmitForReview} className="flex items-center gap-2 px-4 py-2 bg-[#183A64] text-white rounded-lg transition-colors duration-200 hover:bg-[#ADE7F7] hover:text-[#183A64]">
                 <Send size={16} /> Ajukan untuk Review
               </button>
             </div>
@@ -1252,7 +1286,7 @@ export default function LKPSPage() {
 
                 <label
                   htmlFor="strukturFile"
-                  className="px-3 py-1 bg-blue-900 text-white text-sm rounded hover:bg-blue-800 cursor-pointer flex items-center gap-2"
+                  className="px-3 py-1 bg-[#183A64] text-white text-sm rounded transition-colors duration-200 hover:bg-[#ADE7F7] hover:text-[#183A64] cursor-pointer flex items-center gap-2"
                 >
                   <Upload size={16} />
                   {strukturFileUrl ? "Ganti File" : "Upload Struktur Organisasi"}
@@ -1272,7 +1306,7 @@ export default function LKPSPage() {
                     <div className="absolute top-3 right-3 flex gap-2">
                       <label
                         htmlFor="strukturFile"
-                        className="p-2 bg-blue-100 rounded-full hover:bg-blue-200 cursor-pointer"
+                        className="p-2 bg-blue-100 rounded-full transition-colors duration-200 hover:bg-[#ADE7F7] cursor-pointer"
                         title="Ganti File"
                       >
                         <Edit size={16} className="text-blue-700" />
@@ -1352,10 +1386,10 @@ export default function LKPSPage() {
                     )}
                   </div>
 
-                  <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2 text-sm text-white bg-blue-700 rounded-lg hover:bg-blue-800"><Plus size={16} /> Tambah Data</button>
+                  <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2 text-sm text-white bg-[#183A64] rounded-lg transition-colors duration-200 hover:bg-[#ADE7F7] hover:text-[#183A64]"><Plus size={16} /> Tambah Data</button>
                   <div className="relative">
                     <input type="file" accept=".xlsx, .xls" id="importExcel" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleFileChange} />
-                    <label htmlFor="importExcel" className="flex items-center gap-2 px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-100 cursor-pointer">
+                    <label htmlFor="importExcel" className="flex items-center gap-2 px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg transition-colors duration-200 hover:bg-[#ADE7F7] cursor-pointer">
                       <Upload size={16} /> Import Excel
                     </label>
                   </div>
@@ -1492,6 +1526,10 @@ export default function LKPSPage() {
               </div>
             )}
           </div>
+
+          {/* Modals */}
+          <PreviewModal />
+          <SuccessModal />
         </main>
       </div>
     </div>

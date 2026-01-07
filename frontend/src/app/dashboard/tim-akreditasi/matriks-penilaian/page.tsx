@@ -219,14 +219,14 @@ export default function MatriksPenilaianPage() {
                   // reset
                   if (!confirm('Reset semua skor?')) return;
                   setCriteria(prev => prev.map(c => ({ ...c, skorInput: 0, skorTerbobot: 0 })));
-                }} className="w-full px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm text-gray-700">
+                }} className="w-full px-4 py-2 border border-gray-300 rounded-lg transition-colors duration-200 hover:bg-[#ADE7F7] text-sm text-gray-700">
                   <RotateCcw size={14} /> Reset Semua
                 </button>
               )}
               <button
                 onClick={handleExport}
                 disabled={isExporting}
-                className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm text-gray-700 disabled:opacity-50"
+                className="w-full flex items-center justify-center px-4 py-2 bg-[#183A64] text-white rounded-lg transition-colors duration-200 hover:bg-[#ADE7F7] hover:text-[#183A64] text-sm disabled:opacity-50"
               >
                 {isExporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
                 <span className="ml-2">{isExporting ? 'Mengekspor...' : 'Export Hasil'}</span>

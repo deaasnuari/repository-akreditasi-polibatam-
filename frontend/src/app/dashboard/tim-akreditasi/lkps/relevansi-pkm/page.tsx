@@ -415,8 +415,8 @@ export default function RelevansiPkmPage() {
               </div>
             </div>
             <div className="flex gap-2">
-              <button onClick={handleSaveDraft} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"><Save size={16} /> Draft</button>
-              <button onClick={handleSubmitForReview} className="flex items-center gap-2 px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800"><Send size={16} /> Ajukan untuk Review</button>
+              <button onClick={handleSaveDraft} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg transition-colors duration-200 hover:bg-[#ADE7F7]"><Save size={16} /> Draft</button>
+              <button onClick={handleSubmitForReview} className="flex items-center gap-2 px-4 py-2 bg-[#183A64] text-white rounded-lg transition-colors duration-200 hover:bg-[#ADE7F7] hover:text-[#183A64]"><Send size={16} /> Ajukan untuk Review</button>
             </div>
           </div>
 
@@ -470,10 +470,10 @@ export default function RelevansiPkmPage() {
                   )}
                 </div>
 
-                <button onClick={openAdd} className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm text-white bg-blue-700 rounded-lg hover:bg-blue-800"><Plus size={14} className="sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Tambah</span> Tambah Data</button>
+                <button onClick={openAdd} className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm text-white bg-[#183A64] rounded-lg transition-colors duration-200 hover:bg-[#ADE7F7] hover:text-[#183A64]"><Plus size={14} className="sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Tambah</span> Tambah Data</button>
                 <form onSubmit={(e) => e.preventDefault()} className="relative">
                   <input type="file" accept=".xlsx, .xls" id="importExcel" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleFileChange} />
-                  <label htmlFor="importExcel" className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-100 cursor-pointer"><Upload size={14} className="sm:w-4 sm:h-4" /> Import Excel</label>
+                  <label htmlFor="importExcel" className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm bg-white border border-gray-300 rounded-lg transition-colors duration-200 hover:bg-[#ADE7F7] cursor-pointer"><Upload size={14} className="sm:w-4 sm:h-4" /> Import Excel</label>
                 </form>
               </div>
             </div>

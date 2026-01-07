@@ -602,7 +602,7 @@ export default function BudayaMutuLEDPage() {
             <button
               type="button"
               onClick={() => setShowReviewModal(true)}
-              className="inline-flex items-center gap-2 bg-[#183A64] text-white px-6 py-3 rounded-lg hover:bg-[#2C5F8D] transition-all duration-200 shadow-md hover:shadow-lg font-medium"
+              className="inline-flex items-center gap-2 bg-[#183A64] text-white px-6 py-3 rounded-lg transition-colors duration-200 hover:bg-[#ADE7F7] hover:text-[#183A64] shadow-md font-medium"
             >
               <CheckCircle className="h-5 w-5" />
               Aksi Review
@@ -614,9 +614,9 @@ export default function BudayaMutuLEDPage() {
       {/* Review Modal */}
       {showReviewModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-gradient-to-r from-[#183A64] to-[#2C5F8D] text-white p-4 flex items-center justify-between rounded-t-lg">
-              <h3 className="text-xl font-bold">Form Review LED</h3>
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-gradient-to-r from-[#183A64] to-[#2C5F8D] text-white p-6 flex items-center justify-between rounded-t-lg">
+              <h3 className="text-2xl font-bold">Form Review LED</h3>
               <button
                 onClick={() => setShowReviewModal(false)}
                 className="text-white hover:bg-white/20 rounded-full p-1 transition-colors"
@@ -625,22 +625,22 @@ export default function BudayaMutuLEDPage() {
               </button>
             </div>
 
-            <div className="p-6 space-y-6">
-              <div className="bg-[#ADE7F7]/20 border-l-4 border-[#183A64] p-4 rounded">
-                <p className="text-sm text-gray-700">
+            <div className="p-8 space-y-6">
+              <div className="bg-[#ADE7F7]/20 border-l-4 border-[#183A64] p-5 rounded">
+                <p className="text-base text-gray-700">
                   <strong>Tab yang direview:</strong> {tabs.find(([k]) => k === activeTab)?.[1]}
                 </p>
               </div>
 
               {/* Status Review */}
               <div>
-                <label className="block text-sm font-semibold text-[#183A64] mb-2">
+                <label className="block text-base font-semibold text-[#183A64] mb-3">
                   Status Review <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={reviewStatus}
                   onChange={(e) => setReviewStatus(e.target.value as 'Perlu Revisi' | 'Diterima')}
-                  className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:border-[#183A64] focus:ring-2 focus:ring-[#ADE7F7]/50 focus:outline-none"
+                  className="w-full border border-gray-300 rounded-lg p-3 text-base focus:border-[#183A64] focus:ring-2 focus:ring-[#ADE7F7]/50 focus:outline-none"
                 >
                   <option value="Diterima">✅ Diterima</option>
                   <option value="Perlu Revisi">⚠️ Perlu Revisi</option>
@@ -649,7 +649,7 @@ export default function BudayaMutuLEDPage() {
 
               {/* Catatan Reviewer */}
               <div>
-                <label className="block text-sm font-semibold text-[#183A64] mb-2">
+                <label className="block text-base font-semibold text-[#183A64] mb-3">
                   Catatan Reviewer <span className="text-red-500">*</span>
                 </label>
                 <textarea
@@ -657,18 +657,18 @@ export default function BudayaMutuLEDPage() {
                   onChange={(e) => setReviewNotes(e.target.value)}
                   rows={6}
                   placeholder="Berikan catatan atau feedback untuk Tim Akreditasi..."
-                  className="w-full border border-gray-300 rounded-lg p-3 text-sm resize-y focus:border-[#183A64] focus:ring-2 focus:ring-[#ADE7F7]/50 focus:outline-none"
+                  className="w-full border border-gray-300 rounded-lg p-4 text-base resize-y focus:border-[#183A64] focus:ring-2 focus:ring-[#ADE7F7]/50 focus:outline-none"
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-sm text-gray-500 mt-2">
                   Catatan ini akan dikirim ke Tim Akreditasi sebagai feedback
                 </p>
               </div>
 
               {/* Alert berdasarkan status */}
               {reviewStatus === 'Perlu Revisi' && (
-                <div className="flex items-start gap-3 bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
-                  <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5 flex-shrink-0" />
-                  <div className="text-sm text-yellow-800">
+                <div className="flex items-start gap-3 bg-yellow-50 border-l-4 border-yellow-500 p-5 rounded">
+                  <AlertCircle className="h-6 w-6 text-yellow-600 mt-0.5 flex-shrink-0" />
+                  <div className="text-base text-yellow-800">
                     <p className="font-medium">Status: Perlu Revisi</p>
                     <p className="mt-1">Data akan dikembalikan ke Tim Akreditasi untuk diperbaiki</p>
                   </div>
@@ -676,9 +676,9 @@ export default function BudayaMutuLEDPage() {
               )}
 
               {reviewStatus === 'Diterima' && (
-                <div className="flex items-start gap-3 bg-green-50 border-l-4 border-green-500 p-4 rounded">
-                  <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                  <div className="text-sm text-green-800">
+                <div className="flex items-start gap-3 bg-green-50 border-l-4 border-green-500 p-5 rounded">
+                  <CheckCircle className="h-6 w-6 text-green-600 mt-0.5 flex-shrink-0" />
+                  <div className="text-base text-green-800">
                     <p className="font-medium">Status: Diterima</p>
                     <p className="mt-1">Data akan disetujui dan dilanjutkan ke tahap berikutnya</p>
                   </div>
@@ -686,7 +686,7 @@ export default function BudayaMutuLEDPage() {
               )}
 
               {/* Action Buttons */}
-              <div className="flex justify-end gap-3 pt-4 border-t">
+              <div className="flex justify-end gap-4 pt-6 border-t">
                 <button
                   type="button"
                   onClick={() => {
@@ -694,7 +694,7 @@ export default function BudayaMutuLEDPage() {
                     setReviewNotes('');
                     setReviewStatus('Diterima');
                   }}
-                  className="px-6 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm"
+                  className="px-8 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-base"
                 >
                   Batal
                 </button>
@@ -702,10 +702,10 @@ export default function BudayaMutuLEDPage() {
                   type="button"
                   onClick={handleSubmitReview}
                   disabled={!reviewNotes.trim()}
-                  className="px-6 py-2.5 bg-[#183A64] text-white rounded-lg hover:bg-[#2C5F8D] transition-colors font-medium text-sm disabled:bg-gray-400 disabled:cursor-not-allowed shadow-md"
+                  className="px-8 py-3 bg-[#183A64] text-white rounded-lg transition-colors duration-200 hover:bg-[#ADE7F7] hover:text-[#183A64] font-medium text-base disabled:bg-gray-400 disabled:cursor-not-allowed shadow-md"
                 >
                   <span className="inline-flex items-center gap-2">
-                    <Save className="h-4 w-4" />
+                    <Save className="h-5 w-5" />
                     Simpan Review
                   </span>
                 </button>
@@ -821,7 +821,7 @@ function Table2Col({ rows, sectionKey, onAdd, onRemove, onUpdate, readOnly = fal
           <button
             type="button"
             onClick={handleAddClick}
-            className="inline-flex items-center gap-2 bg-[#183A64] text-white px-5 py-2 rounded-lg hover:bg-[#2C5F8D] transition-all duration-200 shadow-sm hover:shadow-md font-medium"
+            className="inline-flex items-center gap-2 bg-[#183A64] text-white px-5 py-2 rounded-lg transition-colors duration-200 hover:bg-[#ADE7F7] hover:text-[#183A64] shadow-sm font-medium"
           >
             <Plus className="h-4 w-4" /> Tambah Baris
           </button>
@@ -953,7 +953,7 @@ function SectionEval({ evalRows, sectionKey, titleSuffix, onAdd, onRemove, onUpd
             <button
               type="button"
               onClick={handleAddClick}
-              className="inline-flex items-center gap-2 bg-[#183A64] text-white px-5 py-2 rounded-lg hover:bg-[#2C5F8D] transition-all duration-200 shadow-sm hover:shadow-md font-medium"
+              className="inline-flex items-center gap-2 bg-[#183A64] text-white px-5 py-2 rounded-lg transition-colors duration-200 hover:bg-[#ADE7F7] hover:text-[#183A64] shadow-sm font-medium"
             >
               <Plus className="h-4 w-4" /> Tambah Baris
             </button>

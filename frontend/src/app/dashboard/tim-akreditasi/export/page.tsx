@@ -1860,7 +1860,7 @@ export default function ExportAkreditasi() {
               if (ledItems.length > 0 && exportFormat === 'EXCEL') return true;
               return false;
             })()}
-            className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium text-lg"
+            className="w-full bg-[#183A64] text-white py-3 px-6 rounded-lg transition-colors duration-200 hover:bg-[#ADE7F7] hover:text-[#183A64] disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium text-lg"
           >
             {loading ? (
               <>
@@ -1945,11 +1945,11 @@ export default function ExportAkreditasi() {
               {/* Button */}
               <button
                 onClick={closeModal}
-                className={`w-full py-2.5 px-4 rounded-lg font-medium transition ${
+                className={`w-full py-2.5 px-4 rounded-lg font-medium transition-colors duration-200 ${
                   modalType === 'success' ? 'bg-green-600 hover:bg-green-700 text-white' :
                   modalType === 'error' ? 'bg-red-600 hover:bg-red-700 text-white' :
                   modalType === 'warning' ? 'bg-yellow-600 hover:bg-yellow-700 text-white' :
-                  'bg-blue-600 hover:bg-blue-700 text-white'
+                  'bg-[#183A64] text-white hover:bg-[#ADE7F7] hover:text-[#183A64]'
                 }`}
               >
                 OK

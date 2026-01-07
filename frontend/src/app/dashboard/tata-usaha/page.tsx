@@ -42,7 +42,7 @@ export default function DashboardTataUsaha() {
                   Kelola akses dan permission sistem
                 </p>
               </div>
-              <button className="w-full mt-6 px-4 py-2 bg-blue-900 text-white rounded-lg font-semibold hover:bg-blue-800 transition-colors">
+              <button className="w-full mt-6 px-4 py-2 bg-[#183A64] text-white rounded-lg font-semibold transition-colors duration-200 hover:bg-[#ADE7F7] hover:text-[#183A64]">
                 Kelola Akun
               </button>
             </div>

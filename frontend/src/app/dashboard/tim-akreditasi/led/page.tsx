@@ -814,7 +814,7 @@ export default function BudayaMutuLEDPage() {
             <button
               type="button"
               onClick={handleSaveDraft}
-              className="inline-flex items-center gap-1 sm:gap-2 px-3 sm:px-6 py-2 sm:py-3 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 transition-all duration-200 text-xs sm:text-sm"
+              className="inline-flex items-center gap-1 sm:gap-2 px-3 sm:px-6 py-2 sm:py-3 rounded-lg border border-gray-300 bg-white transition-colors duration-200 hover:bg-[#ADE7F7] text-xs sm:text-sm"
             >
               <Save className="h-4 w-4 sm:h-5 sm:w-5" />
               <span className="hidden sm:inline">Save Draft</span>
@@ -823,7 +823,7 @@ export default function BudayaMutuLEDPage() {
             <button
               type="button"
               onClick={handleSubmitForReview}
-              className="inline-flex items-center gap-1 sm:gap-2 bg-[#183A64] text-white px-3 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-[#2C5F8D] transition-all duration-200 shadow-md hover:shadow-lg font-medium text-xs sm:text-sm"
+              className="inline-flex items-center gap-1 sm:gap-2 bg-[#183A64] text-white px-3 sm:px-6 py-2 sm:py-3 rounded-lg transition-colors duration-200 hover:bg-[#ADE7F7] hover:text-[#183A64] shadow-md hover:shadow-lg font-medium text-xs sm:text-sm"
             >
               <Send className="h-4 w-4 sm:h-5 sm:w-5" />
               <span className="hidden sm:inline">Ajukan untuk Review</span>
@@ -1055,7 +1055,7 @@ function Table2Col({ rows, sectionKey, onAdd, onRemove, onUpdate, extended = fal
         <button
           type="button"
           onClick={handleAddClick}
-          className="inline-flex items-center gap-1 sm:gap-2 bg-[#183A64] text-white px-3 sm:px-5 py-1.5 sm:py-2 rounded-lg hover:bg-[#2C5F8D] transition-all duration-200 shadow-sm hover:shadow-md font-medium text-xs sm:text-sm"
+          className="inline-flex items-center gap-1 sm:gap-2 bg-[#183A64] text-white px-3 sm:px-5 py-1.5 sm:py-2 rounded-lg transition-colors duration-200 hover:bg-[#ADE7F7] hover:text-[#183A64] shadow-sm hover:shadow-md font-medium text-xs sm:text-sm"
         >
           <Plus className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Tambah</span> Baris
         </button>
@@ -1171,7 +1171,7 @@ function SectionEval({ evalRows, sectionKey, titleSuffix, onAdd, onRemove, onUpd
           <button
             type="button"
             onClick={handleAddClick}
-            className="inline-flex items-center gap-1 sm:gap-2 bg-[#183A64] text-white px-3 sm:px-5 py-1.5 sm:py-2 rounded-lg hover:bg-[#2C5F8D] transition-all duration-200 shadow-sm hover:shadow-md font-medium text-xs sm:text-sm"
+            className="inline-flex items-center gap-1 sm:gap-2 bg-[#183A64] text-white px-3 sm:px-5 py-1.5 sm:py-2 rounded-lg transition-colors duration-200 hover:bg-[#ADE7F7] hover:text-[#183A64] shadow-sm hover:shadow-md font-medium text-xs sm:text-sm"
           >
             <Plus className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Tambah</span> Baris
           </button>
