@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Calculator, Download, Save, RotateCcw, Trophy, Loader2, Eye, X, Trash2 } from 'lucide-react';
+import { Calculator, Download, Save, RotateCcw, Trophy, Loader2, Eye, X, Trash2, CheckCircle } from 'lucide-react';
 import { matriksPenilaianService, type Criterion } from '@/services/matriksPenilaianService';
 
 type AccreditationGrade = 'A' | 'B' | 'C' | 'Tidak Terakreditasi';
@@ -22,6 +22,8 @@ export default function MatriksPenilaianPage() {
   const [user, setUser] = useState<User | null>(null);
   const [userLoaded, setUserLoaded] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const handleExport = async () => {
     setIsExporting(true);
@@ -98,6 +100,12 @@ export default function MatriksPenilaianPage() {
     fetchData();
   }, [user, userLoaded]); // Dependencies include user and userLoaded
 
+  const handleReset = () => {
+    setCriteria(prev => prev.map(c => ({ ...c, skorInput: 0, skorTerbobot: 0 })));
+    setShowConfirmModal(false);
+    setShowSuccessModal(true);
+  };
+
   const calculateTotalScore = () => {
     return matriksPenilaianService.calculateTotalScore(criteria);
   };
@@ -172,6 +180,56 @@ export default function MatriksPenilaianPage() {
 
   return (
     <div className="w-full bg-gray-50 min-h-screen">
+      {/* Confirmation Modal */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowConfirmModal(false)}>
+          <div className="bg-white rounded-lg shadow-2xl p-8 max-w-md w-full mx-4 transform transition-all" onClick={(e) => e.stopPropagation()}>
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mb-4">
+                <RotateCcw className="w-10 h-10 text-yellow-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-800 mb-2">Reset Semua Skor?</h3>
+              <p className="text-gray-600 mb-6">Tindakan ini akan menghapus semua skor yang telah diinput. Apakah Anda yakin?</p>
+              <div className="flex gap-3 w-full">
+                <button
+                  onClick={() => setShowConfirmModal(false)}
+                  className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200 font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleReset}
+                  className="flex-1 px-6 py-3 bg-[#183A64] text-white rounded-lg hover:bg-[#ADE7F7] hover:text-[#183A64] transition-colors duration-200 font-medium"
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowSuccessModal(false)}>
+          <div className="bg-white rounded-lg shadow-2xl p-8 max-w-md w-full mx-4 transform transition-all" onClick={(e) => e.stopPropagation()}>
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                <CheckCircle className="w-10 h-10 text-green-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-800 mb-2">Berhasil!</h3>
+              <p className="text-gray-600 mb-6">Semua skor berhasil direset.</p>
+              <button
+                onClick={() => setShowSuccessModal(false)}
+                className="px-6 py-3 bg-[#183A64] text-white rounded-lg hover:bg-[#ADE7F7] hover:text-[#183A64] transition-colors duration-200 font-medium"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <main className="w-full p-4 md:p-6 max-w-full">
         <div className="bg-white rounded-lg shadow p-6 mb-6 flex flex-col md:flex-row justify-between items-start gap-4">
           <div className="flex items-center gap-3">
@@ -216,9 +274,7 @@ export default function MatriksPenilaianPage() {
             <div className="space-y-2">
               {canEdit && (
                 <button onClick={() => {
-                  // reset
-                  if (!confirm('Reset semua skor?')) return;
-                  setCriteria(prev => prev.map(c => ({ ...c, skorInput: 0, skorTerbobot: 0 })));
+                  setShowConfirmModal(true);
                 }} className="w-full px-4 py-2 border border-gray-300 rounded-lg transition-colors duration-200 hover:bg-[#ADE7F7] text-sm text-gray-700">
                   <RotateCcw size={14} /> Reset Semua
                 </button>
