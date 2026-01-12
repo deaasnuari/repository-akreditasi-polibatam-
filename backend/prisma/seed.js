@@ -94,12 +94,24 @@ const matriksPenilaianData = [
   { no_urut: 75, no_butir: "6.3", elemen_penilaian: "Evaluasi: Ketercapaian ciri khas keilmuan", bobot_raw: 8.0, jenis: "O" }, // [cite: 332]
   { no_urut: 76, no_butir: "6.4", elemen_penilaian: "Pengendalian: Tindak lanjut ciri khas keilmuan", bobot_raw: 8.0, jenis: "P" },
   { no_urut: 77, no_butir: "6.5", elemen_penilaian: "Peningkatan: Optimalisasi ciri khas keilmuan", bobot_raw: 8.0, jenis: "O" }, // 
+
+  // SUPLEMEN (Berdasarkan PDF Hal. 58)
+  // Adjusted so total bobot database = 400
+  { no_urut: 78, no_butir: "S.1", elemen_penilaian: "Mata kuliah inti/khas prodi", bobot_raw: 2.0, jenis: "O" },
+  { no_urut: 79, no_butir: "S.2", elemen_penilaian: "Mata kuliah domain spesifik dan lingkungan prodi infokom", bobot_raw: 1.0, jenis: "O" },
+  { no_urut: 80, no_butir: "S.3", elemen_penilaian: "Mata kuliah terkait Matematika/metode atau Analisis Kuantitatif", bobot_raw: 1.0, jenis: "O" },
+  { no_urut: 81, no_butir: "S.4", elemen_penilaian: "Proyek Utama (Capstone project) yang relevan", bobot_raw: 2.0, jenis: "O" },
+  { no_urut: 82, no_butir: "S.5", elemen_penilaian: "Pengembangan bidang Infokom yang relevan dan inovatif", bobot_raw: 1.0, jenis: "O" },
 ];
 
 async function main() {
   console.log("Seeding database...");
 
   // Hapus data lama untuk menghindari duplikat
+  // Hapus tabel yang bergantung dulu untuk menghindari pelanggaran FK
+  await prisma.criteria_scores.deleteMany({});
+  console.log("✅ Old criteria scores deleted.");
+
   await prisma.criteria_items.deleteMany({});
   console.log("✅ Old criteria items deleted.");
 

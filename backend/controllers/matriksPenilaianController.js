@@ -13,6 +13,9 @@ export const getKriteria = async (req, res) => {
       ]
     });
 
+    // Compute total bobot_raw to inform frontend of actual denominator
+    const totalBobot = criteria.reduce((s, it) => s + parseFloat(it.bobot_raw || 0), 0);
+
     // Transform to match frontend expectations
     const transformed = criteria.map(item => ({
       id: item.id,
@@ -29,7 +32,8 @@ export const getKriteria = async (req, res) => {
       descriptor_1: item.descriptor_1,
     }));
 
-    res.json({ success: true, data: transformed });
+    // Return total_bobot alongside data so frontend can compute terbobot correctly
+    res.json({ success: true, data: transformed, total_bobot: totalBobot });
   } catch (error) {
     console.error('Error fetching criteria:', error);
     res.status(500).json({ success: false, message: 'Failed to fetch criteria' });
@@ -136,7 +140,10 @@ export const saveScore = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Criteria item not found' });
     }
 
-    const skor_terbobot = parseFloat((skor_prodi * (criteriaItem.bobot_raw / 400)).toFixed(3));
+    // Use actual total bobot from DB instead of fixed 400 to avoid inconsistencies
+    const agg = await prisma.criteria_items.aggregate({ _sum: { bobot_raw: true } });
+    const totalBobot = agg._sum.bobot_raw || 400;
+    const skor_terbobot = parseFloat((skor_prodi * (criteriaItem.bobot_raw / totalBobot)).toFixed(3));
 
     let savedScore;
     if (existingScore) {

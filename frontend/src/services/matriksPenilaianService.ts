@@ -29,6 +29,7 @@ export interface ApiResponse<T = any> {
 }
 
 class MatriksPenilaianService {
+  totalBobot: number = 400; // default fallback
   /**
    * Fetch kriteria penilaian
    */
@@ -46,7 +47,11 @@ class MatriksPenilaianService {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const result: ApiResponse<Criterion[]> = await response.json();
+      const result: any = await response.json();
+      // If backend provides total_bobot, store it for score calculations
+      if (result.total_bobot) {
+        this.totalBobot = result.total_bobot;
+      }
       return result.data || [];
     } catch (error) {
       console.error('Error fetching kriteria:', error);
@@ -123,8 +128,8 @@ class MatriksPenilaianService {
    * Hitung skor terbobot untuk satu kriteria
    */
   calculateSkorTerbobot(skorInput: number, bobot: number): number {
-    // Formula LAM INFOKOM: skor_terbobot = skor_prodi * (bobot / 400)
-    return +(skorInput * (bobot / 400)).toFixed(3);
+    // Use dynamic total bobot (backend may supply actual sum)
+    return +(skorInput * (bobot / this.totalBobot)).toFixed(3);
   }
 
   /**

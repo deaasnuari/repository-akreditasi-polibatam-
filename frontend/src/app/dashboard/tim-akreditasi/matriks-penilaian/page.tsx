@@ -155,16 +155,17 @@ export default function MatriksPenilaianPage() {
     { key: '4', name: 'Kriteria 4: Relevansi PkM' },
     { key: '5', name: 'Kriteria 5: Akuntabilitas' },
     { key: '6', name: 'Kriteria 6: Diferensiasi Misi' },
+    { key: 'S', name: 'SUPLEMEN' },
   ];
 
   const groupedAndOrderedCriteria = groupDefinitions.map(group => {
     const items = criteria.filter(c => {
-      // Group by '1.' for Kriteria 1, etc.
+      // Numeric groups (1., 2., etc.) match by prefix 'n.'
       if (!isNaN(parseInt(group.key))) {
         return c.no_butir?.startsWith(`${group.key}.`);
       }
-      // Group by exact match for 'A', 'B'
-      return c.no_butir === group.key;
+      // Letter groups (A, B, S) match by prefix as well to handle 'S.1', etc.
+      return c.no_butir?.startsWith(group.key);
     });
     return { ...group, items };
   }).filter(group => group.items.length > 0);
