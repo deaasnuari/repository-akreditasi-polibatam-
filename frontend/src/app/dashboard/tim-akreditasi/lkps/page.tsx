@@ -251,18 +251,18 @@ export default function LKPSPage() {
                  Info;
 
     return (
-      <div className="fixed top-0 left-0 right-0 flex justify-center z-[60] pt-4">
-        <div className={`${bgColor} ${textColor} border-l-4 rounded-lg shadow-2xl p-5 flex items-center gap-4 min-w-[350px] max-w-md animate-slideDown`}>
-          <Icon size={28} className={popup.type === 'success' ? 'text-green-500' : 
+      <div className="fixed top-0 left-0 right-0 flex justify-center z-[60] pt-4 px-4">
+        <div className={`${bgColor} ${textColor} border-l-4 rounded-lg shadow-2xl p-5 flex items-start gap-4 min-w-[350px] max-w-lg w-full animate-slideDown`}>
+          <Icon size={28} className={`flex-shrink-0 ${popup.type === 'success' ? 'text-green-500' : 
                                      popup.type === 'error' ? 'text-red-500' : 
-                                     'text-blue-500'} />
-          <div className="flex-1">
+                                     'text-blue-500'}`} />
+          <div className="flex-1 min-w-0">
             <p className="font-bold text-base mb-1">
               {popup.type === 'success' ? 'Berhasil!' : 
                popup.type === 'error' ? 'Error!' : 
                'Info'}
             </p>
-            <p className="text-sm">{popup.message}</p>
+            <p className="text-sm whitespace-pre-line break-words">{popup.message}</p>
           </div>
           <button 
             onClick={() => setPopup({ show: false, message: '', type: 'success' })}
@@ -673,7 +673,7 @@ export default function LKPSPage() {
       };
       fd.append('mapping', JSON.stringify(mappingImport[activeSubTab] || {}));
       console.log(activeSubTab)
-      const res = await fetch(`${API_BASE}/import/${activeSubTab}`, { method: 'POST', body: fd, credentials: 'include' });
+      const res = await fetch(`${API_BASE}/preview/${activeSubTab}`, { method: 'POST', body: fd, credentials: 'include' });
 
       if (!res.ok) {
         showPopup('Gagal memproses file', 'error');
@@ -716,11 +716,14 @@ export default function LKPSPage() {
     if (!previewFile) return;
 
     setImporting(true);
+    console.log('Starting import with mapping:', mapping); // Debug log
 
     try {
       const fd = new FormData();
       fd.append('file', previewFile);
       fd.append('mapping', JSON.stringify(mapping));
+      
+      console.log('Sending import request to:', `${API_BASE}/import/${activeSubTab}`); // Debug log
 
       const res = await fetch(`${API_BASE}/import/${activeSubTab}`, { method: 'POST', body: fd, credentials: 'include' });
 
@@ -732,18 +735,66 @@ export default function LKPSPage() {
       }
 
       const json = await res.json();
+      console.log('Import response:', json); // Debug log
 
       if (res.ok && json.success) {
-        setImportedCount(json.imported || previewRows.length);
+        const importedCount = json.added || 0;
+        const failedCount = json.failed || 0;
+        
+        setImportedCount(importedCount);
         fetchData();
         setShowPreviewModal(false);
-        setShowSuccessModal(true);
         setPreviewFile(null);
         setPreviewHeaders([]);
         setPreviewRows([]);
         setMapping({});
+        
+        // Jika ada yang berhasil tapi juga ada yang gagal
+        if (failedCount > 0 && importedCount > 0) {
+          let warningMessage = `${importedCount} data berhasil diimport, ${failedCount} data gagal.`;
+          
+          if (json.errors && json.errors.length > 0) {
+            const errorDetails = json.errors.slice(0, 2).map(err => 
+              `Baris ${err.row}: ${err.error}`
+            ).join('\n');
+            warningMessage += `\n\nContoh error:\n${errorDetails}`;
+            
+            if (json.errors.length > 2) {
+              warningMessage += `\n... dan ${json.errors.length - 2} error lainnya`;
+            }
+          }
+          
+          showPopup(warningMessage, 'info');
+        }
+        
+        // Tampilkan modal sukses jika semua berhasil
+        if (importedCount > 0 && failedCount === 0) {
+          setShowSuccessModal(true);
+        } else if (importedCount > 0) {
+          // Jika ada yang berhasil meskipun ada yang gagal, tetap tampilkan sukses
+          setShowSuccessModal(true);
+        }
       } else {
-        showPopup(json.message || 'Gagal import file', 'error');
+        // Jika benar-benar gagal (tidak ada yang berhasil)
+        let errorMessage = json.message || 'Tidak ada data yang berhasil diimport.';
+        
+        if (json.errors && json.errors.length > 0) {
+          const errorDetails = json.errors.slice(0, 3).map(err => 
+            `Baris ${err.row}: ${err.error}`
+          ).join('\n');
+          errorMessage += `\n\nDetail error:\n${errorDetails}`;
+          
+          if (json.errors.length > 3) {
+            errorMessage += `\n... dan ${json.errors.length - 3} error lainnya`;
+          }
+        }
+        
+        showPopup(errorMessage, 'error');
+        setShowPreviewModal(false);
+        setPreviewFile(null);
+        setPreviewHeaders([]);
+        setPreviewRows([]);
+        setMapping({});
       }
     } catch (err) {
       console.error('Import error:', err);

@@ -372,14 +372,22 @@ export const importExcel = [
           });
 
           console.log(`IMPORT - Row ${i + 1} mapped:`, mappedData, `Prodi: ${record_prodi}`);
+          console.log(`IMPORT - Row ${i + 1} raw:`, rawRow);
+          console.log(`IMPORT - Mapping used:`, mapping);
 
-          // Validate required fields
+          // Validate required fields - angka 0 tetap dianggap valid
           const fields = subtabFields[type] || [];
           const missingFields = fields
-            .filter(field => !mappedData[field.key] || mappedData[field.key] === '')
+            .filter(field => {
+              const value = mappedData[field.key];
+              // Jika value adalah 0 (angka), dianggap valid
+              if (value === 0 || value === '0') return false;
+              // Jika value kosong/null/undefined/'', dianggap missing
+              return !value || value === '';
+            })
             .map(field => field.label);
           
-          console.log("missing: ", missingFields);
+          console.log("IMPORT - Missing fields:", missingFields);
 
           if (missingFields.length > 0) {
             errors.push({ 
@@ -411,6 +419,17 @@ export const importExcel = [
       }
 
       console.log("IMPORT - Complete:", { added, failed: errors.length });
+
+      // Jika tidak ada data yang berhasil diimport, kembalikan error
+      if (added === 0) {
+        return res.status(400).json({
+          success: false,
+          message: `Tidak ada data yang berhasil diimport. Semua ${errors.length} baris gagal.`,
+          added: 0,
+          failed: errors.length,
+          errors: errors.slice(0, 10)
+        });
+      }
 
       res.json({
         success: true,
@@ -471,8 +490,13 @@ function generateSuggestions(headers, type) {
 
 // Normalisasi value untuk consistency
 function normalizeValue(value) {
+  // Jika value adalah 0, kembalikan 0 (jangan null)
+  if (value === 0 || value === '0') return value;
+  // Jika undefined/null/empty string, kembalikan null
   if (value === undefined || value === null || value === "") return null;
+  // Jika string, trim whitespace
   if (typeof value === 'string') return value.trim();
+  // Return value as is
   return value;
 }
 
