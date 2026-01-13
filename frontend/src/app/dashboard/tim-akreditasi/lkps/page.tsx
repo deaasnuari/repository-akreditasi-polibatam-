@@ -5,7 +5,6 @@ import { FileText, Upload, Download, Save, Plus, Edit, Trash2, X, CheckCircle, A
 import { usePathname, useRouter } from "next/navigation";
 import { getReviews as fetchReviews } from '@/services/reviewService';
 
-import NotificationBell from '../NotificationBell';
 const API_BASE = 'http://localhost:5000/api/budaya-mutu'; 
 
 type User = {
@@ -852,7 +851,10 @@ export default function LKPSPage() {
       if (res.ok && json.success) {
         setStrukturFileName(json.fileName || file.name);
         setStrukturFileUrl(`http://localhost:5000${json.fileUrl}`);
-        setStrukturFileId(json.fileId);
+        // Update fileId baik saat upload baru maupun update
+        if (json.fileId) {
+          setStrukturFileId(json.fileId);
+        }
         showPopup(strukturFileId ? 'Struktur organisasi berhasil diupdate!' : 'Upload struktur organisasi berhasil!', 'success');
       } else {
         showPopup(json.message || 'Upload gagal', 'error');
@@ -866,6 +868,8 @@ export default function LKPSPage() {
   };
 
   const handleDeleteStruktur = async () => {
+    console.log('handleDeleteStruktur called, strukturFileId:', strukturFileId);
+    
     if (!strukturFileId) {
       showPopup("ID file tidak ditemukan", "error");
       return;
@@ -876,6 +880,7 @@ export default function LKPSPage() {
       "Apakah Anda yakin ingin menghapus file struktur organisasi ini?",
       async () => {
         try {
+          console.log('Deleting struktur with ID:', strukturFileId);
           const res = await fetch(`${API_BASE}/struktur/${strukturFileId}`, {
             method: "DELETE",
             credentials: 'include',
@@ -1300,7 +1305,6 @@ export default function LKPSPage() {
               </div>
             </div>
             <div className="flex gap-2 items-center">
-              <NotificationBell />
               <button onClick={handleSaveDraft} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg transition-colors duration-200 hover:bg-[#ADE7F7]">
                 <Save size={16} /> Draft
               </button>
@@ -1332,16 +1336,8 @@ export default function LKPSPage() {
             
             {/* Struktur Organisasi */}
             <div className="bg-white rounded-lg shadow p-4">
-              <div className="flex justify-between items-center mb-4">
+              <div className="mb-4">
                 <h3 className="font-bold text-gray-800">Struktur Organisasi</h3>
-
-                <label
-                  htmlFor="strukturFile"
-                  className="px-3 py-1 bg-[#183A64] text-white text-sm rounded transition-colors duration-200 hover:bg-[#ADE7F7] hover:text-[#183A64] cursor-pointer flex items-center gap-2"
-                >
-                  <Upload size={16} />
-                  {strukturFileUrl ? "Ganti File" : "Upload Struktur Organisasi"}
-                </label>
                 <input
                   id="strukturFile"
                   type="file"
@@ -1351,27 +1347,32 @@ export default function LKPSPage() {
                 />
               </div>
 
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center relative">
-                {strukturFileUrl ? (
-                  <>
-                    <div className="absolute top-3 right-3 flex gap-2">
-                      <label
-                        htmlFor="strukturFile"
-                        className="p-2 bg-blue-100 rounded-full transition-colors duration-200 hover:bg-[#ADE7F7] cursor-pointer"
-                        title="Ganti File"
-                      >
-                        <Edit size={16} className="text-blue-700" />
-                      </label>
+              {strukturFileUrl ? (
+                <div className="space-y-3">
+                  {/* Tombol aksi di atas preview */}
+                  <div className="flex justify-end gap-2">
+                    <label
+                      htmlFor="strukturFile"
+                      className="flex items-center gap-1 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg transition-colors duration-200 hover:bg-blue-200 cursor-pointer shadow"
+                      title="Edit File"
+                    >
+                      <Edit size={16} />
+                      <span className="text-sm font-medium">Edit</span>
+                    </label>
 
-                      <button
-                        onClick={handleDeleteStruktur}
-                        className="p-2 bg-red-100 rounded-full hover:bg-red-200"
-                        title="Hapus File"
-                      >
-                        <Trash2 size={16} className="text-red-700" />
-                      </button>
-                    </div>
+                    <button
+                      onClick={handleDeleteStruktur}
+                      className="flex items-center gap-1 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 shadow"
+                      title="Hapus File"
+                      type="button"
+                    >
+                      <Trash2 size={16} />
+                      <span className="text-sm font-medium">Hapus</span>
+                    </button>
+                  </div>
 
+                  {/* Preview file */}
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                     <div className="mt-4">
                       {strukturFileUrl.endsWith('.pdf') ? (
                         <iframe
@@ -1391,11 +1392,20 @@ export default function LKPSPage() {
                     <p className="mt-2 text-sm text-gray-600 italic">
                       {strukturFileName}
                     </p>
-                  </>
-                ) : (
-                  <p className="text-gray-500">Belum ada file struktur organisasi yang diupload.</p>
-                )}
-              </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                  <p className="text-gray-500 mb-4">Belum ada file struktur organisasi yang diupload.</p>
+                  <label
+                    htmlFor="strukturFile"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-[#183A64] text-white rounded-lg cursor-pointer hover:bg-[#ADE7F7] hover:text-[#183A64] transition-colors"
+                  >
+                    <Upload size={16} />
+                    <span>Upload File</span>
+                  </label>
+                </div>
+              )}
             </div>
 
             {/* Sub-tabs */}

@@ -353,13 +353,17 @@ export const importExcel = [
           // Tentukan prodi untuk record ini
           let record_prodi = req.user.prodi; 
           if (mapping.prodi && rawRow.hasOwnProperty(mapping.prodi)) {
-            record_prodi = rawRow[mapping.prodi];
+            const prodiFromExcel = rawRow[mapping.prodi];
+            if (prodiFromExcel && prodiFromExcel.trim() !== '') {
+              record_prodi = prodiFromExcel;
+            }
           }
 
           if (!record_prodi) {
              errors.push({ 
               row: i + 1, 
-              error: `Prodi tidak ditemukan untuk baris ini.` 
+              error: `Prodi tidak ditemukan untuk baris ini.`,
+              data: rawRow
             });
             continue;
           }
@@ -377,9 +381,14 @@ export const importExcel = [
 
           // Validate required fields - angka 0 tetap dianggap valid
           const fields = subtabFields[type] || [];
+          
+          console.log(`IMPORT - Validating ${fields.length} fields for type: ${type}`);
+          console.log(`IMPORT - Fields to validate:`, fields.map(f => f.key));
+          
           const missingFields = fields
             .filter(field => {
               const value = mappedData[field.key];
+              console.log(`IMPORT - Checking field ${field.key}: value="${value}", type=${typeof value}`);
               // Jika value adalah 0 (angka), dianggap valid
               if (value === 0 || value === '0') return false;
               // Jika value kosong/null/undefined/'', dianggap missing
@@ -392,7 +401,9 @@ export const importExcel = [
           if (missingFields.length > 0) {
             errors.push({ 
               row: i + 1, 
-              error: `Field wajib kosong: ${missingFields.join(', ')}` 
+              error: `Field wajib kosong: ${missingFields.join(', ')}`,
+              mappedData: cleanData,
+              rawData: rawRow
             });
             continue;
           }
@@ -594,6 +605,7 @@ export const updateStruktur = async (req, res) => {
     res.json({
       success: true,
       message: "File berhasil diupdate",
+      fileId: Number(id),
       fileName: file.originalname,
       fileUrl: `/uploads/struktur/${path.basename(file.path)}`,
     });

@@ -81,56 +81,6 @@ export default function DashboardAkreditasi() {
                     <p className="text-sm text-blue-900">-</p>
                   )}
                 </div>
-                <div className="relative notification-container">
-                  <button 
-                    onClick={() => setNotifOpen(!notifOpen)}
-                    className="relative p-2 hover:bg-blue-200 rounded-full transition-colors"
-                    aria-label="Notifikasi"
-                  >
-                    <Bell className="text-blue-900" size={24} />
-                    {notifikasi.length > 0 && (
-                      <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-blue-100 animate-pulse"></span>
-                    )}
-                  </button>
-                  
-                  {/* Notification Dropdown */}
-                  {notifOpen && (
-                    <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50 animate-fadeIn">
-                      <div className="p-4 border-b border-gray-200 bg-blue-50">
-                        <div className="flex justify-between items-center">
-                          <h3 className="font-bold text-gray-800">Notifikasi</h3>
-                          <span className="text-xs bg-red-500 text-white px-2 py-1 rounded-full">{notifikasi.length}</span>
-                        </div>
-                      </div>
-                      <div className="max-h-96 overflow-y-auto">
-                        {notifikasi.length > 0 ? (
-                          notifikasi.map((item, idx) => (
-                            <div key={idx} className="p-4 hover:bg-gray-50 border-b border-gray-100 cursor-pointer transition-colors">
-                              <div className="flex items-start justify-between mb-2">
-                                <h4 className="font-semibold text-sm text-gray-800">{item.title}</h4>
-                                <div className="w-2 h-2 bg-orange-500 rounded-full mt-1.5 flex-shrink-0 ml-2"></div>
-                              </div>
-                              <p className="text-xs text-gray-600">{item.desc}</p>
-                              <p className="text-xs text-gray-400 mt-2">Baru saja</p>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="p-8 text-center">
-                            <Bell className="mx-auto text-gray-300 mb-2" size={32} />
-                            <p className="text-sm text-gray-500">Tidak ada notifikasi</p>
-                          </div>
-                        )}
-                      </div>
-                      {notifikasi.length > 0 && (
-                        <div className="p-3 border-t border-gray-200 bg-gray-50">
-                          <button className="w-full text-center text-xs text-blue-600 hover:text-blue-800 font-medium">
-                            Tandai semua sudah dibaca
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
               </div>
             </div>
           </div>
