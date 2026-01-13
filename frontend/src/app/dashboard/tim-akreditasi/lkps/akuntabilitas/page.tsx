@@ -216,6 +216,34 @@ export default function AkuntabilitasPage() {
     setImporting(true);
     try {
       const json = await previewImportAkuntabilitas(file, activeSubTab);
+      
+      // Validasi struktur tabel berdasarkan required fields
+      const fieldMapping = getFieldMappingForSubTab(activeSubTab);
+      const requiredFields = requiredFieldsBySubtab[activeSubTab] || [];
+      const expectedHeaders = requiredFields.map(field => {
+        const f = fieldMapping.find(fm => fm.key === field);
+        return f ? f.label : field;
+      }).filter(Boolean);
+      
+      const headers = json.headers || [];
+      const missingHeaders: string[] = [];
+      for (const expectedHeader of expectedHeaders) {
+        const headerExists = headers.some((h: string) => 
+          String(h).toLowerCase().trim() === String(expectedHeader).toLowerCase().trim()
+        );
+        if (!headerExists) {
+          missingHeaders.push(expectedHeader);
+        }
+      }
+      
+      if (missingHeaders.length > 0) {
+        const errorMsg = `❌ Struktur tabel tidak sesuai!\n\nKolom yang diperlukan tidak ditemukan:\n${missingHeaders.map(h => `• ${h}`).join('\n')}\n\nSilakan pastikan file Excel memiliki kolom yang sesuai dengan template.`;
+        showPopup(errorMsg, 'error');
+        setImporting(false);
+        try { event.target.value = ''; } catch {}
+        return;
+      }
+      
       setPreviewFile(file);
       setPreviewHeaders(json.headers || []);
       setPreviewRows(json.previewRows || []);

@@ -382,6 +382,30 @@ export default function RelevansiPendidikanPage() {
         const headers = jsonData[0] as string[];
         const rows = jsonData.slice(1) as any[][];
 
+        // Validasi struktur tabel berdasarkan required fields
+        const fieldMap = getFieldMappingForSubTab(activeSubTab);
+        const requiredFields = requiredFieldsBySubtab[activeSubTab] || [];
+        const expectedHeaders = requiredFields.map(field => fieldMap[field]).filter(Boolean);
+        
+        // Cek apakah header yang diperlukan ada di Excel
+        const missingHeaders: string[] = [];
+        for (const expectedHeader of expectedHeaders) {
+          const headerExists = headers.some(h => 
+            String(h).toLowerCase().trim() === String(expectedHeader).toLowerCase().trim()
+          );
+          if (!headerExists) {
+            missingHeaders.push(expectedHeader);
+          }
+        }
+        
+        if (missingHeaders.length > 0) {
+          const errorMsg = `❌ Struktur tabel tidak sesuai!\n\nKolom yang diperlukan tidak ditemukan:\n${missingHeaders.map(h => `• ${h}`).join('\n')}\n\nSilakan pastikan file Excel memiliki kolom yang sesuai dengan template.`;
+          showPopup(errorMsg, 'error');
+          setImporting(false);
+          e.target.value = '';
+          return;
+        }
+
         // convert preview rows to objects keyed by header for easier rendering
         const objRows = rows.map((r) => {
           const obj: Record<string, any> = {};
@@ -393,7 +417,7 @@ export default function RelevansiPendidikanPage() {
 
         setPreviewHeaders(headers);
         setPreviewRows(objRows.slice(0, 5));
-        // initialize mapping to empty or best-effort suggestions
+        applyAutoMap();
         const initMap: Record<string, string> = {};
         headers.forEach(h => { initMap[h] = '' });
         setMapping(initMap);
@@ -419,7 +443,6 @@ export default function RelevansiPendidikanPage() {
         const data = new Uint8Array(event.target?.result as ArrayBuffer);
         const workbook = XLSX.read(data, { type: 'array' });
         const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-        // const jsonData = XLSX.utils.sheet_to_json(firstSheet); // not needed; server will parse file
 
         // REFORMAT mapping to backend-expected shape: [{ dbField: excelHeader, ... }]
         const reversed: Record<string, string> = {};
@@ -465,16 +488,51 @@ export default function RelevansiPendidikanPage() {
   // Auto-map suggestion: try to match header to known field labels
   const applyAutoMap = () => {
     const fieldMap = getFieldMappingForSubTab(activeSubTab);
-    const normalizedFields: Array<{ key: string; label: string; norm: string }> = Object.entries(fieldMap).map(([k, v]) => ({ key: k, label: String(v), norm: String(v).toLowerCase().replace(/[^a-z0-9]/g, '') }));
+    
+    // Sort by label length (longer first for specificity)
+    const sortedFields = Object.entries(fieldMap).sort((a, b) => {
+      return b[1].toString().length - a[1].toString().length;
+    });
+    
+    const usedHeaders = new Set<string>();
     const newMap: Record<string, string> = { ...mapping };
+    
+    // Try exact case-insensitive match first
+    for (const [key, label] of sortedFields) {
+      for (const header of previewHeaders) {
+        if (usedHeaders.has(header)) continue;
+        
+        if (header.toLowerCase() === String(label).toLowerCase()) {
+          newMap[header] = key;
+          usedHeaders.add(header);
+          break;
+        }
+      }
+    }
+    
+    // Then try partial matching for unmapped headers
     previewHeaders.forEach(h => {
+      if (usedHeaders.has(h)) return;
+      
       const normH = String(h).toLowerCase().replace(/[^a-z0-9]/g, '');
       let best: string | null = null;
-      for (const f of normalizedFields) {
-        if (normH.includes(f.norm) || f.norm.includes(normH)) { best = f.key; break; }
+      
+      for (const [k, v] of sortedFields) {
+        if (usedHeaders.has(h)) break;
+        
+        const normLabel = String(v).toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (normH.includes(normLabel) || normLabel.includes(normH)) { 
+          best = k; 
+          break; 
+        }
       }
-      if (best) newMap[h] = best;
+      
+      if (best) {
+        newMap[h] = best;
+        usedHeaders.add(h);
+      }
     });
+    
     setMapping(newMap);
   };
 
@@ -1277,11 +1335,36 @@ export default function RelevansiPendidikanPage() {
             )}
 
             {/* Preview Modal for Excel Import */}
-            {showPreviewModal && (
+            {showPreviewModal && (() => {
+              const requiredFields = requiredFieldsBySubtab[activeSubTab] || [];
+              const fieldMap = getFieldMappingForSubTab(activeSubTab);
+              const reversedMapping: Record<string, string> = {};
+              
+              // Reverse mapping: field -> header
+              Object.entries(mapping).forEach(([header, field]) => {
+                if (field) reversedMapping[field] = header;
+              });
+              
+              // Check which required fields are missing
+              const unmappedRequired = requiredFields.filter(field => !reversedMapping[field]);
+              const canImport = unmappedRequired.length === 0;
+              
+              return (
               <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
                 <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-4xl max-h-[80vh] overflow-auto">
                   <h3 className="text-lg font-semibold mb-4">Preview Excel Import</h3>
                   <p className="mb-4">Map the Excel columns to table fields for {activeSubTab.replace('-', ' ')}:</p>
+
+                  {!canImport && (
+                    <div className="mb-4 bg-red-50 border border-red-300 rounded-lg p-3 text-sm text-red-800">
+                      <strong>⚠️ Field yang belum di-map:</strong>
+                      <ul className="list-disc ml-5 mt-1">
+                        {unmappedRequired.map(field => (
+                          <li key={field}>{fieldMap[field] || field}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
 
                   <div className="mb-4">
                     <table className="min-w-full border text-sm">
@@ -1358,15 +1441,17 @@ export default function RelevansiPendidikanPage() {
                     </button>
                     <button
                       onClick={handleConfirmImport}
-                      disabled={importing}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                      disabled={importing || !canImport}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      title={!canImport ? 'Lengkapi mapping untuk semua field required' : ''}
                     >
                       {importing ? 'Importing...' : 'Confirm Import'}
                     </button>
                   </div>
                 </div>
               </div>
-            )}
+              );
+            })()}
           </div>
 
           {confirmDelete.open && (

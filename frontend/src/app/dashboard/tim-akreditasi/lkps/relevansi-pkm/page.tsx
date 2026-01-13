@@ -8,6 +8,7 @@ import { relevansiPkmService } from '@/services/relevansiPkmService';
 import type { SubTab } from '@/services/relevansiPkmService';
 import { getReviews as fetchReviews } from '@/services/reviewService';
 import { fetchData as apiFetch } from '@/services/api';
+import * as XLSX from 'xlsx';
 
 export default function RelevansiPkmPage() {
   const pathname = usePathname();
@@ -309,17 +310,48 @@ export default function RelevansiPkmPage() {
     setImporting(true);
     try {
       const json = await relevansiPkmService.previewImport(file, activeSubTab);
+      
+      // Validasi struktur tabel berdasarkan required fields
+      const fields = subtabFields[activeSubTab] || [];
+      const requiredFields = fields.slice(0, 3); // Ambil 3 field pertama sebagai required
+      const expectedHeaders = requiredFields.map(f => f.label);
+      
+      const headers = json.headers || [];
+      const missingHeaders: string[] = [];
+      for (const expectedHeader of expectedHeaders) {
+        const headerExists = headers.some((h: string) => 
+          String(h).toLowerCase().trim() === String(expectedHeader).toLowerCase().trim()
+        );
+        if (!headerExists) {
+          missingHeaders.push(expectedHeader);
+        }
+      }
+      
+      if (missingHeaders.length > 0) {
+        const errorMsg = `❌ Struktur tabel tidak sesuai!\n\nKolom yang diperlukan tidak ditemukan:\n${missingHeaders.map(h => `• ${h}`).join('\n')}\n\nSilakan pastikan file Excel memiliki kolom yang sesuai dengan template.`;
+        showPopup(errorMsg, 'error');
+        setImporting(false);
+        try { e.target.value = ''; } catch {}
+        return;
+      }
+      
       setPreviewFile(file);
       setPreviewHeaders(json.headers || []);
       setPreviewRows(json.previewRows || []);
       setSuggestions(json.suggestions || {});
       const initMap: Record<string,string> = {};
-      (json.headers || []).forEach(h => { initMap[h] = json.suggestions?.[h] ?? ''; });
+      (json.headers || []).forEach(h => { initMap[h] = ''; });
       setMapping(initMap);
       setShowPreviewModal(true);
+      
+      // Trigger auto-mapping after modal is shown
+      setTimeout(() => {
+        applySuggestions();
+      }, 100);
     } catch(err:any) {
       console.error(err);
       setErrorMsg(err.message || String(err));
+      showPopup('Gagal membaca file Excel', 'error');
     } finally {
       setImporting(false);
       try { e.target.value = ''; } catch {}
@@ -342,9 +374,105 @@ export default function RelevansiPkmPage() {
     } finally { setImporting(false); }
   };
 
+  // Download Template Excel
+  const downloadTemplate = () => {
+    const fields = subtabFields[activeSubTab] || [];
+    const headers = fields.map(f => f.label);
+    
+    // Create sample data based on subtab
+    const templateData: any[] = [];
+    const sampleRow: any = {};
+    
+    if (activeSubTab === 'sarana-prasarana') {
+      sampleRow[headers[0]] = 'Lab Komputer 1';
+      sampleRow[headers[1]] = '40';
+      sampleRow[headers[2]] = '120';
+      sampleRow[headers[3]] = 'M';
+      sampleRow[headers[4]] = 'L';
+      sampleRow[headers[5]] = 'PC Desktop, Proyektor';
+      sampleRow[headers[6]] = 'https://example.com/bukti';
+    } else if (activeSubTab === 'pkm-hibah') {
+      sampleRow[headers[0]] = '1';
+      sampleRow[headers[1]] = 'Dr. Jane Smith';
+      sampleRow[headers[2]] = 'PkM Pemberdayaan Masyarakat';
+      sampleRow[headers[3]] = '10';
+      sampleRow[headers[4]] = 'Hibah PkM Kompetitif';
+      sampleRow[headers[5]] = 'L';
+      sampleRow[headers[6]] = '2';
+      sampleRow[headers[7]] = '80';
+      sampleRow[headers[8]] = '100';
+      sampleRow[headers[9]] = '120';
+      sampleRow[headers[10]] = 'https://example.com/bukti';
+    } else {
+      // Generic template
+      headers.forEach((h, idx) => {
+        sampleRow[h] = idx === 0 ? '1' : 'Contoh Data';
+      });
+    }
+    
+    templateData.push(sampleRow);
+    
+    // Create worksheet
+    const ws = XLSX.utils.json_to_sheet(templateData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, activeSubTab);
+    
+    // Set column widths
+    ws['!cols'] = headers.map(() => ({ wch: 25 }));
+    
+    // Download
+    const fileName = `Template_${activeSubTab.replace(/-/g, '_')}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+    showPopup('Template berhasil diunduh', 'success');
+  };
+
   const applySuggestions = () => {
-    const newMap: Record<string,string> = { ...mapping };
-    previewHeaders.forEach(h => { if(suggestions[h]) newMap[h] = suggestions[h]; });
+    const fields = subtabFields[activeSubTab] || [];
+    const fieldMap: Record<string, string> = {};
+    fields.forEach(f => { fieldMap[f.key] = f.label; });
+    
+    // Sort by label length (longer first for specificity)
+    const sortedFields = Object.entries(fieldMap).sort((a, b) => {
+      return b[1].toString().length - a[1].toString().length;
+    });
+    
+    const usedHeaders = new Set<string>();
+    const newMap: Record<string, string> = { ...mapping };
+    
+    // Try exact case-insensitive match first
+    for (const [key, label] of sortedFields) {
+      for (const header of previewHeaders) {
+        if (usedHeaders.has(header)) continue;
+        
+        const normalizedHeader = String(header).toLowerCase().trim().replace(/\s+/g, ' ');
+        const normalizedLabel = String(label).toLowerCase().trim().replace(/\s+/g, ' ');
+        
+        if (normalizedHeader === normalizedLabel) {
+          newMap[header] = key;
+          usedHeaders.add(header);
+          break;
+        }
+      }
+    }
+    
+    // Then try partial match for remaining headers
+    for (const [key, label] of sortedFields) {
+      if (Object.values(newMap).includes(key)) continue; // Already mapped
+      
+      for (const header of previewHeaders) {
+        if (usedHeaders.has(header)) continue;
+        
+        const normalizedHeader = String(header).toLowerCase().trim().replace(/\s+/g, '');
+        const normalizedLabel = String(label).toLowerCase().trim().replace(/\s+/g, '');
+        
+        if (normalizedHeader.includes(normalizedLabel) || normalizedLabel.includes(normalizedHeader)) {
+          newMap[header] = key;
+          usedHeaders.add(header);
+          break;
+        }
+      }
+    }
+    
     setMapping(newMap);
   };
 

@@ -7,6 +7,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { relevansiPenelitianService, SubTab, DataItem } from '@/services/relevansiPenelitianService';
 import { getReviews as fetchReviews } from '@/services/reviewService';
 import { fetchData } from '@/services/api';
+import * as XLSX from 'xlsx';
 
 type User = {
   id: number;
@@ -187,8 +188,7 @@ export default function RelevansiPenelitianPage() {
       { key: 'namaprasarana', label: 'Nama Prasarana', type: 'text' },
       { key: 'dayatampung', label: 'Daya Tampung', type: 'number' },
       { key: 'luasruang', label: 'Luas Ruang (m²)', type: 'number' },
-      { key: 'miliksendiri', label: 'Milik sendiri (M)/Sewa (W)', type: 'text' },
-      { key: 'berlisensi', label: 'Berlisensi (L)/Public Domain (P)/Tidak Berlisensi (T)', type: 'text' },
+      { key: 'status', label: 'Berlisensi (L) / Milik Sendiri (M) / Sewa (W) / Public Domain (P) / Tidak Berlisensi (T)', type: 'text' },
       { key: 'perangkat', label: 'Perangkat', type: 'text' },
       { key: 'linkbukti', label: 'Link Bukti', type: 'text' },
     ],
@@ -342,17 +342,48 @@ export default function RelevansiPenelitianPage() {
     setImporting(true);
     try {
       const json = await relevansiPenelitianService.previewImport(file, activeSubTab);
+      
+      // Validasi struktur tabel berdasarkan required fields
+      const fields = subtabFields[activeSubTab] || [];
+      const requiredFields = fields.slice(0, 3); // Ambil 3 field pertama sebagai required
+      const expectedHeaders = requiredFields.map(f => f.label);
+      
+      const headers = json.headers || [];
+      const missingHeaders: string[] = [];
+      for (const expectedHeader of expectedHeaders) {
+        const headerExists = headers.some((h: string) => 
+          String(h).toLowerCase().trim() === String(expectedHeader).toLowerCase().trim()
+        );
+        if (!headerExists) {
+          missingHeaders.push(expectedHeader);
+        }
+      }
+      
+      if (missingHeaders.length > 0) {
+        const errorMsg = `❌ Struktur tabel tidak sesuai!\n\nKolom yang diperlukan tidak ditemukan:\n${missingHeaders.map(h => `• ${h}`).join('\n')}\n\nSilakan pastikan file Excel memiliki kolom yang sesuai dengan template.`;
+        showPopup(errorMsg, 'error');
+        setImporting(false);
+        try { e.target.value = ''; } catch {}
+        return;
+      }
+      
       setPreviewFile(file);
       setPreviewHeaders(json.headers || []);
       setPreviewRows(json.previewRows || []);
       setSuggestions(json.suggestions || {});
       const initMap: Record<string,string> = {};
-      (json.headers || []).forEach(h => { initMap[h] = json.suggestions?.[h] ?? ''; });
+      (json.headers || []).forEach(h => { initMap[h] = '' });
       setMapping(initMap);
       setShowPreviewModal(true);
+      
+      // Trigger auto-mapping after modal is shown
+      setTimeout(() => {
+        applySuggestions();
+      }, 100);
     } catch(err:any) {
       console.error(err);
       setErrorMsg(err.message || String(err));
+      showPopup('Gagal membaca file Excel', 'error');
     } finally {
       setImporting(false);
       try { e.target.value = ''; } catch {}
@@ -377,8 +408,52 @@ export default function RelevansiPenelitianPage() {
   };
 
   const applySuggestions = () => {
-    const newMap: Record<string,string> = { ...mapping };
-    previewHeaders.forEach(h => { if(suggestions[h]) newMap[h] = suggestions[h]; });
+    const fields = subtabFields[activeSubTab] || [];
+    const fieldMap: Record<string, string> = {};
+    fields.forEach(f => { fieldMap[f.key] = f.label; });
+    
+    // Sort by label length (longer first for specificity)
+    const sortedFields = Object.entries(fieldMap).sort((a, b) => {
+      return b[1].toString().length - a[1].toString().length;
+    });
+    
+    const usedHeaders = new Set<string>();
+    const newMap: Record<string, string> = { ...mapping };
+    
+    // Try exact case-insensitive match first
+    for (const [key, label] of sortedFields) {
+      for (const header of previewHeaders) {
+        if (usedHeaders.has(header)) continue;
+        
+        const normalizedHeader = String(header).toLowerCase().trim().replace(/\s+/g, ' ');
+        const normalizedLabel = String(label).toLowerCase().trim().replace(/\s+/g, ' ');
+        
+        if (normalizedHeader === normalizedLabel) {
+          newMap[header] = key;
+          usedHeaders.add(header);
+          break;
+        }
+      }
+    }
+    
+    // Then try partial match for remaining headers
+    for (const [key, label] of sortedFields) {
+      if (Object.values(newMap).includes(key)) continue; // Already mapped
+      
+      for (const header of previewHeaders) {
+        if (usedHeaders.has(header)) continue;
+        
+        const normalizedHeader = String(header).toLowerCase().trim().replace(/\s+/g, '');
+        const normalizedLabel = String(label).toLowerCase().trim().replace(/\s+/g, '');
+        
+        if (normalizedHeader.includes(normalizedLabel) || normalizedLabel.includes(normalizedHeader)) {
+          newMap[header] = key;
+          usedHeaders.add(header);
+          break;
+        }
+      }
+    }
+    
     setMapping(newMap);
   };
 

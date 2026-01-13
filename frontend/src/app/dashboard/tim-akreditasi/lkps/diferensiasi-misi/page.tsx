@@ -383,22 +383,67 @@ export default function DiferensiasiMisiPage() {
     if (!file) return;
 
     try {
-      showPopup('Mengimport file Excel...', 'info');
-      const result = await importExcelDiferensiasiMisi(file, 'visi-misi');
-      
-      if (result.success) {
-        showPopup(`${result.message}`, 'success');
-        fetchData();
-      } else {
-        showPopup(result.message || 'Gagal import data', 'error');
-      }
-    } catch (err) {
-      console.error('Import error:', err);
-      showPopup('Terjadi kesalahan saat import data', 'error');
-    }
+      // Read file untuk validasi struktur
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        try {
+          const data = new Uint8Array(event.target?.result as ArrayBuffer);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+          const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
 
-    // Reset file input
-    e.target.value = '';
+          if (jsonData.length < 2) {
+            showPopup('File Excel harus memiliki minimal 2 baris (header dan data)', 'error');
+            e.target.value = '';
+            return;
+          }
+
+          const headers = jsonData[0] as string[];
+          
+          // Validasi struktur tabel - diferensiasi misi butuh 3 kolom wajib
+          const requiredHeaders = ['unit_kerja', 'tipe_data', 'konten'];
+          const missingHeaders: string[] = [];
+          
+          for (const reqHeader of requiredHeaders) {
+            const headerExists = headers.some(h => 
+              String(h).toLowerCase().trim() === reqHeader.toLowerCase().trim()
+            );
+            if (!headerExists) {
+              missingHeaders.push(reqHeader);
+            }
+          }
+          
+          if (missingHeaders.length > 0) {
+            const errorMsg = `❌ Struktur tabel tidak sesuai!\n\nKolom yang diperlukan tidak ditemukan:\n${missingHeaders.map(h => `• ${h}`).join('\n')}\n\nSilakan pastikan file Excel memiliki kolom: unit_kerja, tipe_data, konten`;
+            showPopup(errorMsg, 'error');
+            e.target.value = '';
+            return;
+          }
+
+          // Jika validasi lolos, lanjut import
+          showPopup('Mengimport file Excel...', 'info');
+          const result = await importExcelDiferensiasiMisi(file, 'visi-misi');
+          
+          if (result.success) {
+            showPopup(`${result.message}`, 'success');
+            fetchData();
+          } else {
+            showPopup(result.message || 'Gagal import data', 'error');
+          }
+        } catch (err) {
+          console.error('Import error:', err);
+          showPopup('Terjadi kesalahan saat import data', 'error');
+        }
+        
+        // Reset file input
+        e.target.value = '';
+      };
+      reader.readAsArrayBuffer(file);
+    } catch (err) {
+      console.error('File read error:', err);
+      showPopup('Gagal membaca file Excel', 'error');
+      e.target.value = '';
+    }
   };
 
   // --- Download Template ---
