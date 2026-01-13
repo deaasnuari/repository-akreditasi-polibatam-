@@ -186,6 +186,26 @@ class MatriksPenilaianService {
   }
 
   /**
+   * Reset / delete all scores for a prodi on server
+   */
+  async resetScores(prodiName: string): Promise<ApiResponse> {
+    try {
+      const response = await fetch(`${API_BASE}/scores/${prodiName}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+
+      const result: ApiResponse = await response.json();
+      if (!response.ok) throw new Error(result.message || 'Gagal menghapus skor');
+      return result;
+    } catch (error) {
+      console.error('Error resetting scores:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Download file (untuk export)
    */
   downloadFile(blob: Blob, filename: string) {

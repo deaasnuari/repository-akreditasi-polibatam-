@@ -100,10 +100,19 @@ export default function MatriksPenilaianPage() {
     fetchData();
   }, [user, userLoaded]); // Dependencies include user and userLoaded
 
-  const handleReset = () => {
-    setCriteria(prev => prev.map(c => ({ ...c, skorInput: 0, skorTerbobot: 0 })));
-    setShowConfirmModal(false);
-    setShowSuccessModal(true);
+  const handleReset = async () => {
+    if (!user) return;
+    try {
+      // call backend to delete saved scores for this prodi
+      await matriksPenilaianService.resetScores(user.prodi);
+      setCriteria(prev => prev.map(c => ({ ...c, skorInput: 0, skorTerbobot: 0 })));
+      setShowConfirmModal(false);
+      setShowSuccessModal(true);
+    } catch (error) {
+      console.error('Failed to reset scores on server:', error);
+      setShowConfirmModal(false);
+      alert('Gagal reset skor di server. Periksa hak akses atau koneksi.');
+    }
   };
 
   const calculateTotalScore = () => {

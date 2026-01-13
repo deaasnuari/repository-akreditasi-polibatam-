@@ -6,6 +6,7 @@ import {
   getSummaryByProdi,
   getProdiList,
   exportToExcel,
+  deleteScoresByProdi,
 } from "../controllers/matriksPenilaianController.js";
 import { authenticateToken } from "../middleware/authMiddleware.js";
 
@@ -27,5 +28,7 @@ router.get("/summary/:prodiId", authenticateToken, getSummaryByProdi);
 router.get("/prodi", getProdiList);
 
 router.get("/export-excel", authenticateToken, exportToExcel);
+// DELETE /api/matriks-penilaian/scores/:prodiName
+router.delete("/scores/:prodiName", authenticateToken, deleteScoresByProdi);
 
 export default router;

@@ -303,3 +303,29 @@ export const exportToExcel = async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to export to Excel' });
   }
 };
+
+// DELETE /api/matriks-penilaian/scores/:prodiName
+export const deleteScoresByProdi = async (req, res) => {
+  try {
+    const { prodiName } = req.params;
+    const userId = req.user?.id;
+
+    // Validate user
+    const user = await prisma.users.findUnique({ where: { id: userId }, select: { role: true, prodi: true } });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Only allow TU or users belonging to the prodi to reset their own prodi scores
+    if (user.role !== 'TU' && user.prodi !== prodiName) {
+      return res.status(403).json({ success: false, message: 'Access denied. User cannot reset scores for this prodi.' });
+    }
+
+    const deleted = await prisma.criteria_scores.deleteMany({ where: { prodi: prodiName } });
+
+    res.json({ success: true, data: { deletedCount: deleted.count } });
+  } catch (error) {
+    console.error('Error deleting scores by prodi:', error);
+    res.status(500).json({ success: false, message: 'Failed to delete scores' });
+  }
+};
